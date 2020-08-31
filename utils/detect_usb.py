@@ -46,8 +46,8 @@ if __name__=='__main__':
                 dmap['PERI_USB']=dev
             if '1-2.1' in line:
                 dmap['VNAV_USB']=dev
-            if '1-5.3' in line:
-                dmap['ESC_USB']=dev
+            if '1-2.4' in line:
+                dmap['ESC_USB']=dev #esp32
 
 
 
