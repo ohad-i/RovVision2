@@ -1,20 +1,82 @@
-import numpy as np
+import serial
 import time
 import struct
-import serial
 
 
-def setSerialMessage(dshot_msg_l):
-    serial_buff = [0]*17
-    serial_buff[0] = 145    #start and code nibbles
-    
-    return serial_buff
+import optparse
 
-#ser = serial.Serial('/dev/ttyUSB0', 115200)
-ser = serial.Serial('COM11', 115200)
+parser = optparse.OptionParser("esp32Test")
+parser.add_option("--port", default='/dev/ttyUSB0', help='tty port')
+parser.add_option("--motorTest", default=False, action='store_true', help='test motors')
+parser.add_option("--motorId", default="1", help='motor to run 1-8')
+parser.add_option("--motorSpeed", default="0", help='1100 to 1900')
+parser.add_option("--ledTest", default=False, action='store_true',  help='commit led Test')
+parser.add_option("--ledPwm", default="0", help='1100 to 1900')
+parser.add_option("--camServo", default=False, action='store_true', help='do focus servo test')
 
-current_command = [0, 0, 0, 0, 0, 0, 0, 0]
-s_buff_64 = setSerialMessage(dshot_frames)
-ser.write(s_buff_64)
-time.sleep(5)
+opts, args = parser.parse_args()
+
+opMotors = 0x01
+opLeds = 0x02
+opCamServo = 0x03
+
+serialMotorsMsgPack = '<BBhhhhhhhh'
+serialLedsMsgPack = '<BBh'
+
+
+ser = serial.Serial(opts.port, 115200)
+msgBuf = None
+
+if opts.motorTest:
+    motorsVals = [0]*8
+    pwm = int(opts.motorSpeed) - 1500
+    motorsVals[int(opts.motorId)-1] = max(-400, min(400, pwm ))
+    print(motorsVals)
+    msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals ) 
+    print("perform motor test on motor %d to speed %d"%(int(opts.motorId), int(opts.motorSpeed)))
+
+if opts.ledTest:
+    pwm = int(int(opts.ledPwm)) - 1500
+    msgBuf = struct.pack(serialLedsMsgPack, 145, opLeds, max(-400, min(400, pwm)) ) 
+    print("perform led test, pwm: %d"%(int(opts.ledPwm) ))
+
+if opts.camServo:
+    for pwm in range(850,2250,50): #700<->220
+        msgBuf = struct.pack(serialLedsMsgPack, 145, opCamServo, pwm ) 
+        
+        print("perform servo test, pwm: %d"%(int(pwm) ))
+        if msgBuf is not None:
+            ser.write(msgBuf)
+            ser.flush()
+            time.sleep(1)
+
+
+
+
+if msgBuf is not None:
+    ser.write(msgBuf)
+    ser.flush()
+    time.sleep(1)
+
+else:
+    motorsVals = [0]*8
+    for i in range(0,8,2):
+        motorsVals[i] = 50
+        motorsVals[i+1] = -50
+        print(motorsVals)
+        msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals ) 
+        ser.write(msgBuf)
+        ser.flush()
+        time.sleep(0.2) 
+        motorsVals = [0]*8
+
+    motorsVals = [0]*8
+    print(motorsVals)
+    msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals )
+    ser.write(msgBuf)
+    ser.flush()
+    time.sleep(0.2) 
+
+
+
 
