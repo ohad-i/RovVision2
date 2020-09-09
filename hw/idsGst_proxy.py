@@ -9,6 +9,16 @@ import gi
 gi.require_version('Gst', '1.0')
 from gi.repository import GObject, Gst
 
+sys.path.append('../')
+sys.path.append('../utils')
+
+import zmq_topics
+import zmq_wrapper as utils
+import pickle 
+
+socket_pub = utils.publisher(zmq_topics.topic_camera_port)
+
+
 def get_dims(pipeline,name='dec'):
     pad = pipeline.get_by_name(name).pads[0]
     caps=pad.get_current_caps()
@@ -83,17 +93,20 @@ class Reader:
 
 
 class Writer:
-    def __init__(self,fname=None,ip='127.0.0.1',port=6666):
+    def __init__(self, fname=None,ip='127.0.0.1',port=6666):
         Gst.init(None)
         # pipe = 'videotestsrc is-live=true horizontal-speed=5 name=src ! x265enc bitrate=500 ! h265parse ! matroskamux ! filesink location=out.mkv'
         # pipe = 'videotestsrc is-live=true horizontal-speed=5 name=src '
         #pipe = 'v4l2src device=/dev/video2 name=src ! video/x-raw,format=YUY2,width=640,height=480 ' 
         enc = '264' 
-        bitrate = 20*1024*1024  # 1500 #bytes
-        mkvBitrate = 5*1024  # 1500 #bytes
+        bitrate = 15*1024*1024  # 1500 #bytes
+        mkvBitrate = 5*1024*1024  # 1500 #bytes
         nvidia = True
 
-        saveMKV = (fname is None)
+        saveMKV = False
+        if fname is not None:
+            saveMKV = True 
+        sendUdp = True
         if nvidia:
             encline1='! omxh{0}enc control-rate=2 bitrate={1} ! video/x-h{0}, stream-format=(string)avc '.format(enc,mkvBitrate)
             encline2='! omxh{0}enc control-rate=2 bitrate={1} ! video/x-h{0}, stream-format=(string)byte-stream '.format(enc,bitrate)
@@ -103,6 +116,7 @@ class Writer:
             pipe += 'videoconvert ! video/x-raw,format=RGB ! appsink name=sink '
             
             if saveMKV:
+                print('save mkv')
                 pipe += 't. ! queue ! '
 
                 pipe += 'videoconvert ! video/x-raw,format=I420 '
@@ -111,10 +125,12 @@ class Writer:
             #pipe += '! fakesink sync=false '.format(enc)
             #pipe += '! filesink location=out.h{} '.format(enc)
             #pipe += '! filesink location=out.h{} '.format(enc)
-            pipe += 't. ! queue ! '
-            pipe += 'videoconvert ! video/x-raw,format=I420 '
-            pipe += encline2
-            pipe += '! rtph{}pay ! udpsink port={} host={} sync=false'.format(enc,port,ip)
+            if sendUdp:
+                print('send udp')
+                pipe += 't. ! queue ! '
+                pipe += 'videoconvert ! video/x-raw,format=I420 '
+                pipe += encline2
+                pipe += '! rtph{}pay ! udpsink port={} host={} sync=false'.format(enc,port,ip)
         
         else:
             encline='! x{}enc tune=zerolatency  bitrate={} '.format(enc,bitrate)
@@ -204,16 +220,16 @@ if __name__ == '__main__':
                 break
             cnt+=1
     else:
-        wt = Writer('out1.mkv',ip=args.ip,port=args.port)
+        wt = Writer(None, ip=args.ip,port=args.port)
         tic=time.time()
         dflag=True
         cnt = 0.0
         ticf = time.time()
         
-        doShow = True
+        doShow = False
         winName = 'input'
            
-
+        frameCnt = 0
         while True:
             time.sleep(0.0001)
             '''
@@ -227,6 +243,7 @@ if __name__ == '__main__':
             ret = wt.get_next()
             if 'image' in ret:
                 cnt += 1
+                frameCnt += 1
                 if time.time() - ticf >= 3:
                     fps = cnt / (time.time() - ticf)
                     print('fps: %0.2f, imshape: [%d,%d]'%(fps,ret['image'][1].shape[1], ret['image'][1].shape[0] ))
@@ -238,5 +255,11 @@ if __name__ == '__main__':
                     key = cv2.waitKey(1)
                     if key&0xff == 27:
                         break
+                socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
+                    pickle.dumps(
+                        (frameCnt, ret['image'][1].shape)),
+                        ret['image'][1].tobytes()])
+                time.sleep(0.001)
+                socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, pickle.dumps( (frameCnt, ret['ts']) )] )
                 #print('got image',ret['image'][0],ret['image'][1].shape,time.time()-tic)
 
