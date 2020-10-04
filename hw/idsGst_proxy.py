@@ -106,7 +106,7 @@ class Writer:
         saveMKV = False
         if fname is not None:
             saveMKV = True 
-        sendUdp = True
+        sendUdp = False
         if nvidia:
             encline1='! omxh{0}enc control-rate=2 bitrate={1} ! video/x-h{0}, stream-format=(string)avc '.format(enc,mkvBitrate)
             encline2='! omxh{0}enc control-rate=2 bitrate={1} ! video/x-h{0}, stream-format=(string)byte-stream '.format(enc,bitrate)
@@ -255,11 +255,11 @@ if __name__ == '__main__':
                     key = cv2.waitKey(1)
                     if key&0xff == 27:
                         break
+                    
                 socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-                    pickle.dumps(
-                        (frameCnt, ret['image'][1].shape)),
-                        ret['image'][1].tobytes()])
-                time.sleep(0.001)
-                socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, pickle.dumps( (frameCnt, ret['ts']) )] )
+                                        pickle.dumps((frameCnt, ret['image'][1].shape)),
+                                            ret['image'][1].tobytes()])
+                socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
+                                            pickle.dumps( (frameCnt, ret['ts']) )] )
                 #print('got image',ret['image'][0],ret['image'][1].shape,time.time()-tic)
-
+                

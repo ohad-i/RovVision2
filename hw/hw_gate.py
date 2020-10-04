@@ -146,64 +146,64 @@ async def main():
 
 def mainHwGate():
     while True:
-    socks = zmq.select(subs_socks, [], [], 0.005)[0]
-    for sock in socks:
-        ret=sock.recv_multipart()
-        topic,data=ret[0],pickle.loads(ret[1])
-        if topic==zmq_topics.topic_lights:
-            pwm = int((data) - 2)*200
-            print('got lights command',data, pwm)
-            msgBuf = struct.pack(serialLedsMsgPack, marker, OP_LEDS, max(-400, min(400, pwm)) )
-            ser.write(msgBuf)
-            ser.flush()
-        if topic==zmq_topics.topic_focus:
-            pwm = int(data)
-            print('got focus command', pwm)
-            msgBuf = struct.pack(serialCamServoMsgPack, marker, OP_CAMSERVO, pwm )
-            ser.write(msgBuf)
-            ser.flush()
- 
-
-        elif ret[0]==zmq_topics.topic_thrusters_comand:
-            _, current_command = pickle.loads(ret[1])
-            c = current_command
-            if rov_type == 3:
-                m = [0]*8
-
-                m[0]=c[5] # c[6]
-                m[1]=c[4] #c[7]
-                m[2]=c[6] #-c[5]
-                m[3]=c[7] #!!!c[5]!!!#-c[4]
-                m[4]=c[1]  #c[2]
-                m[5]=-c[0] #-c[3]
-                m[6]=c[2]  #c[1]
-                m[7]=-c[3] #-c[0]
-                '''
-                m[0]=c[5]
-                m[1]=c[4]
-                m[2]=-c[6]
-                m[3]=-c[7]
-                m[4]=-c[1]
-                m[5]=-c[0]
-                m[6]=-c[2]
-                m[7]=-c[3]
-                '''
-            motorsPwm = setCmdToPWM(m)
-            #print('---from controller.py--->',current_command)
-            #print('---to esp32 --->',motorsPwm)
-            msgBuf = struct.pack(serialMotorsMsgPack, marker, OP_MOTORS, *motorsPwm)
-            ser.write(msgBuf)
-            ser.flush()
-
-    ret = select([ser],[],[],0.005)[0]
-    if len(ret) > 0:
-        baro_m = ser.read(2)
-        tic = time.time()
-        bar_D = struct.unpack('h',baro_m)[0]/100
-        #print('--->', bar_D)
-        pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
-
-
+        socks = zmq.select(subs_socks, [], [], 0.005)[0]
+        for sock in socks:
+            ret=sock.recv_multipart()
+            topic,data=ret[0],pickle.loads(ret[1])
+            if topic==zmq_topics.topic_lights:
+                pwm = int((data) - 2)*200
+                print('got lights command',data, pwm)
+                msgBuf = struct.pack(serialLedsMsgPack, marker, OP_LEDS, max(-400, min(400, pwm)) )
+                ser.write(msgBuf)
+                ser.flush()
+            if topic==zmq_topics.topic_focus:
+                pwm = int(data)
+                print('got focus command', pwm)
+                msgBuf = struct.pack(serialCamServoMsgPack, marker, OP_CAMSERVO, pwm )
+                ser.write(msgBuf)
+                ser.flush()
+     
+    
+            elif ret[0]==zmq_topics.topic_thrusters_comand:
+                _, current_command = pickle.loads(ret[1])
+                c = current_command
+                if rov_type == 4:
+                    m = [0]*8
+    
+                    m[0]=c[5] # c[6]
+                    m[1]=c[4] #c[7]
+                    m[2]=c[6] #-c[5]
+                    m[3]=c[7] #!!!c[5]!!!#-c[4]
+                    m[4]=c[1]  #c[2]
+                    m[5]=-c[0] #-c[3]
+                    m[6]=c[2]  #c[1]
+                    m[7]=-c[3] #-c[0]
+                    '''
+                    m[0]=c[5]
+                    m[1]=c[4]
+                    m[2]=-c[6]
+                    m[3]=-c[7]
+                    m[4]=-c[1]
+                    m[5]=-c[0]
+                    m[6]=-c[2]
+                    m[7]=-c[3]
+                    '''
+                motorsPwm = setCmdToPWM(m)
+                #print('---from controller.py--->',current_command)
+                #print('---to esp32 --->',motorsPwm)
+                msgBuf = struct.pack(serialMotorsMsgPack, marker, OP_MOTORS, *motorsPwm)
+                ser.write(msgBuf)
+                ser.flush()
+    
+        ret = select([ser],[],[],0.005)[0]
+        if len(ret) > 0:
+            baro_m = ser.read(2)
+            tic = time.time()
+            bar_D = struct.unpack('h',baro_m)[0]/100
+            #print('--->', bar_D)
+            pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
+    
+    
 
 if __name__=='__main__':
     if rov_type != 4:

@@ -12,6 +12,10 @@ if rov_type==2:
 if rov_type==3:
     cam_resx,cam_resy=1920,1200#1080 todo change to 1080 for bluerobotics cameras
     camera_setup='mono' #'mono'
+if rov_type==4:
+    cam_resx,cam_resy=1936,1216#1080 todo change to 1080 for bluerobotics cameras
+    camera_setup='mono' #'mono'
+
 
 cam_res_rgbx,cam_res_rgby=cam_resx//2,cam_resy//2
 fps=10
