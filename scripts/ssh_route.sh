@@ -13,10 +13,11 @@ for i in $RP;do
   REMOTES="$REMOTES -R $i:127.0.0.1:$i"
 done
 
-PANDA_ADDR=stereo@192.168.2.2
+#PANDA_ADDR=stereo@192.168.2.2
+SUB_ADDR=$REMOTE_SUB
 
 if [[ $# -eq 0 ]] ; then
-    CMD="ssh -t -N -L 2222:localhost:22 $LOCALS $REMOTES $PANDA_ADDR"
+    CMD="ssh -t -N -L 2222:localhost:22 $LOCALS $REMOTES $SUB_ADDR"
 fi
 if [[ $# -eq 2 ]] ; then
     CMD="ssh -t -L 2222:localhost:2222 $LOCALS $REMOTES $1 ssh -t -N -L 2222:localhost:22 $LOCALS $REMOTES $2"

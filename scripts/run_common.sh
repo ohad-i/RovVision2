@@ -24,7 +24,7 @@ tmux split-window -v
 }
 
 
-if [ -v SIM ]
+if [ ! -v SIM ]
 then 
 
 function run { #pane number, path, script
@@ -34,7 +34,18 @@ tmux send-keys "bash" ENTER
 tmux send-keys "printf '\033]2;%s\033\\' '$3'" ENTER
 tmux send-keys "cd $PROJECT_PATH/$2" ENTER
 tmux send-keys "export ROV_TYPE=$ROV_TYPE" ENTER
-tmux send-keys "$PYTHON $3" ENTER
+tmux send-keys "python3 $3" ENTER
+
+}
+
+function runShell { #pane number, path, script
+tmux select-pane -t $1 
+init_docker_image
+tmux send-keys "bash" ENTER
+tmux send-keys "printf '\033]2;%s\033\\' '$3'" ENTER
+tmux send-keys "cd $PROJECT_PATH/$2" ENTER
+tmux send-keys "export ROV_TYPE=$ROV_TYPE" ENTER
+tmux send-keys "./$3" ENTER
 
 }
 
