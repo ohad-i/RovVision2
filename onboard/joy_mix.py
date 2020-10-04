@@ -107,7 +107,24 @@ class Joy_map:
                 self.last_hat=time.time()
                 return True
         return False
-
+        
+    def inc_focus_event(self):
+        if jtype=='xbox':
+            axis=self.axis
+            if axis[6]<-0.9 and time.time()-self.last_hat>0.05:
+                self.last_hat=time.time()
+                return True
+        return False
+        
+    def dec_focus_event(self):
+        if jtype=='xbox':
+            axis=self.axis
+            if axis[6]>0.9 and time.time()-self.last_hat>0.05:
+                self.last_hat=time.time()
+                return True
+        return False
+    
+    '''
     def inc_freqs_track_rope(self):
         if jtype=='xbox':
             axis=self.axis
@@ -124,7 +141,7 @@ class Joy_map:
                 self.last_hat=time.time()
                 return True
         return False
-
+    '''
 
 
     def joy_mix(self):

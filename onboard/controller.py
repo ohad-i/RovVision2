@@ -5,6 +5,7 @@ import sys
 import asyncio
 import time
 import pickle
+import os
 
 sys.path.append('..')
 sys.path.append('../utils')
@@ -19,13 +20,20 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_po
 thruster_sink = utils.pull_sink(zmq_topics.thrusters_sink_port)
 subs_socks.append(thruster_sink)
 
+focusStateFile = '/home/nanosub/proj/RovVision2/focusState.pkl'
 
 async def recv_and_process():
     keep_running=True
     thruster_cmd=np.zeros(8)
     timer10hz=time.time()+1/10.0
     timer20hz=time.time()+1/20.0
-    system_state={'arm':False,'mode':[], 'lights':0} #lights 0-5
+    system_state={'arm':False,'mode':[], 'lights':0, 'focus':1000} #lights 0-5
+    
+    if os.path.exists(focusStateFile):
+        with open(focusStateFile, 'rb') as fid:
+            curFocus = pickle.load(fid)
+            system_state['focus'] = curFocus
+            pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
     thrusters_dict={}
 
     jm=Joy_map()
@@ -76,7 +84,18 @@ async def recv_and_process():
                         system_state['lights']=max(0,system_state['lights']-1)
                         pub_sock.send_multipart([zmq_topics.topic_lights,pickle.dumps(system_state['lights'])])
                         print('lights set to',system_state['lights'])
-
+                    if jm.inc_focus_event():
+                        system_state['focus']=min(2250,system_state['focus']+20)
+                        pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
+                        with open(focusStateFile, 'wb') as fid:
+                            pickle.dump(system_state['focus'], fid)
+                        print('focus set to',system_state['focus'])
+                    if jm.dec_focus_event():
+                        system_state['focus']=max(850,system_state['focus']-20)
+                        pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
+                        with open(focusStateFile, 'wb') as fid:
+                            pickle.dump(system_state['focus'], fid)
+                        print('focus set to',system_state['focus'])
 
 
         tic=time.time()

@@ -86,7 +86,9 @@ def get_imgs():
     for i in range(len(images)):
         if len(select.select([ gst_pipes[i] ],[],[],0.005)[0])>0 :
             data=os.read(gst_pipes[i],sx*sy*3)
-            images[i]=np.fromstring(data,'uint8').reshape([sy,sx,3])
+            if len(data) == sx*sy*3:
+                print('--->')
+                images[i]=np.fromstring(data,'uint8').reshape([sy,sx,3])
         if len(select.select([ gst_pipes_264[i] ],[],[],0.005)[0])>0:
             data=os.read(gst_pipes_264[i],1*1000*1000)
             if save_files_fds[0] is not None:

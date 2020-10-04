@@ -49,10 +49,12 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_att_hold_yaw_pid,
 #socket_pub = utils.publisher(config.zmq_local_route)
 if args.pub_data:
     socket_pub = utils.publisher(zmq_topics.topic_local_route_port,'0.0.0.0')
+    
 pub_record_state = utils.publisher(zmq_topics.topic_record_state_port)
 
+
 if __name__=='__main__':
-    init_gst_reader(2)
+    init_gst_reader(1)
     sx,sy=config.cam_res_rgbx,config.cam_res_rgby
     data_file_fd=None
     #main_camera_fd=None
@@ -134,6 +136,7 @@ if __name__=='__main__':
         else:
             join = None
             if images[0] is not None:
+                images[0] = cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB)
                 fmt_cnt_l=image_enc_dec.decode(images[0])
                 draw_mono(images[0],message_dict,fmt_cnt_l)
                 join=images[0]
@@ -157,3 +160,4 @@ if __name__=='__main__':
                 p.terminate()
                 p.poll()
             break
+    

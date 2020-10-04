@@ -13,13 +13,13 @@ tmux new-window
 fi 
 
 #common for sim and hw
-new_4_win
-#run 0 onboard controller.py
-#run 0 onboard sensors_gate.py
+new_6_win
+run 0 onboard controller.py
+run 1 onboard sensors_gate.py
 sleep 1
-run 1 plugins manual_plugin.py
-run 2 plugins depth_hold_plugin.py
-run 3 plugins att_hold_plugin.py
+run 2 plugins manual_plugin.py
+run 3 plugins depth_hold_plugin.py
+run 4 plugins att_hold_plugin.py
 #run 5 plugins tracker_plugin.py
 
 #tmux new-window

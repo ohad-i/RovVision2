@@ -58,7 +58,7 @@ def initRec():
     return ret
 
 
-def recorder():
+def recorder(doRec):
     recPath = initRec()
     mpsDict = {}
     for topic in topicsList:
@@ -71,11 +71,12 @@ def recorder():
             #topic,data=ret[0],pickle.loads(ret[1])
             topic = ret[0]
             mpsDict[topic].calcMPS()
-            
-            with open(recPath, 'ab') as fid:
-                for data in ret:
-                    pickle.dump(data, fid)
+            if doRec:
+                with open(recPath, 'ab') as fid:
+                    for data in ret:
+                        pickle.dump(data, fid)
 
 if __name__=='__main__':
     if rov_type == 4:
-        recorder()
+        doRec = True
+        recorder(doRec)

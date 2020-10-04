@@ -7,6 +7,7 @@ import asyncio
 import time
 import pickle
 import mixer
+import cv2
 
 
 sys.path.append('..')
@@ -21,6 +22,9 @@ subs_socks=[]
 subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_stereo_camera],zmq_topics.topic_camera_port))
 keep_running=True
 
+doResize = True
+sx,sy=config.cam_res_rgbx,config.cam_res_rgby
+
 async def recv_and_process():
     global current_command
     while keep_running:
@@ -29,7 +33,11 @@ async def recv_and_process():
             ret=sock.recv_multipart()
             if ret[0]==zmq_topics.topic_stereo_camera:
                 frame_cnt,shape=pickle.loads(ret[1])
+                
                 imgl=np.frombuffer(ret[2],'uint8').reshape(shape).copy()
+                if doResize:
+                    imgl = cv2.resize(imgl, (sx,sy))
+                    
                 image_enc_dec.encode(imgl,frame_cnt)
                 togst = [imgl]
                 if config.camera_setup == 'stereo':

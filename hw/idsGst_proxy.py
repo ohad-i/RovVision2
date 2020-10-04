@@ -231,7 +231,7 @@ if __name__ == '__main__':
            
         frameCnt = 0
         while True:
-            time.sleep(0.0001)
+            #time.sleep(0.0001)
             '''
             if dflag and time.time()-tic>15:
                 print('write dot file if GST_DEBUG_DUMP_DOT_DIR env exist')
