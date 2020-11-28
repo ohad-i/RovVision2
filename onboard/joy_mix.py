@@ -111,7 +111,7 @@ class Joy_map:
     def inc_focus_event(self):
         if jtype=='xbox':
             axis=self.axis
-            if axis[6]<-0.9 and time.time()-self.last_hat>0.05:
+            if axis[6]<-0.9 and time.time()-self.last_hat>0.01:
                 self.last_hat=time.time()
                 return True
         return False
@@ -119,7 +119,7 @@ class Joy_map:
     def dec_focus_event(self):
         if jtype=='xbox':
             axis=self.axis
-            if axis[6]>0.9 and time.time()-self.last_hat>0.05:
+            if axis[6]>0.9 and time.time()-self.last_hat>0.01:
                 self.last_hat=time.time()
                 return True
         return False

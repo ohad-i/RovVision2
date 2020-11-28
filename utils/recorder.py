@@ -11,6 +11,7 @@ sys.path.append('../utils')
 import zmq_wrapper as utils
 import zmq_topics
 import config
+import shutil
 
 from select import select
 
@@ -34,6 +35,8 @@ for topic in topicsList:
 
 rov_type = int(os.environ.get('ROV_TYPE','1'))
 
+monitorTime = 10
+
 class MPS:
     def __init__(self, topic):
         self.tic = time.time()
@@ -42,7 +45,7 @@ class MPS:
         
     def calcMPS(self):
         self.cnt += 1.0
-        if time.time() - self.tic >= 3:
+        if time.time() - self.tic >= monitorTime:
             mps = self.cnt/(time.time() - self.tic)
             print("%s messages MPS: %0.2f"%(self.topic, mps))
             self.cnt = 0.0
@@ -63,9 +66,18 @@ def recorder(doRec):
     mpsDict = {}
     for topic in topicsList:
         mpsDict[topic[0]] = MPS(topic[0])
-        
+    
+    cnt = 0
     while True:
         socks = zmq.select(subs_socks, [], [], 0.005)[0]
+        
+        cnt += 1
+        if cnt%200 == 0:
+            total, used, free = shutil.disk_usage("/")
+            if free//2**30 < 5:
+                doRec = False
+                print("***Low disk space - record Stopped! ******"*5)
+
         for sock in socks:
             ret=sock.recv_multipart()
             #topic,data=ret[0],pickle.loads(ret[1])

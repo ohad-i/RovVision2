@@ -11,7 +11,9 @@ from brping import Ping1D
 import detect_usb
 dev=detect_usb.devmap['SONAR_USB']
 
-myPing = Ping1D(dev, 115200)
+myPing = Ping1D()
+myPing.connect_serial(dev, 115200)
+
 if myPing.initialize() is False:
     print("Failed to initialize Ping!")
     exit(1)

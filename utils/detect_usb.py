@@ -40,13 +40,14 @@ if __name__=='__main__':
                 dmap['ESC_USB']=dev
 
         if rov_type==4:
-            '''
-            if '1-5.4' in line:
+            
+            if '1-2.2' in line:
                 dmap['SONAR_USB']=dev
+            '''
             if '1-5.1' in line:
                 dmap['PERI_USB']=dev
             '''
-            if '1-2.3' in line:
+            if '1-2.1' in line:
                 dmap['VNAV_USB']=dev
             if '1-2.4' in line:
                 dmap['ESC_USB']=dev #esp32
