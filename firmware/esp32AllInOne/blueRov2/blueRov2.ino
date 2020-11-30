@@ -54,6 +54,7 @@ void delay_ms(uint32_t ms)
 void setup() {
     DEBUG_SER_PORT.begin(115200);
     MAIN_SER_PORT.begin(115200);
+
     //MAIN_SER_PORT.setTimeout(1);
     
     WRITE_DEBUG_MSGLN("init...");
