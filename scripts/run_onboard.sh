@@ -38,23 +38,25 @@ run 4 plugins att_hold_plugin.py
 #only hw from here
 if [ ! -v SIM ]
 then 
-tmux new-window
-new_6_win
-
 
 FILE="/tmp/devusbmap.pkl"
 
 while [ ! -f $FILE ];
 do
+   echo "detect usb connections"
    python3 ../utils/detect_usb.py
    sleep 1
 done
+
+
+tmux new-window
+new_6_win
 
 run 0 hw hw_gate.py
 run 1 hw idsGst_proxy.py
 run 2 hw vnav.py
 run 3 hw sonar.py
-#run 4 utils recorder.py
+run 4 utils recorder.py
 #runShell 5 . jtop
 #tmux att
 fi
