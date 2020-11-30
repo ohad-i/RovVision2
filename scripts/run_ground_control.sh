@@ -1,5 +1,9 @@
 #!/bin/bash
 source run_common.sh
+
+tmux kill-ser
+
+
 PROJECT_PATH=/home/host/projects/RovVision2/
 #PYTHON=${1:-/miniconda/bin/python}
 
@@ -17,7 +21,7 @@ tmux new-window
 fi 
 
 new_4_win
-runShell 0 scripts ssh_route.sh
+runShell 0 scripts ./ssh_route.sh
 sleep 1
 run 1 ground_control joy_rov.py
 run 2 ground_control "viewer.py --pub_data"

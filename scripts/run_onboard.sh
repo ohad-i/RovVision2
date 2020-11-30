@@ -1,6 +1,14 @@
 #!/bin/bash
 source run_common.sh
 
+tmux kill-ser
+sleep 1
+
+if [ "$1" = "kill" ]; then
+    echo "kill run_onboard"
+    exit 1 
+fi
+
 if [ ! -v SIM ]
 then
 tmux kill-session -t dronelab
@@ -32,13 +40,22 @@ if [ ! -v SIM ]
 then 
 tmux new-window
 new_6_win
-run 0 utils detect_usb.py
-sleep 1
+
+
+FILE="/tmp/devusbmap.pkl"
+
+while [ ! -f $FILE ];
+do
+   python3 ../utils/detect_usb.py
+   sleep 1
+done
+
 run 0 hw hw_gate.py
 run 1 hw idsGst_proxy.py
 run 2 hw vnav.py
-run 3 utils recorder.py
-runShell 4 . jtop
-run 5 hw sonar.py
-tmux att
+run 3 hw sonar.py
+#run 4 utils recorder.py
+#runShell 5 . jtop
+#tmux att
 fi
+

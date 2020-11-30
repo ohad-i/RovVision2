@@ -22,6 +22,8 @@ subs_socks.append(thruster_sink)
 
 focusStateFile = '/home/nanosub/proj/RovVision2/focusState.pkl'
 
+focusResolution = 5
+
 async def recv_and_process():
     keep_running=True
     thruster_cmd=np.zeros(8)
@@ -85,13 +87,13 @@ async def recv_and_process():
                         pub_sock.send_multipart([zmq_topics.topic_lights,pickle.dumps(system_state['lights'])])
                         print('lights set to',system_state['lights'])
                     if jm.inc_focus_event():
-                        system_state['focus']=min(2250,system_state['focus']+20)
+                        system_state['focus']=min(2250,system_state['focus']+focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                         with open(focusStateFile, 'wb') as fid:
                             pickle.dump(system_state['focus'], fid)
                         print('focus set to',system_state['focus'])
                     if jm.dec_focus_event():
-                        system_state['focus']=max(850,system_state['focus']-20)
+                        system_state['focus']=max(850,system_state['focus']-focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                         with open(focusStateFile, 'wb') as fid:
                             pickle.dump(system_state['focus'], fid)
