@@ -144,7 +144,12 @@ async def main():
             send_serial_command_50hz(),
             )
 
+
+
 def mainHwGate():
+    prevDepths=[]
+    filterLen = 100
+    
     while True:
         socks = zmq.select(subs_socks, [], [], 0.005)[0]
         for sock in socks:
@@ -197,11 +202,18 @@ def mainHwGate():
     
         ret = select([ser],[],[],0.005)[0]
         if len(ret) > 0:
-            baro_m = ser.read(2)
-            tic = time.time()
-            bar_D = struct.unpack('h',baro_m)[0]/100
-            #print('--->', bar_D)
-            pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
+            chck = ser.read(1)
+            if ord(chck) == 0xac:
+               chck = ser.read(1)
+               if ord(chck) == 0xad:
+     
+                   baro_m = ser.read(2)
+                   #print('--1->', baro_m)
+                   tic = time.time()
+                   bar_D = struct.unpack('h',baro_m)[0]/100
+                   #print('--2->', bar_D)
+                   pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
+
     
     
 

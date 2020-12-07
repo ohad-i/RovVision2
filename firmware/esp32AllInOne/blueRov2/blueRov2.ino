@@ -124,6 +124,12 @@ short readShortFromSerial()
   return ret.val;
 }
 
+union syncMsg{
+    byte b[2];
+    short sync;
+  } synMsg;
+
+
 union upMsg{
     byte b[2];
     short value;
@@ -146,7 +152,12 @@ void loop() {
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
      WRITE_DEBUG_MSG(" got depth ");
-     WRITE_DEBUG_MSGLN(depth_m);
+     WRITE_DEBUG_MSG(depth_m);
+     WRITE_DEBUG_MSG(" ");
+     WRITE_DEBUG_MSGLN(msg.value);
+     synMsg.b[0] = 0xac;
+     synMsg.b[1] = 0xad;
+     MAIN_SER_PORT.write(synMsg.b, 2);
      MAIN_SER_PORT.write(msg.b, 2);
   }
   
