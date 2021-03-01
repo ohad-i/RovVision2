@@ -52,6 +52,7 @@ void delay_ms(uint32_t ms)
 }
 
 void setup() {
+    delay_ms(1000);
     DEBUG_SER_PORT.begin(115200);
     MAIN_SER_PORT.begin(115200);
 
@@ -132,7 +133,7 @@ union syncMsg{
 
 union upMsg{
     byte b[2];
-    uint16_t value;
+    uint16_t value;    
   } msg;
 
 union motVals_
@@ -145,14 +146,14 @@ void loop() {
   
   
 
-  if( (millis() - tic) >= 180)
+  if( (millis() - tic) >= 150)
   {
      DepthSensor.read();
      float depth_m = DepthSensor.depth();
      float temp_c = DepthSensor.temperature();
      uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
      uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
-     msg.value = depth_u16;
+     msg.value = depth_u16;     
      tic = millis(); //XTHAL_GET_CCOUNT();;
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
@@ -161,10 +162,15 @@ void loop() {
      WRITE_DEBUG_MSG(" ");
      WRITE_DEBUG_MSG(msg.value);
      WRITE_DEBUG_MSG(" ");
-     WRITE_DEBUG_MSGLN(tic);
      synMsg.b[0] = 0xac;
      synMsg.b[1] = 0xad;
      MAIN_SER_PORT.write(synMsg.b, 2);
+     MAIN_SER_PORT.write(msg.b, 2);
+     msg.value = tempC_u16;
+     WRITE_DEBUG_MSG(msg.value);
+     WRITE_DEBUG_MSG(" ");
+     WRITE_DEBUG_MSGLN(tic);
+
      MAIN_SER_PORT.write(msg.b, 2);
   }
   

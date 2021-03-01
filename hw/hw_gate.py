@@ -149,6 +149,9 @@ async def main():
 def mainHwGate():
     prevDepths=[]
     filterLen = 100
+
+    espDataTic = time.time()
+    espMsgCnt = 0.0
     
     while True:
         socks = zmq.select(subs_socks, [], [], 0.005)[0]
@@ -206,13 +209,26 @@ def mainHwGate():
             if ord(chck) == 0xac:
                chck = ser.read(1)
                if ord(chck) == 0xad:
-     
+                   
                    baro_m = ser.read(2)
+                   temp_c = ser.read(2)
                    #print('--1->', baro_m)
+                   #print('--2->', temp_c)
+
                    tic = time.time()
                    bar_D = struct.unpack('h',baro_m)[0]/200
-                   #print('--2->', bar_D)
+                   temp_D = struct.unpack('h',temp_c)[0]/200
+                   #print('baro --3->', bar_D)
+                   #print('temp --4->', temp_D)
                    pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
+                   espMsgCnt += 1
+                   if time.time() - espDataTic >= 5:
+                       espFps = espMsgCnt/(time.time() - espDataTic)
+                       print('%d esp data mps: %0.2f'%(espDataTic, espFps))
+                       print('baro --3->', bar_D)
+                       print('temp --4->', temp_D)
+                       espMsgCnt = 0.0
+                       espDataTic = time.time()
 
     
     

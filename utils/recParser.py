@@ -46,7 +46,9 @@ if 1 and __name__=="__main__":
                         metaData = pickle.loads(pickle.load(fid))
                         #print('got frame ', metaData[0])
                         img = np.frombuffer(pickle.load(fid), dtype='uint8').reshape(1216,1936,3)
-                        jpgName = os.path.join(jpgPath, '%d.jpg'%metaData[0])
+                        jpgName = os.path.join(jpgPath, '%08d.tiff'%metaData[0])
+                        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+
                         cv2.imwrite(jpgName, img)
                         fpsFrameCnt += 1
     
