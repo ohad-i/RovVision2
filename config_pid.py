@@ -1,5 +1,5 @@
 ### PIDS
-ds=0.5
+ds=0.45
 '''
 ds=0.1
 'P':2.5*ds,
@@ -8,9 +8,9 @@ ds=0.1
 '''
 depth_pid={
         'P':2.5*ds,
-        'I':0.001*ds,
-        'D':5*ds,
-        'limit':0.2,
+        'I':0.01*ds,
+        'D':1.5*ds,
+        'limit':0.3,
         'step_limit':0.05,
         'i_limit':0.01,
         'FF':0,
@@ -18,7 +18,7 @@ depth_pid={
         'initial_i':0,
         'func_in_err':None}
 
-ys=0.03
+ys=0 #0.03
 #ys=0.00
 yaw_pid={
         'P':1.5*ys,
@@ -33,28 +33,29 @@ yaw_pid={
         'func_in_err':None}
 
 #rs=0.03
-rs=0.001
+##rs=0.001
+rs=0.5
 roll_pid={
-        'P':10*rs,
-        'I':0.00*rs,
-        'D':2.6*rs,
-        'limit':0.2,
-        'step_limit':0.05,
-        'i_limit':0.1,
+        'P':0.005*rs,
+        'I':0.001*rs,
+        'D':0.01*rs,
+        'limit':0.5,
+        'step_limit':0.5,
+        'i_limit':0.4,
         'FF':0,
         'angle_deg_type':True,
         'initial_i':0,
         'func_in_err':None}
 
-ps=0.003
+ps=0 #0.1
 #ps=0.000
 pitch_pid={
-        'P':1*ps,
-        'I':0.1*ps,
-        'D':1*ps,
-        'limit':0.7,
-        'step_limit':0.05,
-        'i_limit':0.7,
+        'P':0.005, #ps,
+        'I':0.001*ps,
+        'D':0.01*ps,
+        'limit':0.5,
+        'step_limit':0.5,
+        'i_limit':0.4,
         'FF':0,
         'angle_deg_type':True,
         'initial_i':0,
@@ -63,7 +64,7 @@ pitch_pid={
 #if set to true always try to mantain 0 roll
 roll_target_0 = True
 
-sc=0.03
+sc=0.00
 pos_pid_x={
         'P':2.5 * sc ,
         'I':0.001 * sc ,
@@ -75,7 +76,7 @@ pos_pid_x={
         'angle_deg_type':True,
         'initial_i':0,
         'func_in_err':None}
-sc=0.25
+sc=0.0
 pos_pid_y={
         'P':2.5 * sc ,
         'I':0.001 * sc ,

@@ -58,19 +58,19 @@ async def recv_and_process():
                     else:
                         #if joy and joy['inertial'] and abs(joy['yaw'])<0.05:
                         if joy and abs(joy['yaw'])<0.1:
-                            yaw_cmd = pid_y(yaw,target_att[0],0,0)
+                            yaw_cmd = pid_y(yaw,target_att[0],rates[0],0)
                         else:
                             target_att[0]=yaw
                             yaw_cmd=0
-                        #print('R{:06.3f} Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yawr,yaw,target_att[0],yaw_cmd))
+                        print('R{:06.3f} Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw,yaw,target_att[0],yaw_cmd))
 
                         if joy and abs(joy['pitch'])<0.1:
-                            pitch_cmd = pid_p(pitch,target_att[1],0,0)
+                            pitch_cmd = pid_p(pitch,target_att[1],rates[1],0)
                         else:
                             target_att[1]=pitch
                             pitch_cmd=0
                         #print('R{:06.3f} P{:06.3f} PT{:06.3f} C{:06.3f}'.format(pitchr,pitch,target_att[1],pitch_cmd))
-                        roll_cmd = pid_r(roll,0 if roll_target_0 else target_att[2],0,0)
+                        roll_cmd = pid_r(roll,0 if roll_target_0 else target_att[2],rates[2],0)
                         #print('RR{:06.3f} R{:06.3f} RT{:06.3f} C{:06.3f}'.format(rollr,roll,target_att[2],roll_cmd))
                         ts=time.time()
                         debug_pid = {'P':pid_r.p,'I':pid_r.i,'D':pid_r.d,'C':roll_cmd,'T':0,'N':roll, 'R':rates[0], 'TS':ts}

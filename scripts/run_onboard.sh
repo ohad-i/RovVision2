@@ -1,8 +1,18 @@
 #!/bin/bash
 source run_common.sh
 
-tmux kill-ser
+
+tmux select-pane -t 1
+tmux send-keys C-c ENTER
+sleep 0.5
+tmux send-keys C-c ENTER
+tmux send-keys ENTER
+
+
 sleep 1
+
+tmux kill-ser
+
 
 if [ "$1" = "kill" ]; then
     echo "kill run_onboard"
@@ -55,7 +65,7 @@ new_6_win
 run 0 hw hw_gate.py
 run 1 hw idsGst_proxy.py
 run 2 hw vnav.py
-run 3 hw sonar.py
+#run 3 hw sonar.py
 run 4 utils recorder.py
 #runShell 5 . jtop
 #tmux att
