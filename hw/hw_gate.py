@@ -210,7 +210,7 @@ def mainHwGate():
                    baro_m = ser.read(2)
                    #print('--1->', baro_m)
                    tic = time.time()
-                   bar_D = struct.unpack('h',baro_m)[0]/100
+                   bar_D = struct.unpack('h',baro_m)[0]/200
                    #print('--2->', bar_D)
                    pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
 

@@ -6,7 +6,7 @@
 #include "xtensa/core-macros.h"
 
 
-#define DSHOT_TIMEOUT_C 20000
+//#define DSHOT_TIMEOUT_C 20000
 #define SERIAL_MSG_START_B 0b10010000
 
 #define DEBUG 1
@@ -36,7 +36,7 @@ Servo camServo;
 MS5837 DepthSensor;
 
 int motorsNum = 8;
-static const int motorsPin[] = {12, 14, 27, 26, 25, 33, 32, 4};
+static const int motorsPin[] = {12, 14, 27, 26, 25, 33, 32, 15};
 
 static const int ledsPort = 23;
 static const int camServoPin = 10;
@@ -132,7 +132,7 @@ union syncMsg{
 
 union upMsg{
     byte b[2];
-    short value;
+    uint16_t value;
   } msg;
 
 union motVals_
@@ -143,18 +143,25 @@ union motVals_
 
 void loop() {
   
-  DepthSensor.read();
-  float depth_m = DepthSensor.depth();
-  if( (millis() - tic)/portTICK_PERIOD_MS >= 18)
+  
+
+  if( (millis() - tic) >= 180)
   {
-     msg.value = (short)round(depth_m * 100);
+     DepthSensor.read();
+     float depth_m = DepthSensor.depth();
+     float temp_c = DepthSensor.temperature();
+     uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
+     uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
+     msg.value = depth_u16;
      tic = millis(); //XTHAL_GET_CCOUNT();;
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
      WRITE_DEBUG_MSG(" got depth ");
      WRITE_DEBUG_MSG(depth_m);
      WRITE_DEBUG_MSG(" ");
-     WRITE_DEBUG_MSGLN(msg.value);
+     WRITE_DEBUG_MSG(msg.value);
+     WRITE_DEBUG_MSG(" ");
+     WRITE_DEBUG_MSGLN(tic);
      synMsg.b[0] = 0xac;
      synMsg.b[1] = 0xad;
      MAIN_SER_PORT.write(synMsg.b, 2);
