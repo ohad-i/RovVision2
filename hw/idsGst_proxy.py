@@ -257,9 +257,9 @@ if __name__ == '__main__':
                         break
                     
                 socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-                                        pickle.dumps((frameCnt, ret['image'][1].shape)),
+                                        pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'])),
                                             ret['image'][1].tobytes()])
-                socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
-                                            pickle.dumps( (frameCnt, ret['ts']) )] )
+                #socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
+                #                            pickle.dumps( (frameCnt, ret['ts']) )] )
                 #print('got image',ret['image'][0],ret['image'][1].shape,time.time()-tic)
                 

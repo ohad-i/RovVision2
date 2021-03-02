@@ -12,6 +12,7 @@ import zmq_wrapper as utils
 import zmq_topics
 import config
 import shutil
+import mps
 
 from select import select
 
@@ -25,52 +26,40 @@ topicsList = [ [zmq_topics.topic_thrusters_comand, zmq_topics.topic_thrusters_co
                [zmq_topics.topic_depth,            zmq_topics.topic_depth_port],
                [zmq_topics.topic_imu,              zmq_topics.topic_imu_port],
                [zmq_topics.topic_stereo_camera,    zmq_topics.topic_camera_port],
-               [zmq_topics.topic_stereo_camera_ts, zmq_topics.topic_camera_port]
         ]
 
 subs_socks=[]
+mpsDict = {}
+
 for topic in topicsList:
+    mpsDict[topic[0]] = mps.MPS(topic[0])
     subs_socks.append( utils.subscribe( [ topic[0] ], topic[1] ) )
    
 
 rov_type = int(os.environ.get('ROV_TYPE','1'))
-
-monitorTime = 10
-
-class MPS:
-    def __init__(self, topic):
-        self.tic = time.time()
-        self.cnt = 0.0
-        self.topic = topic
-        
-    def calcMPS(self):
-        self.cnt += 1.0
-        if time.time() - self.tic >= monitorTime:
-            mps = self.cnt/(time.time() - self.tic)
-            print("%s messages MPS: %0.2f"%(self.topic, mps))
-            self.cnt = 0.0
-            self.tic = time.time()
             
-recordsPath = "../records/"
+recordsBasePath = "../records/"
 def initRec():
-    if not os.path.exists(recordsPath):
-        os.system('mkdir %s'%recordsPath)
-    recName = time.strftime("%Y%m%d_%H%M%S", time.localtime()) + '.pkl'
-    ret = os.path.join(recordsPath, recName)
+    recName = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+    ret = os.path.join(recordsBasePath, recName)
+    if not os.path.exists(ret):
+        os.system('mkdir -p %s'%recordsPath)
+    
     print(ret)
     return ret
 
 
 def recorder(doRec):
     recPath = initRec()
-    mpsDict = {}
-    for topic in topicsList:
-        mpsDict[topic[0]] = MPS(topic[0])
-    
+    telemFile = os.path.join(recPath, 'telem.pkl')
+    videoFile = os.path.join(recPath, 'video.bin')
     cnt = 0
+
     while True:
-        socks = zmq.select(subs_socks, [], [], 0.005)[0]
-        
+        socks = zmq.select(subs_socks, [], [], 0.001)[0]
+        ts = time.time()
+
+
         cnt += 1
         if cnt%200 == 0:
             total, used, free = shutil.disk_usage("/")
@@ -84,9 +73,17 @@ def recorder(doRec):
             topic = ret[0]
             mpsDict[topic].calcMPS()
             if doRec:
-                with open(recPath, 'ab') as fid:
-                    for data in ret:
-                        pickle.dump(data, fid)
+                if topic == zmq_topics.topic_stereo_camera:
+                    with open(videoFile, 'ab') as fid:
+                        # write image raw data
+                        fid.write(ret[-1])
+                    with open(telemFile, 'ab') as fid:
+                        # write image metadata
+                        pickle.dump([ts, ret[:-1]], fid)
+                else:
+                    with open(telemFile, 'ab') as fid:
+                        pickle.dump([ts, ret], fid)
+
 
 if __name__=='__main__':
     if rov_type == 4:
