@@ -40,6 +40,7 @@ if 1 and __name__=="__main__":
         fpsTic = time.time()
         with open(recFile, 'rb') as fid:
             while True:
+                time.sleep(0.001)
                 try:
                     sample = pickle.load(fid)
                     if sample == zmq_topics.topic_stereo_camera:
