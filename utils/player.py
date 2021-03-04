@@ -88,6 +88,10 @@ def vidProc(im, imPub = None):
 
     if writer is None:
         (h, w) = showIm.shape[:2]
+        ### option for uncompressed raw
+        #fourcc = cv2.VideoWriter_fourcc(*'DIB ')
+        #fourcc = cv2.VideoWriter_fourcc(*'3IVD')
+        #fourcc = cv2.VideoWriter_fourcc(*'RGBA')
         fourcc = cv2.VideoWriter_fourcc(*'DIVX')
         writer = cv2.VideoWriter('out.avi', fourcc, 10,
                                              (w, h), True)
