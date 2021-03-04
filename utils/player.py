@@ -73,16 +73,27 @@ thickness = 1
 ##
 
 imgsPath = None
+writer = None
+
 
 def vidProc(im, imPub = None):
-    global curDelay, imgsPath
+    global curDelay, imgsPath, writer
     
     im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
     
     showIm = np.copy(im)
     
     showIm = cv2.putText(showIm, '%04d '%(frameId), org, font,
-               fontScale, color, thickness, cv2.LINE_AA) 
+               fontScale, color, thickness, cv2.LINE_AA)
+
+    if writer is None:
+        (h, w) = showIm.shape[:2]
+        fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+        writer = cv2.VideoWriter('out.avi', fourcc, 10,
+                                             (w, h), True)
+    else:
+        writer.write(showIm)
+
     
     if imgsPath is None:
         imgsPath = os.path.join(recPath, 'imgs')
@@ -156,5 +167,7 @@ if __name__=='__main__':
         import traceback
         traceback.print_exc()
     finally:
+        if writer is not None:
+            writer.release()
         print("done...")            
         
