@@ -43,7 +43,7 @@ def initRec():
     recName = time.strftime("%Y%m%d_%H%M%S", time.localtime())
     ret = os.path.join(recordsBasePath, recName)
     if not os.path.exists(ret):
-        os.system('mkdir -p %s'%recordsPath)
+        os.system('mkdir -p %s'%ret)
     
     print(ret)
     return ret
@@ -71,19 +71,19 @@ def recorder(doRec):
             ret=sock.recv_multipart()
             #topic,data=ret[0],pickle.loads(ret[1])
             topic = ret[0]
-            mpsDict[topic].calcMPS()
-            if doRec:
-                if topic == zmq_topics.topic_stereo_camera:
-                    with open(videoFile, 'ab') as fid:
-                        # write image raw data
-                        fid.write(ret[-1])
-                    with open(telemFile, 'ab') as fid:
-                        # write image metadata
-                        pickle.dump([ts, ret[:-1]], fid)
-                else:
-                    with open(telemFile, 'ab') as fid:
-                        pickle.dump([ts, ret], fid)
-
+            if topic in mpsDict.keys():
+                mpsDict[topic].calcMPS()
+                if doRec:
+                    if topic == zmq_topics.topic_stereo_camera:
+                        with open(videoFile, 'ab') as fid:
+                            # write image raw data
+                            fid.write(ret[-1])
+                        with open(telemFile, 'ab') as fid:
+                            # write image metadata
+                            pickle.dump([ts, ret[:-1]], fid)
+                    else:
+                        with open(telemFile, 'ab') as fid:
+                            pickle.dump([ts, ret], fid)
 
 if __name__=='__main__':
     if rov_type == 4:

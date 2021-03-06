@@ -32,7 +32,7 @@ async def recv_and_process():
         for sock in socks:
             ret=sock.recv_multipart()
             if ret[0]==zmq_topics.topic_stereo_camera:
-                frame_cnt,shape=pickle.loads(ret[1])
+                frame_cnt,shape,ts=pickle.loads(ret[1])
                 
                 imgl=np.frombuffer(ret[2],'uint8').reshape(shape).copy()
                 if doResize:

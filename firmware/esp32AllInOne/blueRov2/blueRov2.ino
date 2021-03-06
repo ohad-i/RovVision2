@@ -11,8 +11,8 @@
 
 #define DEBUG 1
 #define DEBUG_SER_PORT Serial
-//#define DMG_MSG
-#ifdef DMG_MSG
+//#define DBG_MSG
+#ifdef DBG_MSG
 #define WRITE_DEBUG_MSGLN(msg) { if(DEBUG) DEBUG_SER_PORT.println(msg); }
 #define WRITE_DEBUG_MSG(msg) { if(DEBUG) DEBUG_SER_PORT.print(msg); }
 #else
@@ -27,6 +27,7 @@
 #define OP_LEDS 0x02
 #define OP_CAMSERVO 0x03
 
+
 #define MAX_WAIT_FOR_MSG 30 
 
 Servo motors[8];
@@ -34,12 +35,16 @@ Servo leds;
 Servo camServo;
 
 MS5837 DepthSensor;
-
+  
 int motorsNum = 8;
 static const int motorsPin[] = {12, 14, 27, 26, 25, 33, 32, 15};
 
 static const int ledsPort = 23;
 static const int camServoPin = 10;
+static const int voltagePin = 36;
+static const int currentPin = 39;
+
+
 uint32_t tic = 0;
 
 
@@ -52,7 +57,7 @@ void delay_ms(uint32_t ms)
 }
 
 void setup() {
-    delay_ms(1000);
+    delay_ms(1500);
     DEBUG_SER_PORT.begin(115200);
     MAIN_SER_PORT.begin(115200);
 
@@ -146,32 +151,50 @@ void loop() {
   
   
 
-  if( (millis() - tic) >= 150)
+  if( (millis() - tic) >= 50)
   {
      DepthSensor.read();
      float depth_m = DepthSensor.depth();
      float temp_c = DepthSensor.temperature();
+     float voltage = analogRead(voltagePin)*0.01063; //0.010604;
+     //float current = analogRead(currentPin);
+     
      uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
      uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
+     uint16_t voltage_u16 = (uint16_t)min(max(round(voltage*200), 0.0), 65536.0);
+     //uint16_t current_u16 = (uint16_t)min(max(round(current*200), 0.0), 65536.0);
      msg.value = depth_u16;     
      tic = millis(); //XTHAL_GET_CCOUNT();;
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
+     WRITE_DEBUG_MSG("voltage: ");
+     WRITE_DEBUG_MSGLN(voltage);
+     WRITE_DEBUG_MSG("current: ");
+     WRITE_DEBUG_MSGLN(current);
      WRITE_DEBUG_MSG(" got depth ");
      WRITE_DEBUG_MSG(depth_m);
-     WRITE_DEBUG_MSG(" ");
-     WRITE_DEBUG_MSG(msg.value);
      WRITE_DEBUG_MSG(" ");
      synMsg.b[0] = 0xac;
      synMsg.b[1] = 0xad;
      MAIN_SER_PORT.write(synMsg.b, 2);
      MAIN_SER_PORT.write(msg.b, 2);
      msg.value = tempC_u16;
-     WRITE_DEBUG_MSG(msg.value);
+     WRITE_DEBUG_MSG(temp_c);
      WRITE_DEBUG_MSG(" ");
-     WRITE_DEBUG_MSGLN(tic);
-
      MAIN_SER_PORT.write(msg.b, 2);
+     msg.value = voltage_u16;
+     WRITE_DEBUG_MSG(voltage);
+     WRITE_DEBUG_MSG(" ");
+     MAIN_SER_PORT.write(msg.b, 2);
+     /*
+     msg.value = current_u16;
+     WRITE_DEBUG_MSG(current);
+     WRITE_DEBUG_MSG(" ");
+     //MAIN_SER_PORT.write(msg.b, 2);
+     */
+     WRITE_DEBUG_MSGLN(tic);
+     
+     
   }
   
   static char serial_buff[2];

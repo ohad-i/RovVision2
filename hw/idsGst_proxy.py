@@ -99,7 +99,7 @@ class Writer:
         # pipe = 'videotestsrc is-live=true horizontal-speed=5 name=src '
         #pipe = 'v4l2src device=/dev/video2 name=src ! video/x-raw,format=YUY2,width=640,height=480 ' 
         enc = '264' 
-        bitrate = 15*1024*1024  # 1500 #bytes
+        bitrate = 20*1024*1024  # 1500 #bytes
         mkvBitrate = 5*1024*1024  # 1500 #bytes
         nvidia = True
 
@@ -259,7 +259,7 @@ if __name__ == '__main__':
                 socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
                                         pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'])),
                                             ret['image'][1].tobytes()])
-                #socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
-                #                            pickle.dumps( (frameCnt, ret['ts']) )] )
+                socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
+                                            pickle.dumps( (frameCnt, ret['ts']) )] )
                 #print('got image',ret['image'][0],ret['image'][1].shape,time.time()-tic)
                 
