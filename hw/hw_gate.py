@@ -152,6 +152,15 @@ def mainHwGate():
 
     espDataTic = time.time()
     espMsgCnt = 0.0
+
+    if os.path.exists('./focusState.bin'):
+         with open('./focusState.bin', 'r') as fid:
+             pwm = int(fid.read(4))
+
+             print('reset focus to:', pwm)
+             msgBuf = struct.pack(serialCamServoMsgPack, marker, OP_CAMSERVO, pwm )
+             ser.write(msgBuf)
+             ser.flush() 
     
     while True:
         socks = zmq.select(subs_socks, [], [], 0.005)[0]
@@ -168,6 +177,8 @@ def mainHwGate():
                 pwm = int(data)
                 print('got focus command', pwm)
                 msgBuf = struct.pack(serialCamServoMsgPack, marker, OP_CAMSERVO, pwm )
+                with open('./focusState.bin', 'w') as fid:
+                    fid.write(str(pwm))
                 ser.write(msgBuf)
                 ser.flush()
      
@@ -209,11 +220,10 @@ def mainHwGate():
             if ord(chck) == 0xac:
                chck = ser.read(1)
                if ord(chck) == 0xad:
-                   
-                   baro_m = ser.read(2)
-                   temp_c = ser.read(2)
-                   voltage = ser.read(2)
-                   current = ser.read(2)
+                   espData = ser.read(6)
+                   baro_m = espData[:2] #ser.read(2)
+                   temp_c = espData[2:4] #eser.read(2)
+                   voltage = espData[4:] #ser.read(2)
                    #print('--1->', baro_m)
                    #print('--2->', temp_c)
 
