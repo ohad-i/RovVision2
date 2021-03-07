@@ -18,12 +18,12 @@ depth_pid={
         'initial_i':0,
         'func_in_err':None}
 
-ys=0 #0.03
+ys=0.03
 #ys=0.00
 yaw_pid={
-        'P':1.5*ys,
-        'I':0.000*ys,
-        'D':0.3*ys,
+        'P':0.3*ys,
+        'I':0.0001*ys,
+        'D':0.15*ys,
         'limit':0.5,
         'step_limit':0.05,
         'i_limit':0.1,
@@ -36,10 +36,10 @@ yaw_pid={
 ##rs=0.001
 rs=0.5
 roll_pid={
-        'P':0.005*rs,
-        'I':0.001*rs,
-        'D':0.01*rs,
-        'limit':0.5,
+        'P':0.006*rs,
+        'I':0.0005*rs,
+        'D':0.002*rs,
+        'limit':0.3,
         'step_limit':0.5,
         'i_limit':0.4,
         'FF':0,
@@ -47,10 +47,10 @@ roll_pid={
         'initial_i':0,
         'func_in_err':None}
 
-ps=0 #0.1
+ps=0.25
 #ps=0.000
 pitch_pid={
-        'P':0.005, #ps,
+        'P':0.05*ps,
         'I':0.001*ps,
         'D':0.01*ps,
         'limit':0.5,
