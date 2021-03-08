@@ -13,7 +13,7 @@ import zmq_topics
 import config
 import shutil
 import mps
-
+import cv2
 from select import select
 
 
@@ -24,6 +24,7 @@ topicsList = [ [zmq_topics.topic_thrusters_comand, zmq_topics.topic_thrusters_co
                [zmq_topics.topic_lights,           zmq_topics.topic_controller_port],
                [zmq_topics.topic_focus,            zmq_topics.topic_controller_port],
                [zmq_topics.topic_depth,            zmq_topics.topic_depth_port],
+               [zmq_topics.topic_voltage,          zmq_topics.topic_volt_port],
                [zmq_topics.topic_imu,              zmq_topics.topic_imu_port],
                [zmq_topics.topic_stereo_camera,    zmq_topics.topic_camera_port],
         ]
@@ -53,8 +54,9 @@ def recorder(doRec):
     recPath = initRec()
     telemFile = os.path.join(recPath, 'telem.pkl')
     videoFile = os.path.join(recPath, 'video.bin')
+    videoQFile = os.path.join(recPath, 'videoQ.bin')
     cnt = 0
-
+    imgCnt = 0
     while True:
         socks = zmq.select(subs_socks, [], [], 0.001)[0]
         ts = time.time()
@@ -75,9 +77,17 @@ def recorder(doRec):
                 mpsDict[topic].calcMPS()
                 if doRec:
                     if topic == zmq_topics.topic_stereo_camera:
+                        imgCnt += 1
                         with open(videoFile, 'ab') as fid:
                             # write image raw data
-                            fid.write(ret[-1])
+                            if imgCnt%3 == 0:
+                                fid.write(ret[-1])
+                        imShape = pickle.loads(ret[1])[1]
+                        imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
+                        low = cv2.resize(imRaw, (imShape[1]//2, imShape[0]//2))
+                        with open(videoQFile, 'ab') as fid:
+                            # write image raw data
+                            fid.write(low.tobytes())
                         with open(telemFile, 'ab') as fid:
                             # write image metadata
                             pickle.dump([ts, ret[:-1]], fid)

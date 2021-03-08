@@ -29,6 +29,7 @@ ser = serial.Serial(detect_usb.devmap['ESC_USB'], 115200)
 rov_type = int(os.environ.get('ROV_TYPE','1'))
 if rov_type == 4:
     pub_depth = utils.publisher(zmq_topics.topic_depth_port)
+    pub_volt = utils.publisher(zmq_topics.topic_volt_port)
     subs_socks.append(
                 utils.subscribe([zmq_topics.topic_lights],
                          zmq_topics.topic_controller_port))
@@ -235,6 +236,7 @@ def mainHwGate():
                    #print('baro --3->', bar_D)
                    #print('temp --4->', temp_D)
                    pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
+                   pub_depth.send_multipart([zmq_topics.topic_voltage,pickle.dumps({'ts':tic,'voltage':volt_D})])
                    espMsgCnt += 1
                    if time.time() - espDataTic >= 5:
                        espFps = espMsgCnt/(time.time() - espDataTic)
