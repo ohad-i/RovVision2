@@ -43,9 +43,7 @@ if recPath == None:
 def CallBackFunc(event, x, y, flags, params):
 
      if  ( event == cv2.EVENT_LBUTTONDOWN ):
-          if x > imWidth:
-              x = x-imWidth
-          print("---> %d %d %d"%(x, y, im[y,x]) )
+          print("---> %d %d %d"%(x, y, -11) )
      elif  ( event == cv2.EVENT_RBUTTONDOWN ):
          pass
      elif  ( event == cv2.EVENT_MBUTTONDOWN ):
@@ -53,12 +51,10 @@ def CallBackFunc(event, x, y, flags, params):
      elif ( event == cv2.EVENT_MOUSEMOVE ):
          pass
 
-winName = 'player'
-cv2.namedWindow(winName, 0)
-
-
-
-cv2.setMouseCallback(winName, CallBackFunc)
+if showVideo:
+    winName = 'player'
+    cv2.namedWindow(winName, 0)
+    cv2.setMouseCallback(winName, CallBackFunc)
 
 
 frameId = 0
@@ -66,65 +62,95 @@ curDelay = 0
 
 ###
 font = cv2.FONT_HERSHEY_COMPLEX_SMALL
-org = (10, 30)
-fontScale = 0.65
+org = (30, 30)
+fontScale = 2 #0.65
 color = (255, 255, 255)
-thickness = 1
+thickness = 2
 ##
 
 imgsPath = None
 writer = None
+writerLowRes = None
 
 
-def vidProc(im, imPub = None):
-    global curDelay, imgsPath, writer
+def vidProc(im, imLowRes, imPub = None):
+    global curDelay, imgsPath, writer, writerLowRes
     
-    im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
-    
-    showIm = np.copy(im)
-    
-    showIm = cv2.putText(showIm, '%04d '%(frameId), org, font,
-               fontScale, color, thickness, cv2.LINE_AA)
 
-    if writer is None:
-        (h, w) = showIm.shape[:2]
-        ### option for uncompressed raw
-        #fourcc = cv2.VideoWriter_fourcc(*'DIB ')
-        #fourcc = cv2.VideoWriter_fourcc(*'3IVD')
-        #fourcc = cv2.VideoWriter_fourcc(*'RGBA')
-        fourcc = cv2.VideoWriter_fourcc(*'DIVX')
-        writer = cv2.VideoWriter('out.avi', fourcc, 10,
+    if im is not None:
+        im = cv2.cvtColor(im, cv2.COLOR_BGR2RGB)
+    
+        showIm = np.copy(im)
+    
+        showIm = cv2.putText(showIm, '%04d '%(frameId), org, font,
+                   fontScale, color, thickness, cv2.LINE_AA)
+
+
+        if writer is None and im is not None:
+            (h, w) = showIm.shape[:2]
+            ### option for uncompressed raw
+            #fourcc = cv2.VideoWriter_fourcc(*'DIB ')
+            #fourcc = cv2.VideoWriter_fourcc(*'3IVD')
+            fourcc = cv2.VideoWriter_fourcc(*'RGBA')
+            #fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+            #import ipdb; ipdb.set_trace()
+            vidFileName = os.path.join(recPath, 'out.avi')
+            writer = cv2.VideoWriter(vidFileName, fourcc, 2,
                                              (w, h), True)
-    else:
-        writer.write(showIm)
+            writer.write(showIm)
+        elif im is not None:
+            writer.write(showIm)
 
     
-    if imgsPath is None:
-        imgsPath = os.path.join(recPath, 'imgs')
-        if not os.path.exists(imgsPath):
-            os.system('mkdir -p %s'%imgsPath)
+        if imgsPath is None:
+            imgsPath = os.path.join(recPath, 'imgs')
+            if not os.path.exists(imgsPath):
+                os.system('mkdir -p %s'%imgsPath)
 
-    if saveTiff:
-        curImName = '%08d.tiff'%frameId
-        #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
-        cv2.imwrite( os.path.join(imgsPath, curImName), im )
+        if saveTiff:
+            curImName = '%08d.tiff'%frameId
+            #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
+            cv2.imwrite( os.path.join(imgsPath, curImName), im )
     
-    if showVideo:
-        cv2.imshow(winName, showIm) #im[:200,:])
+        if showVideo:
+            cv2.imshow(winName, showIm) #im[:200,:])
 
-        key = cv2.waitKey(curDelay)&0xff
-        if key == ord('q'):
-            return False
-        elif key == ord(' '):
-            curDelay = 0
-        elif key == ord('+'):
-            curDelay = max(1, curDelay-5 )
-        elif key == ord('-'):
-            curDelay = min(1000, curDelay+5 )
-        elif key == ord('r'):
-            curDelay = 100
-    else:
-        print('current frame process %d'%frameId)
+            key = cv2.waitKey(curDelay)&0xff
+            if key == ord('q'):
+                return False
+            elif key == ord(' '):
+                curDelay = 0
+            elif key == ord('+'):
+                curDelay = max(1, curDelay-5 )
+            elif key == ord('-'):
+                curDelay = min(1000, curDelay+5 )
+            elif key == ord('r'):
+                curDelay = 100
+        else:
+            print('current frame process %d'%frameId)
+
+    if imLowRes is not None:
+        imLowRes = cv2.cvtColor(imLowRes, cv2.COLOR_BGR2RGB)
+        showImLow = np.copy(imLowRes)
+        showImLow = cv2.putText(showImLow, '%04d '%(frameId), org, font,
+                   fontScale/2, color, thickness, cv2.LINE_AA)
+
+        if writerLowRes is None:
+            (h, w) = showImLow.shape[:2]
+            ### option for uncompressed raw
+            #fourcc = cv2.VideoWriter_fourcc(*'DIB ')
+            #fourcc = cv2.VideoWriter_fourcc(*'3IVD')
+            fourcc = cv2.VideoWriter_fourcc(*'RGBA')
+            #fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+            #import ipdb; ipdb.set_trace()
+            vidFileName = os.path.join(recPath, 'outLowRes.avi')
+            writerLowRes = cv2.VideoWriter(vidFileName, fourcc, 10,
+                                                (w, h), True)
+            writerLowRes.write(showImLow)
+        else:
+            writerLowRes.write(showImLow)
+
+
     return True
 
 
@@ -153,34 +179,66 @@ if __name__=='__main__':
             vidQPath = os.path.join(recPath, 'videoQ.bin')
             telemPath = os.path.join(recPath, 'telem.pkl')
             imgCnt = 0
+            imRaw = None
+            highResEndFlag = False
+            lowResEndFlag = False
+            telemRecEndFlag = False
             with open(vidPath, 'rb') as vidFid:
-                with open(vidPath, 'rb') as vidQFid:
+                with open(vidQPath, 'rb') as vidQFid:
                     with open(telemPath, 'rb') as telFid:
- 
+         
                         while True:
-                            data = pickle.load(telFid)
-
+                            try:
+                                data = pickle.load(telFid)
+                            except:
+                                if not telemRecEndFlag:
+                                    print('record Ended...')
+                                    telemRecEndFlag = True
+                                    break
+                                
+        
                             curTopic = data[1][0]
                             #print('curTopic',curTopic)
-
+        
                             if curTopic == zmq_topics.topic_stereo_camera:
                                 frameId += 1
                                 ## handle image
                                 metaData = pickle.loads(data[1][1])
                                 imShape = metaData[1]
-
+                                imgCnt += 1
                                 # load image
-                                imRaw1 = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], dtype = 'uint8').reshape((imShape[0]//2, imShape[1]//2, imShape[2] ))
-                                imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
-                                cv2.imshow('low', imRaw1)
-                                cv2.imshow('high', imRaw)
-                                cv2.waitKey()
-                                #vidProc(imRaw)
+                                try:
+                                    '''
+                                    imLowRes = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], 
+                                                           dtype = 'uint8').reshape((imShape[1]//2, imShape[0]//2, imShape[2] ))
+                                    '''
+                                    imLowRes = None
+                                    
+                                    
+                                except:
+                                    imLowRes = None
+                                    if not lowResEndFlag:
+                                        print('low res video ended')
+                                        lowResEndFlag = True
+                                if imgCnt%4 == 0:
+                                    try:
+                                        imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
+                                    except:
+                                        imRaw = None
+                                        if not highResEndFlag:
+                                            print('high res video ended')
+                                            highResEndFlag = True
+                                else:
+                                    imRaw = None
+                                ret = vidProc(imRaw, imLowRes)
+                               
+                                if not ret:
+                                    break
                                 topicPubDict[curTopic].send_multipart(data[1])
                             else:
                                 #pass
                                 topicPubDict[curTopic].send_multipart(data[1])
-                
+                    
                       
     except:
         import traceback
