@@ -99,7 +99,7 @@ class Writer:
         # pipe = 'videotestsrc is-live=true horizontal-speed=5 name=src '
         #pipe = 'v4l2src device=/dev/video2 name=src ! video/x-raw,format=YUY2,width=640,height=480 ' 
         enc = '264' 
-        bitrate = 20*1024*1024  # 1500 #bytes
+        bitrate = 10*1024*1024  # 1500 #bytes
         mkvBitrate = 5*1024*1024  # 1500 #bytes
         nvidia = True
 

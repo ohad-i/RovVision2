@@ -31,7 +31,7 @@ args = parser.parse_args()
 recPath = args.recPath
 skipFrame = args.skipFrame 
 saveTiff = args.saveTiff
-showImage = args.showVideo
+showVideo = args.showVideo
 
 
 print(usageDescription)
@@ -104,7 +104,7 @@ def vidProc(im, imPub = None):
         if not os.path.exists(imgsPath):
             os.system('mkdir -p %s'%imgsPath)
 
-    is saveTiff:
+    if saveTiff:
         curImName = '%08d.tiff'%frameId
         #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
         cv2.imwrite( os.path.join(imgsPath, curImName), im )
@@ -128,43 +128,58 @@ def vidProc(im, imPub = None):
     return True
 
 
+'''
+cv2.namedWindow('low', 0)
+cv2.namedWindow('high', 0)
+'''
 if __name__=='__main__':
     
     try:
         pubList = []
         topicPubDict = {}
-        
+        revTopicPubDict = {}
         for topic in topicsList:
             if topic[1] in pubList: # port already exist
-                pass
+                print('reuse publisher port: %d'%topic[1])
+                topicPubDict[topic[0]] = topicPubDict[revTopicPubDict[topic[1]]]
             else:
                 print('creats publisher on port: %d'%topic[1])
                 topicPubDict[topic[0]] = utils.publisher(topic[1])
-
+                revTopicPubDict[topic[1]] = topic[0]
+                pubList.append(topic[1])
+        
         if recPath is not None:
             vidPath = os.path.join(recPath, 'video.bin')
+            vidQPath = os.path.join(recPath, 'videoQ.bin')
             telemPath = os.path.join(recPath, 'telem.pkl')
+            imgCnt = 0
             with open(vidPath, 'rb') as vidFid:
-                with open(telemPath, 'rb') as telFid:
+                with open(vidPath, 'rb') as vidQFid:
+                    with open(telemPath, 'rb') as telFid:
+ 
+                        while True:
+                            data = pickle.load(telFid)
 
-                    while True:
-                        data = pickle.load(telFid)
+                            curTopic = data[1][0]
+                            #print('curTopic',curTopic)
 
-                        curTopic = data[1][0]
-                        print('curTopic',curTopic)
+                            if curTopic == zmq_topics.topic_stereo_camera:
+                                frameId += 1
+                                ## handle image
+                                metaData = pickle.loads(data[1][1])
+                                imShape = metaData[1]
 
-                        if curTopic == zmqTopics.topic_stereo_camera:
-                            frameId += 1
-                            ## handle image
-                            metaData = pickle.loads(data[1][1])
-                            imShape = metaData[1]
-
-                            # load image
-                            imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0], dtype = 'uint8').reshape(imShape)
-                            vidProc(imRaw)
-                            #topicPubDict[curTopic].send_multipart(data[1])
-                        else:
-                            topicPubDict[curTopic].send_multipart(data[1])
+                                # load image
+                                imRaw1 = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], dtype = 'uint8').reshape((imShape[0]//2, imShape[1]//2, imShape[2] ))
+                                imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
+                                cv2.imshow('low', imRaw1)
+                                cv2.imshow('high', imRaw)
+                                cv2.waitKey()
+                                #vidProc(imRaw)
+                                topicPubDict[curTopic].send_multipart(data[1])
+                            else:
+                                #pass
+                                topicPubDict[curTopic].send_multipart(data[1])
                 
                       
     except:

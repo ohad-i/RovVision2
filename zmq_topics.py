@@ -31,7 +31,8 @@ topic_sonar = b'topic_sonar'
 topic_sonar_port = 9301
 
 topic_depth = b'topic_depth'
-topic_depth_port = 9302
+topic_voltage = b'topic_volt'
+topic_depth_port = topic_volt_port = 9302
 
 #messages:
 #stop/start recording
