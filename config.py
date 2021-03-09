@@ -17,8 +17,12 @@ if rov_type==4:
     camera_setup='mono' #'mono'
 
 
-cam_res_rgbx,cam_res_rgby=cam_resx//2,cam_resy//2
+cam_res_rgbx, cam_res_rgby = cam_resx//2, cam_resy//2
 fps=10
+
+groundIp = "192.168.3.11"
+udpPort = 33221
+
 
 #gstreamer
 gst_ports=[6760,6761]

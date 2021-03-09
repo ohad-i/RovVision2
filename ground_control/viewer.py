@@ -20,10 +20,17 @@ from annotations import draw,draw_seperate,draw_mono
 import zmq_wrapper as utils
 import image_enc_dec
 
+import socket
+
+
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--data_path", help="path for data" , default='../../data')
 parser.add_argument("--pub_data", help="publish data", action='store_true')
+parser.add_argument("--udp", help="get image using udp", action='store_true')
 args = parser.parse_args()
+
+udp = args.udp
 
 resize_viewer = 'RESIZE_VIEWER' in os.environ
 if resize_viewer:
@@ -54,7 +61,12 @@ pub_record_state = utils.publisher(zmq_topics.topic_record_state_port)
 
 
 if __name__=='__main__':
-    init_gst_reader(1)
+    if udp:
+        imgSock = socket.socket(socket.AF_INET, # Internet
+                     socket.SOCK_DGRAM) # UDP
+        imgSock.bind(('', config.udpPort))
+    else:
+        init_gst_reader(1)
     sx,sy=config.cam_res_rgbx,config.cam_res_rgby
     data_file_fd=None
     #main_camera_fd=None
@@ -67,7 +79,13 @@ if __name__=='__main__':
     while 1:
         #join=np.zeros((sy,sx*2,3),'uint8')
         join=np.zeros((sy+bmargy,sx*2+bmargx,3),'uint8')
-        images=get_imgs()
+        if udp:
+            data, addr = imgSock.recvfrom(1024*64)
+            img = cv2.imdecode(pickle.loads(data), 1)
+            #import ipdb; ipdb.set_trace()
+            images = [img]
+        else:
+            images=get_imgs()
         rcv_cnt+=1
         #if all(images):
         while 1:
@@ -82,6 +100,7 @@ if __name__=='__main__':
                 message_dict[topic]=data
                 
                 if topic==zmq_topics.topic_button:
+                    print('jm ', data)
                     jm.update_buttons(data)
                     if jm.record_event(): 
                         #togel recording

@@ -10,48 +10,31 @@ import time
 import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-import subprocess
+
 #from PIL import ImageGrab
 import os
+import sys
+import socket
+import pickle
 
+sys.path.append('../onboard')
+sys.path.append('../utils')
+sys.path.append('..')
+
+import config
+import zmq_topics
+import zmq_wrapper as utils
+from annotations import draw_mono
+import numpy as np
+
+'''
 tm = time.gmtime()
 filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
     tm.tm_year, tm.tm_mon, tm.tm_mday,
     tm.tm_hour, tm.tm_min, tm.tm_sec)
 log_file = open(filename, "a")
+'''
 
-
-def log(data):
-    try:
-        ts = time.time()
-        st = datetime.datetime.fromtimestamp(ts).strftime('%Y-%m-%d %H:%M:%S')
-        log_file.write("{} - {}".format(st, data))
-        log_file.write("\n")
-        log_file.flush()
-        print(data)
-    finally:
-        pass
-
-
-# this class helps add callback to text modification
-class CustomText(Text):
-    def __init__(self, *args, **kwargs):
-        """A text widget that report on internal widget commands"""
-        Text.__init__(self, *args, **kwargs)
-
-        # create a proxy for the underlying widget
-        self._orig = self._w + "_orig"
-        self.tk.call("rename", self._w, self._orig)
-        self.tk.createcommand(self._w, self._proxy)
-
-    def _proxy(self, command, *args):
-        cmd = (self._orig, command) + args
-        result = self.tk.call(cmd)
-
-        if command in ("insert", "delete", "replace"):
-            self.event_generate("<<TextModified>>")
-
-        return result
 
 ## matplotlib functions
 ##CPingWindow
@@ -136,6 +119,91 @@ class pidGraph(Frame):
         ax.set_ylim(-0.1, 101)
         self.canvas.draw()
         self.window.after(500, self.refresh_figure)
+        
+class rovDataHandler():
+    def __init__(self):
+        self.subs_socks=[]
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_thrusters_comand,zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_button, zmq_topics.topic_hat], zmq_topics.topic_joy_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_imu], zmq_topics.topic_imu_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_depth], zmq_topics.topic_depth_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_depth_hold_pid], zmq_topics.topic_depth_hold_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_sonar], zmq_topics.topic_sonar_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_stereo_camera_ts], zmq_topics.topic_camera_port)) #for sync perposes
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_tracker], zmq_topics.topic_tracker_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_volt], zmq_topics.topic_volt_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_hw_stats], zmq_topics.topic_hw_stats_port))
+        
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_pos_hold_pid_fmt%i for i in range(3)], zmq_topics.topic_pos_hold_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_att_hold_yaw_pid,
+                                           zmq_topics.topic_att_hold_pitch_pid,
+                                           zmq_topics.topic_att_hold_roll_pid], zmq_topics.topic_att_hold_port))
+        
+        self.imgSock =  socket.socket(socket.AF_INET, # Internet
+                     socket.SOCK_DGRAM) # UDP
+        self.imgSock.bind(('', config.udpPort))
+        
+        self.image = None 
+        
+        
+    def getNewImage(self):
+        ret = None
+        if self.image is not None:
+            ret = np.copy(self.image)
+            self.image = None
+            
+        return ret
+    
+    
+    def main(self):
+        
+        sx,sy=config.cam_res_rgbx,config.cam_res_rgby
+        
+        #main_camera_fd=None
+        message_dict={}
+        rcv_cnt=0
+        bmargx,bmargy=config.viewer_blacks
+    
+        while 1:
+            join = np.zeros((sy+bmargy,sx*2+bmargx,3),'uint8')
+            data, addr = self.imgSock.recvfrom(1024*64)
+            img = cv2.imdecode(pickle.loads(data), 1)
+            images = [img]
+            
+            rcv_cnt+=1
+            #if all(images):
+            while 1:
+                socks = zmq.select(self.subs_socks,[],[],0.005)[0]
+                if len(socks)==0: #flush msg buffer
+                    break
+                for sock in socks:
+                    ret = sock.recv_multipart()
+                    topic, data = ret
+                    data = pickle.loads(ret[1])
+                    
+                    message_dict[topic]=data
+                    
+                    if args.pub_data:
+                        socket_pub.send_multipart([ret[0],ret[1]])
+    
+            join = None
+            if images[0] is not None:
+                images[0] = cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB)
+                fmt_cnt_l=image_enc_dec.decode(images[0])
+                draw_mono(images[0],message_dict,fmt_cnt_l)
+                join=images[0]
+
+            if join is not None:
+                if resize_viewer:
+                    scale=resize_width/config.cam_resx 
+                    sp0,sp1,_ = join.shape
+                    sp0=int(sp0*scale)
+                    sp1=int(sp1*scale)
+                    cv2.imshow('3dviewer',cv2.resize(join,(sp1,sp0)))
+                else:
+                    cv2.imshow('3dviewer',join)
+                if data_file_fd is not None:
+                    pickle.dump([zmq_topics.topic_viewer_data,{'frame_cnt':(rcv_cnt,fmt_cnt_l,fmt_cnt_r),'ts':time.time()}],data_file_fd,-1)
 
 # this class is the base of our GUI
 class rovViewerWindow(Frame):
@@ -144,8 +212,6 @@ class rovViewerWindow(Frame):
         self.parent = parent
 
         # init attributes
-        self.init_time = datetime.datetime.utcnow()
-        
         
         self.checkDepthHold = IntVar()
         self.checkDepthHold.set(1)
@@ -188,7 +254,7 @@ class rovViewerWindow(Frame):
         self.maximize_with_title()
         self.set_style()
         
-        log(' display layer init done ')
+        print(' display layer init done ')
 
         
     def maximize_with_title(self):
@@ -280,16 +346,8 @@ class rovViewerWindow(Frame):
         self.myStyle[third_name].config(font=self.HeaderFont)
         self.myStyle[fourth_name].config(font=self.HeaderFont)
         self.myStyle[fifth_name].config(font=self.HeaderFont)
-
-    def create_single_textbox(self, name, width, height, n_col, n_row, col_span):
-        txt = CustomText(self.parent, borderwidth=1, padx=2, pady=2, relief="sunken", width=width, height=height,
-                         selectbackground=self.myStyle['select_bg'])
-        txt.config(font=self.TextboxFont, undo=True, wrap='word')
-        txt.config(state=DISABLED)
-        txt.grid(row=n_row, column=n_col, sticky="nsew", padx=2, pady=2, columnspan=col_span)
-        txt.insert(END, "")
-        self.myStyle[name] = txt
-
+   
+    
     def create_text_box(self, name, label_text, display_text, n_col, n_row, textbox_width, stickyness='NESW'):
         first_name = "{}_label".format(name)
         second_name = "{}_textbox".format(name)
@@ -357,7 +415,7 @@ class rovViewerWindow(Frame):
         pass
 
     def ip_clicked_func(self, event):
-        log('ip clicked')
+        print('ip clicked')
         if self.ping_window is not None:
             self.ping_window.maximize()
             return
@@ -412,29 +470,7 @@ class rovViewerWindow(Frame):
             print('failed to load value')
         
 
-    def update_squal(self, event):
-        chars = event.widget.get("1.0", "end-1c")
-        val = chars.replace('\n', '').strip()
-        self.squal_val = val
-
-    def scan_ips(self):
-        log('starting IP scan')
-        ip_list = [200, 206, 213, 214, 215, 216, 217, 218, 219]
-
-        for ip_item in ip_list:
-            ip_add = "192.168.1.{}".format(ip_item)
-            command = ['fping', '-c', '1', '-r', '1', '-t', '300ms', '-q', ip_add, ]
-            response = subprocess.call(command)
-            if response == 0:
-                log('scan detected valid ip! {}'.format(ip_add))
-                self.myStyle["ip_textbox"].delete('1.0', END)
-                self.myStyle['ip_textbox'].insert(END, ip_add)
-                return
-            log('no response from {}'.format(ip_add))
-
-    def update_ip(self, event):
-        chars = event.widget.get("1.0", "end-1c")
-        self.hostname = chars.replace('\n', '').strip()
+    
         
     def create_label_buffer(self, name, n_col, n_row):
         self.myStyle[name] = Label(master=self.parent, text='    ')
@@ -457,7 +493,6 @@ class rovViewerWindow(Frame):
         self.myStyle['control_bg'] = submit_btn
 
     def image_clicked(self, event):
-        print('aaaa')
         if self.img is None:
             return
         try:
@@ -473,7 +508,7 @@ class rovViewerWindow(Frame):
             width = obj.winfo_width() + x
             # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
         except Exception as err:
-            log(err)
+            print(err)
 
     def image_right_clicked(self, event):
         if self.img is None:
@@ -490,10 +525,11 @@ class rovViewerWindow(Frame):
             # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
             # os.system("xdg-open {}".format(img_file))
         except Exception as err:
-            log(err)
+            print(err)
 
     def update_image(self, img):
-        log('update image')
+        print('update image')
+
         self.img = Image.open(io.BytesIO(img)) ## jpg stream
         if self.should_rotate_180():
             self.img = ImageTk.PhotoImage(self.img.resize((572, 429), Image.NONE).rotate(180))
@@ -508,32 +544,7 @@ class rovViewerWindow(Frame):
             return True
         return False
 
-    def send_fa_params(self):
-        oper_cmd = '0'
-        z_ret = '0'
-        of_ret = '0'
-        w_ret = '0'
-
-        if self.check_oper_cmd.get() == 0:
-            oper_cmd = '1'
-        if self.check_z_ret.get() == 0:
-            z_ret = '1'
-        if self.check_of_ret.get() == 0:
-            of_ret = '1'
-        if self.check_w_ret.get() == 0:
-            w_ret = '1'
-
-        self.logic.send_params(oper=oper_cmd, z_ret=z_ret, of_ret=of_ret, w_ret=w_ret,
-                               velocity=self.nominal_velocity_val, timeout=self.timeout_val,
-                               squal=self.squal_val, control1=0, height=self.height_val)
-
-    def set_default_image(self):
-        path = "Drone.jpg"
-        self.img = Image.open(path)
-        self.img = ImageTk.PhotoImage(self.img.resize((600, 450), Image.NONE))
-        self.myStyle['disp_image'].configure(image=self.img)
-        self.myStyle['disp_image'].image = self.img
-
+    
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
         self.img = Image.open(path)
@@ -615,30 +626,6 @@ class rovViewerWindow(Frame):
     def led_extreme(self):
         pass
 
-    def clear_gui(self):
-        self.current_led_display = None
-        # todo: nirge
-        self.clear_version()
-        self.long_ping = 0
-        self.short_ping = 0
-        self.delay_text = 'NaN'
-        self.myStyle["rssi_text"]['text'] = 'n/a'
-        self.myStyle['seq_text']['text'] = 'n/a'
-        self.myStyle['ffk_text']['text'] = 'n/a'
-        self.myStyle['fa_text']['text'] = 'n/a'
-        # self.myStyle['arm_text']['text'] = 'n/a'
-        self.myStyle['impub_text']['text'] = 'n/a'
-        #self.myStyle['light_text']['text'] = 'n/a'
-        self.myStyle['battery_text']['text'] = 'n/a'
-        self.myStyle['cpu_text']['text'] = 'n/a'
-        #self.myStyle['last_cmd_text']['text'] = 'n/a'
-        self.myStyle['log_textbox'].config(state=NORMAL)
-        self.myStyle["log_textbox"].delete('1.0', END)
-        self.myStyle['log_textbox'].config(state=DISABLED)
-        self.set_default_image()
-
-        self.logic.clear()
-
     def led_auto(self):
         pass
 
@@ -650,26 +637,6 @@ class rovViewerWindow(Frame):
         self.update_button_active_command("arm__button")
         pass
 
-    def cmd_takeoff(self):
-        if self.check_enable_takeoff.get() == 0:
-            self.update_button_active_command("takeoff__button")
-            log("takeoff issued")
-            pass
-        else:
-            log("takeoff rejected!")
-            self.add_log_file('takeoff rejected, check Enable Fly before Takeoff')
-
-    def cmd_hold(self):
-        self.update_button_active_command("manual__button")
-        
-
-    def cmd_land(self):
-        self.update_button_active_command("land__button")
-        
-
-    def cmd_autonomous(self):
-        self.update_button_active_command("cruise_and_return__button")
-        
 
     def get_vers(self):
         self.clear_version()
@@ -762,11 +729,11 @@ class rovViewerWindow(Frame):
         row_btn_idx += 1
         self.create_button("disarm_", "DISARM", controlCol, row_btn_idx, self.cmd_disarm)
         row_btn_idx += 1        
-        self.create_button("ledsUp", "Inc. Lights", controlCol, row_btn_idx, self.send_fa_params)
+        self.create_button("ledsUp", "Inc. Lights", controlCol, row_btn_idx, self.dummy)
         row_btn_idx += 1
         self.create_button("ledsDown", "Dec. Lights", controlCol, row_btn_idx, self.get_records)
         row_btn_idx += 1
-        self.create_button("focusFar", "Focus far", controlCol, row_btn_idx, self.cmd_takeoff)
+        self.create_button("focusFar", "Focus far", controlCol, row_btn_idx, self.dummy)
         row_btn_idx += 1
         self.create_button("focusNear", "Focus near", controlCol, row_btn_idx, self.cmd_png_map)
         row_btn_idx += 1
@@ -793,17 +760,8 @@ class rovViewerWindow(Frame):
         self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, 4, self.go_forwards)
         self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, 4, self.go_backwards)
         
-
-    def add_log_file(self, data):
-        self.myStyle['log_textbox'].config(state=NORMAL)
-        self.myStyle['log_textbox'].insert(END, data)
-        self.myStyle['log_textbox'].insert(END, "\n")
-        self.myStyle['log_textbox'].see(END)
-        time.sleep(0.1)
-        self.myStyle['log_textbox'].config(state=DISABLED)
-
-        if 'rosbag:' in data:
-            self.last_rosbag = data
+    def dummy(self):
+        pass
 
     def clear_version(self):
         self.myStyle['vers_textbox'].config(state=NORMAL)
@@ -850,7 +808,7 @@ class rovViewerWindow(Frame):
         try:
             self.long_ping = 100 * pings_ok / total_pings
         except Exception as err:
-            log("Exception during ping update: {}".format(err))
+            print("Exception during ping update: {}".format(err))
 
     def update_flight_timer(self, data):
         try:
@@ -880,7 +838,7 @@ class rovViewerWindow(Frame):
         try:
             self.short_ping = 100 * pings_ok / total_pings
         except Exception as err:
-            log("Exception during ping update: {}".format(err))
+            print("Exception during ping update: {}".format(err))
 
     def client_exit(self):
         
@@ -936,8 +894,8 @@ class rovViewerWindow(Frame):
             val = int(txt)
             txt = "{}".format(val)
         except Exception as err:
-            log("can't set squal value")
-            log(err)
+            print("can't set squal value")
+            print(err)
         finally:
             self.myStyle['squall_d_text']['text'] = txt
 
@@ -1021,11 +979,11 @@ class rovViewerWindow(Frame):
                     bg = 'pink'
                     self.myStyle['control_bg'].config(background=bg, activebackground=bg)
                 else:
-                    log("error with button update cmd, updating to {} ".format(txt))
-                    log(err)
+                    print("error with button update cmd, updating to {} ".format(txt))
+                    print(err)
             except Exception as err2:
-                log("error with button update cmd, updating to {} ".format(txt))
-                log(err2)
+                print("error with button update cmd, updating to {} ".format(txt))
+                print(err2)
         self.last_cmd_from_cf = txt
 
     def update_button_active_command(self, button_name):
@@ -1090,9 +1048,6 @@ class rovViewerWindow(Frame):
 
     def cpu_status(self, txt):
         self.myStyle['cpu_text']['text'] = '{}%'.format(txt)
-
-    def looking_state(self, txt):
-        self.add_log_file("looking {}".format(txt))
 
 if __name__=='__main__':
     root = Tk()

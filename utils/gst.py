@@ -65,6 +65,7 @@ def init_gst_reader(npipes):
         gst_pipes_264.append(r)
         gst_pipes.append(r1)
     for cmd in cmds: #start together
+        print('start gst pipe...'*10)
         Popen(cmd, shell=True, bufsize=0)
 
 if config.camera_setup == 'stereo':
@@ -83,14 +84,18 @@ def set_files_fds(fds):
 
 def get_imgs():
     global images
+    time.sleep(0.0001)
     for i in range(len(images)):
         if len(select.select([ gst_pipes[i] ],[],[],0.005)[0])>0 :
             data=os.read(gst_pipes[i],sx*sy*3)
-            if len(data) == sx*sy*3:
-                print('--->')
+            #import ipdb; ipdb.set_trace()
+            print(len(data), sx*sy*3)
+            if len(data) >= sx*sy*3:
+                print('--->imgs stream')
                 images[i]=np.fromstring(data,'uint8').reshape([sy,sx,3])
         if len(select.select([ gst_pipes_264[i] ],[],[],0.005)[0])>0:
             data=os.read(gst_pipes_264[i],1*1000*1000)
+            print('--->264 stream')
             if save_files_fds[0] is not None:
                 save_files_fds[i].write(data)
     return images

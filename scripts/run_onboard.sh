@@ -33,7 +33,8 @@ fi
 #common for sim and hw
 new_6_win
 run 0 onboard controller.py
-run 1 onboard sensors_gate.py
+#run 1 onboard sensors_gate.py
+run 1 onboard imGate.py 
 sleep 1
 run 2 plugins manual_plugin.py
 run 3 plugins depth_hold_plugin.py
