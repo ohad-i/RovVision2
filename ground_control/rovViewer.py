@@ -153,21 +153,19 @@ class rovViewerWindow(Frame):
         self.checkAttHold = IntVar()
         self.checkAttHold.set(1)
         
-        self.check_inverted_cam = IntVar()
-        self.check_of_ret = IntVar()
-        self.check_w_ret = IntVar()
-        self.check_enable_takeoff = IntVar()
-        self.check_enable_manual = IntVar()
-        self.check_inverted_cam.set(0)
         
+        self.checkDepthControl = IntVar()
+        self.checkDepthControl.set(1)
+        self.checkPitchControl = IntVar()
+        self.checkPitchControl.set(1)
+        self.checkRollControl = IntVar()
+        self.checkRollControl.set(1)
+        self.checkYawControl = IntVar()
+        self.checkYawControl.set(1)
         
-        self.check_of_ret.set(0)
-        self.check_w_ret.set(0)
-        self.check_enable_takeoff.set(1)
-        self.check_enable_manual.set(1)
         self.ping_window = None
         self.update_ping_window = False
-        self.resize_called = False
+        self.resize_called = True
         
         self.myStyle = {'fg': 'black', 'bg': 'LightSteelBlue', 'buttonBg': 'gray90', 'buttonFg': 'black',
                      'activeDisplayButtonFg': 'gray40', 'activeDisplayButtonBg': 'pink',
@@ -186,7 +184,7 @@ class rovViewerWindow(Frame):
 
         # create widgets
         self.make_widgets()
-        #self.bind_widgets_events()
+        self.bind_widgets_events()
         self.maximize_with_title()
         self.set_style()
         
@@ -199,6 +197,7 @@ class rovViewerWindow(Frame):
         self.parent.geometry("%dx%d+0+0" % (w - 20, h - 20))
 
     def set_style(self):
+        #self.parent.geometry('1600x900+0+0')
         self.parent.configure(background=self.myStyle['bg'])
 
     def resize(self, event):
@@ -298,29 +297,19 @@ class rovViewerWindow(Frame):
         self.myStyle[first_name].grid(column=n_col, row=n_row)
         self.myStyle[first_name].configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
         self.myStyle[first_name].config(font=self.TFont)
-        self.myStyle[second_name] = CustomText(self.parent, borderwidth=1, relief="sunken", width=textbox_width, height=1,
-                                            padx=2, pady=2, selectbackground=self.myStyle['select_bg'])
-        self.myStyle[second_name].config(font=self.TextboxFont, undo=True, wrap='word')
+
+        self.myStyle[second_name] = Entry(self.parent, borderwidth=1, relief="sunken", width=textbox_width, selectbackground=self.myStyle['select_bg'])
+        self.myStyle[second_name].config(font=self.TextboxFont)
         self.myStyle[second_name].grid(row=n_row, column=n_col + 1, padx=2, pady=2, sticky=stickyness)
 
         self.myStyle[second_name].insert(END, display_text)
 
     def bind_widgets_events(self):
-        # self.myStyle['ip_textbox'].bind("<Button-2>", self.scan_ips)
-        # self.myStyle['ip_label'].bind("<Button-2>", self.scan_ips)
-        # self.myStyle['ip_textbox'].bind("<Button-3>", self.scan_ips)
-        # self.myStyle['ip_label'].bind("<Button-3>", self.scan_ips)
-        self.myStyle['ip_textbox'].bind("<<TextModified>>", self.update_ip)
-        self.myStyle['explore_time_textbox'].bind("<<TextModified>>", self.update_timeout)
-        self.myStyle['height_textbox'].bind("<<TextModified>>", self.update_height)
-        self.myStyle['nominal_textbox'].bind("<<TextModified>>", self.update_nominal)
-        self.myStyle['squal_textbox'].bind("<<TextModified>>", self.update_squal)
-        self.myStyle['ip_label'].bind("<Button-1>", self.ip_clicked_func)
-        self.myStyle['transport_label'].bind("<Button-1>", self.ip_clicked_func)
-        self.myStyle['transport_text'].bind("<Button-1>", self.ip_clicked_func)
+        
         self.myStyle['disp_image'].bind("<Button-1>", self.image_clicked)
         self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
         self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
+        
         self.parent.bind("<Left>", self.left_click_func)
         self.parent.bind("<Right>", self.right_click_func)
         self.parent.bind("<Up>", self.up_click_func)
@@ -338,8 +327,7 @@ class rovViewerWindow(Frame):
         self.parent.bind("<Key-f>", self.page_down_click_func)
         self.parent.bind("<Key-q>", self.turn_left_click_func)
         self.parent.bind("<Key-e>", self.turn_right_click_func)
-
-        self.parent.protocol("WM_DELETE_WINDOW", self.client_exit)  # register kill command
+        #self.parent.protocol("WM_DELETE_WINDOW", self.client_exit)  # register kill command
 
     def page_up_click_func(self, event):
         self.go_up()
@@ -354,7 +342,7 @@ class rovViewerWindow(Frame):
         self.turn_right()
 
     def left_click_func(self, event):
-        self.go_left()
+        print('left')
 
     def right_click_func(self, event):
         self.go_right()
@@ -386,11 +374,43 @@ class rovViewerWindow(Frame):
         val = chars.replace('\n', '').strip()
         self.nominal_velocity_val = val
 
-    def update_timeout(self, event):
-        chars = event.widget.get("1.0", "end-1c")
-        val = chars.replace('\n', '').strip()
-        # self.logic.update_timeout(val)
-        self.timeout_val = val
+    def updateDepth(self, event):
+        chars = event.widget.get()
+        try:
+            val = float(chars.strip())
+            print('new depth is %0.2f'%val)
+            desiredDepth = val
+        except:
+            print('failed to load value')
+        
+        
+    def updatePitch(self, event):
+        chars = event.widget.get()
+        try:
+            val = float(chars.strip())
+            print('new pitch is %0.2f'%val)
+            desiredPitch = val
+        except:
+            print('failed to load value')
+        
+    def updateRoll(self, event):
+        chars = event.widget.get()
+        try:
+            val = float(chars.strip())
+            print('new roll is %0.2f'%val)
+            desiredRoll = val
+        except:
+            print('failed to load value')
+
+    def updateYaw(self, event):
+        chars = event.widget.get()
+        try:
+            val = float(chars.strip())
+            print('new yaw is %0.2f'%val)
+            desiredYaw = val
+        except:
+            print('failed to load value')
+        
 
     def update_squal(self, event):
         chars = event.widget.get("1.0", "end-1c")
@@ -437,6 +457,7 @@ class rovViewerWindow(Frame):
         self.myStyle['control_bg'] = submit_btn
 
     def image_clicked(self, event):
+        print('aaaa')
         if self.img is None:
             return
         try:
@@ -534,7 +555,7 @@ class rovViewerWindow(Frame):
 
     def create_checkbox_button(self, name, display_text, n_col, n_row, var, anchor):
         checkbox = Checkbutton(self.parent, variable=var, onvalue=0, offvalue=1, text=display_text)
-        checkbox.grid(column=n_col, row=n_row, sticky=anchor)
+        checkbox.grid(column=n_col, row=n_row) #, sticky=anchor)
         checkbox.config(background=self.myStyle['bg'], foreground=self.myStyle['fg'], font=self.TFont)
         self.myStyle[name] = checkbox
 
@@ -698,18 +719,30 @@ class rovViewerWindow(Frame):
         row_index += 1
         self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=commandCol, n_row=row_index, textbox_width=1)
+        self.myStyle['depthCmd_textbox'].bind("<Key-Return>", self.updateDepth)
         row_index += 1
         self.create_label_pair(name="rtPitch", display_text="Pitch:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="pitchCmd", label_text="dPitch:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
+        self.myStyle['pitchCmd_textbox'].bind("<Key-Return>", self.updatePitch)
         row_index += 1
         self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="rollCmd", label_text="dRoll:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
+        self.myStyle['rollCmd_textbox'].bind("<Key-Return>", self.updateRoll)
         row_index += 1
         self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
-        
+        self.myStyle['yawCmd_textbox'].bind("<Key-Return>", self.updateYaw)
         row_index += 1
         self.create_label_pair(name="battery", display_text="BATT:", n_col=propertyCol, n_row=row_index)
+        pidRow = row_index + 1
+        self.create_checkbox_button("showDepth", "depth control", propertyCol, pidRow, self.checkDepthControl, anchor='w')
+        pidRow += 1
+        self.create_checkbox_button("showPitch", "pitch control", propertyCol, pidRow, self.checkPitchControl, anchor='w')
+        pidRow += 1
+        self.create_checkbox_button("showRoll", "roll control", propertyCol, pidRow, self.checkRollControl, anchor='w')
+        pidRow += 1
+        self.create_checkbox_button("showYaw", "yaw control", propertyCol, pidRow, self.checkYawControl, anchor='w')
+        pidRow += 1
         
         self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
         row_index += 1
@@ -754,166 +787,12 @@ class rovViewerWindow(Frame):
         self.create_control_button("goForward", "⟰", control_start_col + 3, 3, self.go_forwards)
         self.create_control_button("goBackwords", "⟱", control_start_col + 3, 5, self.go_backwards)
         
-        self.create_control_button("yawRight", "Yaw right ➚", control_start_col + 1, 3, self.go_up)
-        self.create_control_button("yawLeft", "➘ Yaw left", control_start_col + 5, 3, self.go_down)
+        self.create_control_button("yawLeft", "Yaw left➚", control_start_col + 1, 3, self.go_up)
+        self.create_control_button("yawRight", "➘ Yaw right", control_start_col + 5, 3, self.go_down)
         
         self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, 4, self.go_forwards)
         self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, 4, self.go_backwards)
-
-        return
         
-        row_index += 1
-        self.create_label_pair(name="seq_", display_text="Seq# [in/out]  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="flight_time_", display_text="Flight Time  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="ffk_", display_text="FFK  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="fa_", display_text="FA  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="impub_", display_text="Image  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="battery_", display_text="BATT  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="cpu_", display_text="CPU  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_label_pair(name="prop_test_", display_text="Prop Test  ", n_col=1, n_row=row_index)
-        row_index += 1
-        self.make_square(col=0, row=row_index, width=4, height=10, bg='LightSteelBlue')
-        self.create_single_label_header(name='params_header', display_text="Parameters", n_col=1, n_row=row_index)
-        row_index += 1
-        self.create_text_box(name="explore_time", label_text="Timeout (sec)", display_text="20", n_col=1,
-                             n_row=row_index, textbox_width=4, stickyness='w')
-        self.create_disabled_label(name="explore_d_text", display_text="20", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_text_box(name="height", label_text="Height (m)", display_text="0.4", n_col=1,
-                             n_row=row_index, textbox_width=4, stickyness='w')
-        self.create_disabled_label(name="height_d_text", display_text="0.4", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_text_box(name="nominal", label_text="Nom. Vel. (m/s)", display_text="1.0", n_col=1,
-                             n_row=row_index, textbox_width=4, stickyness='w')
-        self.create_disabled_label(name="nominal_d_text", display_text="1.0", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_text_box(name="squal", label_text="squal Threshold", display_text="90", n_col=1,
-                             n_row=row_index, textbox_width=4, stickyness='w')
-        self.create_disabled_label(name="squall_d_text", display_text="90", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_label(name="oper_label", display_text="Oper", n_col=1, n_row=row_index, width=15,
-                          centered=False)
-        self.create_disabled_label(name="oper_d_text", display_text="T", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_label(name="zreject_label", display_text="Z Ret", n_col=1, n_row=row_index, width=15,
-                          centered=False)
-        self.create_disabled_label(name="zreject_d_text", display_text="T", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_label(name="ofreject_label", display_text="OF Ret", n_col=1, n_row=row_index, width=15,
-                          centered=False)
-        self.create_disabled_label(name="ofreject_d_text", display_text="T", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-        self.create_label(name="w_label", display_text="W Ret", n_col=1, n_row=row_index, width=15, centered=False)
-        self.create_disabled_label(name="wreject_d_text", display_text="T", n_col=2, n_row=row_index, width=6)
-        row_index += 1
-
-        # STARTING parallel checkbox section
-        row_index -= 4
-        self.create_checkbox_button("depthHold", "Depth hold", 2, row_index, self.check_oper_cmd, anchor='w')
-        row_index += 1
-        self.create_checkbox_button("attHold", "Attitude hold", 2, row_index, self.check_z_ret, anchor='w')
-        row_index += 1
-        self.create_checkbox_button("of_reject_checkbox", " ", 2, row_index, self.check_of_ret, anchor='w')
-        row_index += 1
-        self.create_checkbox_button("w_reject_checkbox", " ", 2, row_index, self.check_w_ret, anchor='w')
-        row_index += 1
-
-        # ENDING parallel checkbox section
-
-        row_index += 1
-        self.create_label(name="log_label", display_text="Logs: ", n_col=1, n_row=row_index, width=15,
-                          centered=False)
-
-        self.create_label(name="vers_label", display_text="Versions: ", n_col=6, n_row=row_index, width=15,
-                          centered=False)
-
-        row_index += 1
-        self.create_single_textbox(name="log_textbox", n_row=row_index, n_col=1, width=20, height=7, col_span=4)
-        self.create_single_textbox(name="vers_textbox", n_row=row_index, n_col=6, width=30, height=7, col_span=14)
-
-        row_index += 5
-        self.create_label_buffer(name="buffer_before_buttons", n_row=row_index, n_col=100)
-        row_index += 1
-        row_btn_idx = 2
-        self.create_button("arm_", "ARM", 4, row_btn_idx, self.cmd_arm)
-        row_btn_idx += 1
-        self.create_button("send_fa_params_", "Send Params", 4, row_btn_idx, self.send_fa_params)
-        row_btn_idx += 1
-        self.create_button("get_rec_", "Get Data", 4, row_btn_idx, self.get_records)
-        row_btn_idx += 1
-        self.create_button("takeoff_", "TAKEOFF", 4, row_btn_idx, self.cmd_takeoff)
-        row_btn_idx += 1
-        self.create_button("png_map_", "PnG MAP", 4, row_btn_idx, self.cmd_png_map)
-        row_btn_idx += 1
-        self.create_button("cruise_and_return_", "CRUISE & RET", 4, row_btn_idx, self.cmd_cruise_and_return)
-        row_btn_idx += 1
-        self.create_button("manual_", "HOLD POS", 4, row_btn_idx, self.cmd_hold)
-        row_btn_idx += 1
-        self.create_button("land_", "LAND", 4, row_btn_idx, self.cmd_land)
-        row_btn_idx += 1
-        self.create_button("disarm_", "DISARM", 4, row_btn_idx, self.cmd_disarm)
-
-        row_btn_idx += 2
-        self.create_button("get_ver_", "Get Versions", 4, row_btn_idx, self.get_vers)
-        row_btn_idx += 1
-        self.create_button("get_last_rec_", "Fetch Last", 4, row_btn_idx, self.get_last_record)
-        row_btn_idx += 1
-        self.create_button("get_records", "Fetch Recs", 4, row_btn_idx, self.download_dir)
-        row_btn_idx += 1
-        row_index += row_btn_idx
-
-        row_btn_idx = 2
-        #self.create_label(name="light_text", display_text="n/a", n_col=6, n_row=row_btn_idx, width=15, centered=True)
-        #row_btn_idx += 1
-        #self.create_label(name="last_cmd_text", display_text="n/a", n_col=6, n_row=row_btn_idx, width=15, centered=True)
-        #row_btn_idx += 1
-        self.create_button("front_led_off_", "LED Off", 6, row_btn_idx, self.led_off)
-        row_btn_idx += 1
-        self.create_button("front_led_low_", "LED Low", 6, row_btn_idx, self.led_low)
-        row_btn_idx += 1
-        self.create_button("front_led_on_", "LED Medium", 6, row_btn_idx, self.led_moderate)
-        row_btn_idx += 1
-        self.create_button("front_led_high_", "LED High", 6, row_btn_idx, self.led_high)
-        row_btn_idx += 1
-        self.create_button("front_led_extreme_", "LED Extreme", 6, row_btn_idx, self.led_extreme)
-        row_btn_idx += 1
-        self.create_button("front_led_auto_", "LED  Strobe", 6, row_btn_idx, self.led_auto)
-        row_btn_idx += 2
-        self.create_soft_button("clear", "Clear Panel", 6, row_btn_idx, self.clear_gui)
-        row_btn_idx += 1
-        self.create_soft_button("scan_", "Scan IPs", 6, row_btn_idx, self.scan_ips)
-        row_btn_idx += 1
-        self.create_soft_button("quit", "Quit", 6, row_btn_idx, self.client_exit)
-        row_btn_idx += 2
-        self.create_checkbox_button("ld_cam", "LU cam", 6, row_btn_idx, self.check_inverted_cam, anchor='')
-        row_btn_idx += 1
-        self.create_checkbox_button("en_takeoff", "Fly En", 6, row_btn_idx, self.check_enable_takeoff, anchor='')
-        row_btn_idx += 1
-        self.create_checkbox_button("en_manual", "Manual En", 6, row_btn_idx, self.check_enable_manual, anchor='')
-
-
-        row_index += row_btn_idx
-        control_start_col = 12
-        self.make_square(col=control_start_col, row=2, width=7, height=5, bg='gray90')
-        self.make_image(name='disp_image', col=11, row=7, width=10, height=14, char_width=530, char_height=429)
-
-        self.create_control_button("front_turn_right_", "Turn ❱❱", control_start_col + 5, 5, self.turn_right)
-        self.create_control_button("front_turn_left_", "❰❰ Turn ", control_start_col + 1, 5, self.turn_left)
-        self.create_control_button("front_forward_", "⟰", control_start_col + 3, 3, self.go_forwards)
-        self.create_control_button("front_backward_", "⟱", control_start_col + 3, 5, self.go_backwards)
-        self.create_soft_button("front_up_", "➚", control_start_col + 1, 3, self.go_up, sticky="e", width=4)
-        self.create_soft_button("front_down_", "➘", control_start_col + 1, 3, self.go_down, sticky="w", width=4)
-        self.create_soft_button("mv_right_", "❱", control_start_col + 5, 3, self.go_right, sticky="e", width=4)
-        self.create_soft_button("mv_left_", "❰", control_start_col + 5, 3, self.go_left, sticky="w", width=4)
-
-        self.create_label_buffer(name="last_row", n_row=row_index, n_col=100)
 
     def add_log_file(self, data):
         self.myStyle['log_textbox'].config(state=NORMAL)
@@ -1217,6 +1096,9 @@ class rovViewerWindow(Frame):
 
 if __name__=='__main__':
     root = Tk()
+    #root.grid_columnconfigure(0, weight=1)
+    #root.grid_rowconfigure(0, weight=1)
+    #root.resizable(True, False)
     guiInstance = rovViewerWindow(root)
     root.bind("<Configure>", guiInstance.resize)
     root.mainloop()
