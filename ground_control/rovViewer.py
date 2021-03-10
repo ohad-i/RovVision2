@@ -723,7 +723,7 @@ class rovViewerWindow(Frame):
         #self.create_label_buffer(name="buffer_before_buttons", n_row=row_index, n_col=100)
         #row_index += 1
         row_btn_idx = 2
-        self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.cmd_arm)
+        self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
         row_btn_idx += 1
         self.create_button("arm_", "ARM", controlCol, row_btn_idx, self.cmd_arm)
         row_btn_idx += 1
@@ -737,9 +737,9 @@ class rovViewerWindow(Frame):
         row_btn_idx += 1
         self.create_button("focusNear", "Focus near", controlCol, row_btn_idx, self.cmd_png_map)
         row_btn_idx += 1
-        self.create_button("killRemote", "kill ROV", controlCol, row_btn_idx, self.cmd_arm)
+        self.create_button("killRemote", "kill ROV", controlCol, row_btn_idx, self.killRemote)
         row_btn_idx += 1
-        self.create_button("rebootRemote", "reboot ROV", controlCol, row_btn_idx, self.cmd_arm)
+        self.create_button("rebootRemote", "reboot ROV", controlCol, row_btn_idx, self.rebootRemote)
         row_btn_idx += 1
         #set video window
         self.make_image(name='disp_image', col=1, row=row_btn_idx, width=10, height=14, char_width=800, char_height=600)
@@ -749,17 +749,27 @@ class rovViewerWindow(Frame):
         control_start_col = 12
         
         self.make_square(col=control_start_col, row=2, width=7, height=5, bg='gray90')
-        self.create_control_button("goRight", "❱❱", control_start_col + 5, 5, self.turn_right)
-        self.create_control_button("goLeft", "❰❰", control_start_col + 1, 5, self.turn_left)
+        self.create_control_button("goRight", "❱❱", control_start_col + 5, 4, self.turn_right)
+        self.create_control_button("goLeft", "❰❰", control_start_col + 1, 4, self.turn_left)
         self.create_control_button("goForward", "⟰", control_start_col + 3, 3, self.go_forwards)
+        self.create_control_button("goForward", "▄ ", control_start_col + 3, 4, self.go_forwards)
         self.create_control_button("goBackwords", "⟱", control_start_col + 3, 5, self.go_backwards)
         
         self.create_control_button("yawLeft", "Yaw left➚", control_start_col + 1, 3, self.go_up)
         self.create_control_button("yawRight", "➘ Yaw right", control_start_col + 5, 3, self.go_down)
         
-        self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, 4, self.go_forwards)
-        self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, 4, self.go_backwards)
+        self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, 5, self.go_forwards)
+        self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, 5, self.go_backwards)
+    
+    def runRemote(self):
+        os.system('cd ../scripts && ./run_remote.sh')
+    
+    def rebootRemote(self):
+        os.system('cd ../scripts && ./reboot_remote.sh')
         
+    def killRemote(self):
+        os.system('cd ../scripts && ./kill_remote.sh')
+    
     def dummy(self):
         pass
 
