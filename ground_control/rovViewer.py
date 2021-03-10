@@ -26,6 +26,11 @@ import zmq_topics
 import zmq_wrapper as utils
 from annotations import draw_mono
 import numpy as np
+import cv2
+from select import select
+import zmq
+import image_enc_dec
+
 
 '''
 tm = time.gmtime()
@@ -120,8 +125,10 @@ class pidGraph(Frame):
         self.canvas.draw()
         self.window.after(500, self.refresh_figure)
         
-class rovDataHandler():
-    def __init__(self):
+from threading import Thread
+class rovDataHandler(Thread):
+    def __init__(self, rovViewer):
+        super().__init__()
         self.subs_socks=[]
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_thrusters_comand,zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_button, zmq_topics.topic_hat], zmq_topics.topic_joy_port))
@@ -139,11 +146,20 @@ class rovDataHandler():
                                            zmq_topics.topic_att_hold_pitch_pid,
                                            zmq_topics.topic_att_hold_roll_pid], zmq_topics.topic_att_hold_port))
         
+        
         self.imgSock =  socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
         self.imgSock.bind(('', config.udpPort))
         
         self.image = None 
+        
+        self.pubData = True
+        self.socket_pub = None
+        if self.pubData:
+            self.socket_pub = utils.publisher(zmq_topics.topic_local_route_port,'0.0.0.0')
+        self.rovViewer = rovViewer
+        self.keepRunning = True
+        self.telemtry = {}
         
         
     def getNewImage(self):
@@ -151,9 +167,17 @@ class rovDataHandler():
         if self.image is not None:
             ret = np.copy(self.image)
             self.image = None
-            
         return ret
     
+    def getTelemtry(self):
+        return self.telemtry.copy()
+    
+    def run(self):
+        self.main()
+
+    def kill(self):
+        self.keepRunning = False
+        time.sleep(0.1)
     
     def main(self):
         
@@ -162,17 +186,18 @@ class rovDataHandler():
         #main_camera_fd=None
         message_dict={}
         rcv_cnt=0
+        images = [None, None]
         bmargx,bmargy=config.viewer_blacks
-    
-        while 1:
-            join = np.zeros((sy+bmargy,sx*2+bmargx,3),'uint8')
-            data, addr = self.imgSock.recvfrom(1024*64)
-            img = cv2.imdecode(pickle.loads(data), 1)
-            images = [img]
-            
-            rcv_cnt+=1
+        print('rovDataHandler running...')
+        while self.keepRunning:
+            if len(select([self.imgSock],[],[],0.003)[0]) > 0:
+                data, addr = self.imgSock.recvfrom(1024*64)
+                img = cv2.imdecode(pickle.loads(data), 1)
+                images = [img]
+                rcv_cnt+=1
             #if all(images):
-            while 1:
+            while True:
+
                 socks = zmq.select(self.subs_socks,[],[],0.005)[0]
                 if len(socks)==0: #flush msg buffer
                     break
@@ -180,30 +205,42 @@ class rovDataHandler():
                     ret = sock.recv_multipart()
                     topic, data = ret
                     data = pickle.loads(ret[1])
-                    
                     message_dict[topic]=data
                     
-                    if args.pub_data:
-                        socket_pub.send_multipart([ret[0],ret[1]])
+                    self.telemtry = message_dict.copy()                    
+                    if self.pubData:
+                        self.socket_pub.send_multipart([ret[0],ret[1]])
     
-            join = None
+            showIm = None
             if images[0] is not None:
                 images[0] = cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB)
                 fmt_cnt_l=image_enc_dec.decode(images[0])
                 draw_mono(images[0],message_dict,fmt_cnt_l)
-                join=images[0]
+                
+                showIm = images[0]
+            
+            if showIm is not None:
+                #self.rovViewer.update_image(showIm)
+                self.image = showIm
+                if 0:
+                    cv2.imshow('3dviewer', showIm)
+                    cv2.waitKey(10)
+                
+        print('bye bye!')
 
-            if join is not None:
-                if resize_viewer:
-                    scale=resize_width/config.cam_resx 
-                    sp0,sp1,_ = join.shape
-                    sp0=int(sp0*scale)
-                    sp1=int(sp1*scale)
-                    cv2.imshow('3dviewer',cv2.resize(join,(sp1,sp0)))
-                else:
-                    cv2.imshow('3dviewer',join)
-                if data_file_fd is not None:
-                    pickle.dump([zmq_topics.topic_viewer_data,{'frame_cnt':(rcv_cnt,fmt_cnt_l,fmt_cnt_r),'ts':time.time()}],data_file_fd,-1)
+
+### message mapping from joystick to gui
+armDisarmMsg = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+recordMsg = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
+attHoldMsg = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] 
+depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+lightDownMsg = [0, 0, 0, 0, 0, 0, 0.0, 1.0]
+lightUpMsg = [0, 0, 0, 0, 0, 0, 0.0, -1.0]
+neutralHatMsg = [0, 0, 0, 0, 0, 0, 0.0, 0]
+focusNearMsg = [0, 0, 0, 0, 0, 0, -1, 0]
+focusFarMsg = [0, 0, 0, 0, 0, 0, 1, 0]
 
 # this class is the base of our GUI
 class rovViewerWindow(Frame):
@@ -228,6 +265,8 @@ class rovViewerWindow(Frame):
         self.checkRollControl.set(1)
         self.checkYawControl = IntVar()
         self.checkYawControl.set(1)
+        self.checkRecorder = IntVar()
+        self.checkRecorder.set(1)
         
         self.ping_window = None
         self.update_ping_window = False
@@ -247,6 +286,10 @@ class rovViewerWindow(Frame):
         self.TFont = ("Courier", 14)
         self.TextboxFont = ("Courier", 12)
         self.HeaderFont = ("Courier", 16, "underline")
+        
+        
+        self.ROVHandler = rovDataHandler(self)
+        self.ROVHandler.start()
 
         # create widgets
         self.make_widgets()
@@ -254,8 +297,16 @@ class rovViewerWindow(Frame):
         self.maximize_with_title()
         self.set_style()
         
+        self.updateGuiData()
+        self.rovGuiCommandPublisher = utils.publisher(zmq_topics.topic_gui_port)
+        self.armClicked = False
+        self.recClicked = False
         print(' display layer init done ')
-
+    
+    def quit(self):
+        self.ROVHandler.kill()
+        self.parent.quit()
+    
         
     def maximize_with_title(self):
         self.parent.title("ROV viewer")
@@ -387,6 +438,7 @@ class rovViewerWindow(Frame):
         self.parent.bind("<Key-e>", self.turn_right_click_func)
         #self.parent.protocol("WM_DELETE_WINDOW", self.client_exit)  # register kill command
 
+        
     def page_up_click_func(self, event):
         self.go_up()
 
@@ -527,17 +579,17 @@ class rovViewerWindow(Frame):
         except Exception as err:
             print(err)
 
-    def update_image(self, img):
-        print('update image')
-
-        self.img = Image.open(io.BytesIO(img)) ## jpg stream
-        if self.should_rotate_180():
-            self.img = ImageTk.PhotoImage(self.img.resize((572, 429), Image.NONE).rotate(180))
-        else:
-            self.img = ImageTk.PhotoImage(self.img.resize((600, 450), Image.NONE))
-
-        self.myStyle['disp_image'].configure(image=self.img)
-        self.myStyle['disp_image'].image = self.img
+    def update_image(self):
+        
+        img = self.ROVHandler.getNewImage()
+        if img is not None:
+            #self.img = Image.open(io.BytesIO(img)) ## jpg stream
+            img = Image.fromarray(img)
+            self.img = ImageTk.PhotoImage(img)
+            
+            self.myStyle['disp_image'].configure(image=self.img)
+            self.myStyle['disp_image'].image = self.img
+        self.parent.after(50, self.update_image)
 
     def should_rotate_180(self):
         if self.check_inverted_cam.get() == 0:
@@ -554,6 +606,7 @@ class rovViewerWindow(Frame):
         lbl.image = self.img
         lbl.grid(row=row, column=col, columnspan=width, rowspan=height, pady=5, padx=5, sticky="nsew")
         self.myStyle[name] = lbl
+        self.update_image()
 
     def create_control_button(self, name, display_text, n_col, n_row, callback):
         button_name = "{}_button".format(name)
@@ -617,26 +670,86 @@ class rovViewerWindow(Frame):
     def led_low(self):
         pass
 
-    def led_moderate(self):
-        pass
-
     def led_high(self):
         pass
 
-    def led_extreme(self):
-        pass
-
-    def led_auto(self):
-        pass
-
-    def cmd_disarm(self):
-        self.update_button_active_command("disarm__button")
-        pass
-
-    def cmd_arm(self):
-        self.update_button_active_command("arm__button")
-        pass
-
+    def updateGuiData(self):
+        try:
+            telemtry = self.ROVHandler.getTelemtry()
+            #print(telemtry.keys())
+            if zmq_topics.topic_imu in telemtry.keys():
+                data = telemtry[zmq_topics.topic_imu]
+                self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
+                self.myStyle['rtRolltext'].config(text='%.2f°'%data['roll'])
+                self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'])
+            if zmq_topics.topic_depth in telemtry.keys():
+                data = telemtry[zmq_topics.topic_depth]
+                self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'])
+            if zmq_topics.topic_volt in telemtry.keys():
+                data = telemtry[zmq_topics.topic_volt]
+                self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
+                
+        except:
+            import traceback
+            traceback.print_exc()
+            print('update gui data err')
+            
+        self.parent.after(25, self.updateGuiData)
+    
+    def cmdRecord(self):
+        data = pickle.dumps(recordMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        self.update_button_active_command("record_button")
+        
+        if self.recClicked:
+            self.myStyle["record_button"].config(foreground=self.myStyle['buttonFg'])
+            self.myStyle["record_button"].config(activebackground=self.myStyle['activeButtonBg'])
+        
+        else:
+            self.myStyle["record_button"].config(foreground=self.myStyle['activeDisplayButtonFg'])
+            self.myStyle["record_button"].config(activebackground=self.myStyle['activeDisplayButtonBg'])
+        self.recClicked = not self.recClicked
+        
+    
+    
+    def cmdArm(self):
+        data = pickle.dumps(armDisarmMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        
+        if self.armClicked:
+            self.myStyle["arm_button"].config(foreground=self.myStyle['buttonFg'])
+            self.myStyle["arm_button"].config(activebackground=self.myStyle['activeButtonBg'])
+        
+        else:
+            self.myStyle["arm_button"].config(foreground=self.myStyle['activeDisplayButtonFg'])
+            self.myStyle["arm_button"].config(activebackground=self.myStyle['activeDisplayButtonBg'])
+        self.armClicked = not self.armClicked
+        
+        
+        
+    def cmdIncLights(self):
+        data = pickle.dumps(lightUpMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        
+    def cmdDecLights(self):
+        data = pickle.dumps(lightDownMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        
+    def focusFar(self):
+        data = pickle.dumps(focusFarMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        
+    def focusNear(self):
+        data = pickle.dumps(focusNearMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
 
     def get_vers(self):
         self.clear_version()
@@ -674,6 +787,9 @@ class rovViewerWindow(Frame):
         row_index = 0
         self.create_main_col_row_labels()
         row_index += 1
+        #set video window
+        self.make_image(name='disp_image', col=1, row=row_index, width=10, height=14, char_width=800, char_height=600)
+        row_index += 15
         self.create_label_header(name="header", display_text1="Property", display_text2="Status",
                                  display_text3="Commands", display_text4="Control",
                                  display_text5=" Manual control ", n_col=1,
@@ -700,8 +816,9 @@ class rovViewerWindow(Frame):
         self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
         self.myStyle['yawCmd_textbox'].bind("<Key-Return>", self.updateYaw)
         row_index += 1
-        self.create_label_pair(name="battery", display_text="BATT:", n_col=propertyCol, n_row=row_index)
+        self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=propertyCol, n_row=row_index)
         pidRow = row_index + 1
+        
         self.create_checkbox_button("showDepth", "depth control", propertyCol, pidRow, self.checkDepthControl, anchor='w')
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", propertyCol, pidRow, self.checkPitchControl, anchor='w')
@@ -711,56 +828,70 @@ class rovViewerWindow(Frame):
         self.create_checkbox_button("showYaw", "yaw control", propertyCol, pidRow, self.checkYawControl, anchor='w')
         pidRow += 1
         
-        self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
+        #self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
+        #self.myStyle["depthHold"].configure(command=self.cmdDepthHold)
+        self.create_button("depthHold", "Depth hold", commandCol, row_index, self.dummy)
         row_index += 1
-        self.create_checkbox_button("attHold", "Attitude hold", commandCol, row_index, self.checkAttHold, anchor='w')
-        
-        row_index += 2
-        self.create_button("getRecords", "Fetch Recs", commandCol, row_index, self.download_dir)
-        
+        #self.create_checkbox_button("attHold", "Attitude hold", commandCol, row_index, self.checkAttHold, anchor='w')
+        #self.myStyle["attHold"].configure(command=self.dummy)
+        self.create_button("attHold", "attitude hold", commandCol, row_index, self.dummy)
+        row_index += 1
+        self.create_button("getRecords", "Fetch Recs", commandCol, row_index, self.fetchRecords)
+      
+        '''
+        self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
+        row_index += 1
+        self.create_button("arm", "ARM/DISARM", controlCol, row_btn_idx, self.cmdArm)
+        row_btn_idx += 1
+        '''
         
         #row_index += 5
         #self.create_label_buffer(name="buffer_before_buttons", n_row=row_index, n_col=100)
         #row_index += 1
-        row_btn_idx = 2
+        row_btn_idx = 17
         self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
         row_btn_idx += 1
-        self.create_button("arm_", "ARM", controlCol, row_btn_idx, self.cmd_arm)
+        self.create_button("arm", "ARM/DISARM", controlCol, row_btn_idx, self.cmdArm)
         row_btn_idx += 1
-        self.create_button("disarm_", "DISARM", controlCol, row_btn_idx, self.cmd_disarm)
+        self.create_button("record", "Record", controlCol, row_btn_idx, self.cmdRecord)
         row_btn_idx += 1        
-        self.create_button("ledsUp", "Inc. Lights", controlCol, row_btn_idx, self.dummy)
+        self.create_button("ledsUp", "Inc. Lights", controlCol, row_btn_idx, self.cmdIncLights)
         row_btn_idx += 1
-        self.create_button("ledsDown", "Dec. Lights", controlCol, row_btn_idx, self.get_records)
+        self.create_button("ledsDown", "Dec. Lights", controlCol, row_btn_idx, self.cmdDecLights)
         row_btn_idx += 1
-        self.create_button("focusFar", "Focus far", controlCol, row_btn_idx, self.dummy)
+        self.create_button("focusFar", "Focus far", controlCol, row_btn_idx, self.focusFar)
         row_btn_idx += 1
-        self.create_button("focusNear", "Focus near", controlCol, row_btn_idx, self.cmd_png_map)
+        self.create_button("focusNear", "Focus near", controlCol, row_btn_idx, self.focusNear)
         row_btn_idx += 1
         self.create_button("killRemote", "kill ROV", controlCol, row_btn_idx, self.killRemote)
         row_btn_idx += 1
         self.create_button("rebootRemote", "reboot ROV", controlCol, row_btn_idx, self.rebootRemote)
         row_btn_idx += 1
-        #set video window
-        self.make_image(name='disp_image', col=1, row=row_btn_idx, width=10, height=14, char_width=800, char_height=600)
+        
 
         
         
         control_start_col = 12
+        manualControlOffsetRow = 16
+        self.make_square(col=control_start_col, row=manualControlOffsetRow+2, width=7, height=5, bg='gray90')
+        self.create_control_button("goRight", "❱❱", control_start_col + 5, manualControlOffsetRow+4, self.turn_right)
+        self.create_control_button("goLeft", "❰❰", control_start_col + 1, manualControlOffsetRow+4, self.turn_left)
+        self.create_control_button("goForward", "⟰", control_start_col + 3, manualControlOffsetRow+3, self.go_forwards)
+        self.create_control_button("goForward", "▄ ", control_start_col + 3, manualControlOffsetRow+4, self.go_forwards)
+        self.create_control_button("goBackwords", "⟱", control_start_col + 3, manualControlOffsetRow+5, self.go_backwards)
         
-        self.make_square(col=control_start_col, row=2, width=7, height=5, bg='gray90')
-        self.create_control_button("goRight", "❱❱", control_start_col + 5, 4, self.turn_right)
-        self.create_control_button("goLeft", "❰❰", control_start_col + 1, 4, self.turn_left)
-        self.create_control_button("goForward", "⟰", control_start_col + 3, 3, self.go_forwards)
-        self.create_control_button("goForward", "▄ ", control_start_col + 3, 4, self.go_forwards)
-        self.create_control_button("goBackwords", "⟱", control_start_col + 3, 5, self.go_backwards)
+        self.create_control_button("yawLeft", "↙ Yaw left", control_start_col + 1, manualControlOffsetRow+3, self.go_up)
+        self.create_control_button("yawRight", "Yaw right ↘", control_start_col + 5, manualControlOffsetRow+3, self.go_down)
         
-        self.create_control_button("yawLeft", "Yaw left➚", control_start_col + 1, 3, self.go_up)
-        self.create_control_button("yawRight", "➘ Yaw right", control_start_col + 5, 3, self.go_down)
-        
-        self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, 5, self.go_forwards)
-        self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, 5, self.go_backwards)
+        self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, manualControlOffsetRow+5, self.go_forwards)
+        self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, manualControlOffsetRow+5, self.go_backwards)
     
+    def cmdDepthHold(self):
+        print (self.checkDepthHold.get())
+        
+    def fetchRecords(self):
+        os.system('cd ../scripts && ./recSync.sh')
+        
     def runRemote(self):
         os.system('cd ../scripts && ./run_remote.sh')
     
@@ -787,68 +918,6 @@ class rovViewerWindow(Frame):
         self.myStyle['vers_textbox'].insert(END, "\n")
         time.sleep(0.01)
         self.myStyle['vers_textbox'].config(state=DISABLED)
-
-    def download_dir(self):
-        self.logic.get_log_directories()
-
-    def update_transport(self):
-        if self.short_ping < 75:
-            if self.long_ping == 0:
-                ping_status = '0%'
-                color = 'red'
-            else:
-                color = 'blue'
-                ping_status = '{:.0f}% ext'.format(self.long_ping)
-        else:
-            color = 'green'
-            ping_status = '{:.0f}% fast'.format(self.short_ping)
-
-        self.myStyle['transport_text']['text'] = '{}/{}s'.format(ping_status, self.delay_text)
-        self.myStyle['transport_text'].config(foreground=color)
-        self.delay_text = 'NaN'
-
-        if self.update_ping_window and self.ping_window is not None:
-            self.ping_window.update_ping_values(self.short_ping, self.long_ping, self.rssi_str, self.rssi_clar)
-        self.short_ping = 0
-        self.long_ping = 0
-        self.rssi_str = 0
-        self.rssi_clar = 0
-
-    def update_long_ping_percentage(self, pings_ok, total_pings):
-        try:
-            self.long_ping = 100 * pings_ok / total_pings
-        except Exception as err:
-            print("Exception during ping update: {}".format(err))
-
-    def update_flight_timer(self, data):
-        try:
-            self.myStyle["flight_time_text"]['text'] = "{:.2f} s".format(data)
-        except Exception:
-            pass
-
-    def update_rssi(self, sig, qual):
-        self.myStyle["rssi_text"]['text'] = "{} ~ {}".format(sig, qual)
-        try:
-            self.rssi_str = -float(sig)
-        except Exception:
-            self.rssi_str = 0.0
-        try:
-            rssi_clr_arr = qual.split('/')
-            self.rssi_clar = 100 * float(rssi_clr_arr[0]) / float(rssi_clr_arr[1])
-        except Exception:
-            self.rssi_clar = 0.0
-
-    def update_delay_time(self, data):
-        try:
-            self.delay_text = "{:.2f}".format(data)
-        except Exception:
-            self.delay_text = "NaN"
-
-    def update_short_ping_percentage(self, pings_ok, total_pings):
-        try:
-            self.short_ping = 100 * pings_ok / total_pings
-        except Exception as err:
-            print("Exception during ping update: {}".format(err))
 
     def client_exit(self):
         
@@ -939,63 +1008,6 @@ class rovViewerWindow(Frame):
         finally:
             self.myStyle['ofreject_d_text']['text'] = txt
 
-    def update_wret_display_status(self, txt):
-        try:
-            if int(txt) > 0:
-                txt = 'T'
-            else:
-                txt = 'F'
-        finally:
-            self.myStyle['wreject_d_text']['text'] = txt
-
-    def update_ffk_status(self, txt):
-        self.myStyle['ffk_text']['text'] = txt
-
-    def update_last_cmd(self, txt):
-        # self.myStyle['last_cmd_text']['text'] = "CMD: {}".format(txt)
-
-        if txt is self.last_cmd_from_cf:
-            return
-        try:
-            switcher = {"Disarm": "disarm__button",
-                        "Arm": "arm__button",
-                        "Takeoff": "takeoff__button",
-                        "Land": "land__button",
-                        "ESTOP": None,
-                        "CHNG_AUTO": None,
-                        "PnG Vis": None,
-                        "SET HEIGHT": None,
-                        "SET PARAM": None,
-                        "RECOVER": None,
-                        "FAIL": None,
-                        "Hold Pos": "manual__button",
-                        "Cruise&Ret": "cruise_and_return__button",
-                        "FLY": None,
-                        "PnG Map": 'png_map__button',
-                        "Phase1 Assist": None
-                        }
-            if self.last_cmd_from_cf == 'Change Pos':
-                bg = 'LightSteelBlue'
-                self.myStyle['control_bg'].config(background=bg, activebackground=bg)
-            elif switcher[self.last_cmd_from_cf] is not None:
-                self.myStyle[switcher[self.last_cmd_from_cf]].config(background=self.myStyle['buttonBg'])
-            self.last_cmd_from_cf = txt
-            if switcher[self.last_cmd_from_cf] is not None:
-                self.myStyle[switcher[self.last_cmd_from_cf]].config(background=self.myStyle['activeDisplayButtonBg'])
-
-        except Exception as err:
-            try:
-                if txt == "Change Pos":
-                    bg = 'pink'
-                    self.myStyle['control_bg'].config(background=bg, activebackground=bg)
-                else:
-                    print("error with button update cmd, updating to {} ".format(txt))
-                    print(err)
-            except Exception as err2:
-                print("error with button update cmd, updating to {} ".format(txt))
-                print(err2)
-        self.last_cmd_from_cf = txt
-
     def update_button_active_command(self, button_name):
         if button_name is self.last_pressed_button:
             return
@@ -1008,62 +1020,20 @@ class rovViewerWindow(Frame):
             self.myStyle[self.last_pressed_button].config(activebackground=self.myStyle['activeDisplayButtonBg'])
 
 
-    def update_seq_num(self, txt, in_messages, out_messages):
-        __str = '{} [{}/{}]'.format(txt, in_messages, out_messages)
-        self.myStyle['seq_text']['text'] = __str
-
-    def update_fa_status(self, txt):
-        self.myStyle['fa_text']['text'] = txt
-
-    def update_arm_status(self, txt):
-        # self.myStyle['arm_text']['text'] = txt
-        pass
-
-    def update_impub_status(self, txt):
-        self.myStyle['impub_text']['text'] = txt
-        color = 'black'
-        if 'PUBLISHING' in txt:
-            color = 'green'
-        elif 'FAULTY' in txt:
-            color = 'red'
-
-        self.myStyle['impub_text'].config(foreground=color)
-
-    def light_status(self, txt):
-        if txt == self.current_led_display:
-            return
-        self.current_led_display = txt
-        # self.myStyle['light_text']['text'] = txt
-
-        switcher = {
-            "Off": "front_led_off__button",
-            "Low": "front_led_low__button",
-            "Medium": "front_led_on__button",
-            "High": "front_led_high__button",
-            "Extreme": "front_led_extreme__button",
-        }
-
-        self.myStyle[switcher['Off']].config(background=self.myStyle['buttonBg'])
-        self.myStyle[switcher['Low']].config(background=self.myStyle['buttonBg'])
-        self.myStyle[switcher['Medium']].config(background=self.myStyle['buttonBg'])
-        self.myStyle[switcher['High']].config(background=self.myStyle['buttonBg'])
-        self.myStyle[switcher['Extreme']].config(background=self.myStyle['buttonBg'])
-
-        if txt in switcher:
-            val = switcher.get(txt, "Invalid month")
-            self.myStyle[val].config(background=self.myStyle['btnHighlight'])
-
-    def battery_status(self, txt):
-        self.myStyle['battery_text']['text'] = '{}'.format(txt)
-
-    def cpu_status(self, txt):
-        self.myStyle['cpu_text']['text'] = '{}%'.format(txt)
-
 if __name__=='__main__':
-    root = Tk()
-    #root.grid_columnconfigure(0, weight=1)
-    #root.grid_rowconfigure(0, weight=1)
-    #root.resizable(True, False)
-    guiInstance = rovViewerWindow(root)
-    root.bind("<Configure>", guiInstance.resize)
-    root.mainloop()
+    try:
+        root = Tk()
+        #root.grid_columnconfigure(0, weight=1)
+        #root.grid_rowconfigure(0, weight=1)
+        #root.resizable(True, False)
+        guiInstance = rovViewerWindow(root)
+        root.bind("<Configure>", guiInstance.resize)
+        
+        root.protocol("WM_DELETE_WINDOW", guiInstance.quit)
+        root.mainloop()
+    except:
+        import traceback
+        traceback.print_exc()
+    finally:
+        guiInstance.quit()
+        

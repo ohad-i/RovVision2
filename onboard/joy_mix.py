@@ -32,6 +32,7 @@ class Joy_map:
         _right_shift=5 #right shift
         _home=8
         _start=7
+        _page=6
         _red=1 #circle / rkeys right
         _yelow=3 #triangle / rkeys up
         _blue=2 #square /rkeys left
@@ -58,7 +59,7 @@ class Joy_map:
 
     def __test_togle(self,b):
         return self.buttons[b]==1 and self.prev_buttons[b]==0
-
+    
     def __left_shift(self):
         return self.buttons[self._left_shift]
     
@@ -71,6 +72,9 @@ class Joy_map:
     def arm_event(self):
         return self.__test_togle(self._start)
     
+    def record_event(self):
+        return self.__page_togle(self._page)
+    
     def att_hold_event(self):
         return self.__test_togle(self._yelow) and self.__no_shift()
 
@@ -78,7 +82,7 @@ class Joy_map:
         return self.__test_togle(self._red) and self.__no_shift()
 
     def record_event(self):
-        return self.__test_togle(self._home)
+        return self.__test_togle(self._page)
 
     def Rx_hold_event(self):
         return self.__test_togle(self._yelow) and self.__left_shift()

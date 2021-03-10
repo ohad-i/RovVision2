@@ -28,7 +28,7 @@ joy_log=open('joy.log','wb')
 hat=[0,0]
 
 def pub(topic,data):
-    pub_sock.send_multipart([topic,data])
+    pub_sock.send_multipart([topic, data])
     pickle.dump([time.time()-start_time,topic,data],joy_log,-1)
 
 while not done:
@@ -42,18 +42,20 @@ while not done:
             print("Joystick button pressed.")
             buttons = [joystick.get_button(i) for i in range(n_buttons)]
             print('pub buttons=',buttons)
-            pub(zmq_topics.topic_button,pickle.dumps(buttons))
+            pub(zmq_topics.topic_button,pickle.dumps(buttons, protocol=3))
+            print('--->', buttons)
         if event.type == pygame.JOYBUTTONUP:
             print("Joystick button released.")
             buttons = [joystick.get_button(i) for i in range(n_buttons)]
-            pub(zmq_topics.topic_button,pickle.dumps(buttons))
+            print('--->', buttons)
+            pub(zmq_topics.topic_button,pickle.dumps(buttons, protocol=3))
 
 
         if joystick.get_numhats()>0:
             hat = joystick.get_hat(0)
             if abs(hat[0])>0 or abs(hat[1])>0:
                 print('hat',hat)
-                pub(zmq_topics.topic_hat,pickle.dumps(hat))
+                pub(zmq_topics.topic_hat,pickle.dumps(hat, protocol=3))
 
 
         axes_vals = []
@@ -70,7 +72,7 @@ while not done:
             print('axes_vals=',','.join(['{:4.3f}'.format(i) for i in axes_vals]))
         #mixng axes
         
-        pub(zmq_topics.topic_axes,pickle.dumps(axes_vals,-1))
+        pub(zmq_topics.topic_axes,pickle.dumps(axes_vals, protocol=3))
         #print('{:> 5} P {:> 5.3f} S {:> 5.3f} V {:> 5.3f}'.format(cnt,port,starboard,vertical),end='\r')
 
     #pygame.time.wait(0)

@@ -236,7 +236,7 @@ def mainHwGate():
                    #print('baro --3->', bar_D)
                    #print('temp --4->', temp_D)
                    pub_depth.send_multipart([zmq_topics.topic_depth,pickle.dumps({'ts':tic,'depth':bar_D})])
-                   pub_depth.send_multipart([zmq_topics.topic_voltage,pickle.dumps({'ts':tic,'voltage':volt_D})])
+                   pub_volt.send_multipart([zmq_topics.topic_volt, pickle.dumps({'ts':tic,'V':volt_D, 'I':-1.0})])
                    espMsgCnt += 1
                    if time.time() - espDataTic >= 5:
                        espFps = espMsgCnt/(time.time() - espDataTic)

@@ -23,6 +23,11 @@ topic_axes = b'joy_axes'
 topic_hat = b'joy_hat'
 topic_joy_port=8899
 
+topic_gui_controller = b'gui_controller'
+topic_gui_diveModes = b'gui_diveModes'
+topic_gui_port = 8900
+
+
 #diffrent topics due to difrent freq devices
 topic_imu = b'topic_imu'
 topic_imu_port = 8897
@@ -31,8 +36,7 @@ topic_sonar = b'topic_sonar'
 topic_sonar_port = 9301
 
 topic_depth = b'topic_depth'
-topic_voltage = b'topic_volt'
-topic_depth_port = topic_volt_port = 9302
+topic_depth_port = 9302
 
 #messages:
 #stop/start recording
@@ -58,9 +62,9 @@ topic_pos_hold_port=10053
 topic_tracker=b'topic_tracker'
 topic_tracker_port=10101
 
+
 topic_volt=b'topic_volt'
 topic_volt_port=10102
-
 
 topic_hw_stats=b'topic_hw_stats'
 topic_hw_stats_port=10103

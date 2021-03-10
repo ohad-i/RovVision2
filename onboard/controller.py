@@ -17,10 +17,9 @@ pub_sock = utils.publisher(zmq_topics.topic_controller_port)
 subs_socks=[]
 subs_socks.append(utils.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_diveModes],zmq_topics.topic_gui_port))
 thruster_sink = utils.pull_sink(zmq_topics.thrusters_sink_port)
 subs_socks.append(thruster_sink)
-
-focusStateFile = '/home/nanosub/proj/RovVision2/focusState.pkl'
 
 focusResolution = 5
 
@@ -29,13 +28,8 @@ async def recv_and_process():
     thruster_cmd=np.zeros(8)
     timer10hz=time.time()+1/10.0
     timer20hz=time.time()+1/20.0
-    system_state={'arm':False,'mode':[], 'lights':0, 'focus':1000} #lights 0-5
+    system_state={'arm':False,'mode':[], 'lights':0, 'focus':1000, 'record':False} #lights 0-5
     
-    if os.path.exists(focusStateFile):
-        with open(focusStateFile, 'rb') as fid:
-            curFocus = pickle.load(fid)
-            system_state['focus'] = curFocus
-            pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
     thrusters_dict={}
 
     jm=Joy_map()
@@ -59,7 +53,9 @@ async def recv_and_process():
             else:
                 ret=sock.recv_multipart()
                 topic,data=ret[0],pickle.loads(ret[1])
-                if topic==zmq_topics.topic_button:
+                
+                if topic==zmq_topics.topic_button or topic==zmq_topics.topic_gui_diveModes:
+                    
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
                         togle_mode('DEPTH_HOLD')
@@ -71,12 +67,16 @@ async def recv_and_process():
                         togle_mode('RY_HOLD')
                     if jm.Rz_hold_event():
                         togle_mode('RZ_HOLD')
+                    if jm.record_event():
+                        system_state['record'] = not system_state['record']
+                        print('record state', system_state['record'])
                     if jm.arm_event():
                         system_state['arm']=not system_state['arm']
+                        print('state arm:', system_state['arm'])
                         if not system_state['arm']:
                             system_state['mode']=[]
                            
-                if topic==zmq_topics.topic_axes:
+                if topic==zmq_topics.topic_axes or topic==zmq_topics.topic_gui_controller:
                     jm.update_axis(data)
                     if jm.inc_lights_event():
                         system_state['lights']=min(5,system_state['lights']+1)
@@ -89,14 +89,10 @@ async def recv_and_process():
                     if jm.inc_focus_event():
                         system_state['focus']=min(2250,system_state['focus']+focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
-                        with open(focusStateFile, 'wb') as fid:
-                            pickle.dump(system_state['focus'], fid)
                         print('focus set to',system_state['focus'])
                     if jm.dec_focus_event():
                         system_state['focus']=max(850,system_state['focus']-focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
-                        with open(focusStateFile, 'wb') as fid:
-                            pickle.dump(system_state['focus'], fid)
                         print('focus set to',system_state['focus'])
 
 
