@@ -970,11 +970,11 @@ if __name__=='__main__':
         guiInstance = rovViewerWindow(root)
         root.bind("<Configure>", guiInstance.resize)
 
-        def motion(event):
-            x, y = event.x, event.y
-            print('{}, {}'.format(x, y))
-
-        root.bind('<Motion>', motion)
+        ### placing debug - show mouse motion over GUI
+        #def motion(event):
+        #    x, y = event.x, event.y
+        #    print('{}, {}'.format(x, y))
+        #root.bind('<Motion>', motion)
         
         root.protocol("WM_DELETE_WINDOW", guiInstance.quit)
         root.mainloop()
