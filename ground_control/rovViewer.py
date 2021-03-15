@@ -510,15 +510,13 @@ class rovViewerWindow(Frame):
             return
         try:
             tm_img = time.gmtime()
-            img_file = "logs/img_{}_{}_{}__{}_{}_{}.jpg".format(tm_img.tm_year, tm_img.tm_mon, tm_img.tm_mday,
-                                                                tm_img.tm_hour, tm_img.tm_min, tm_img.tm_sec)
 
             obj = self.myStyle['disp_image']
 
-            x = obj.winfo_rootx()
-            y = obj.winfo_rooty()
-            height = obj.winfo_height() + y
-            width = obj.winfo_width() + x
+            x = event.x
+            y = event.y
+
+            print('clicked x=%d, y=%d'%(x,y))
             # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
         except Exception as err:
             print(err)
