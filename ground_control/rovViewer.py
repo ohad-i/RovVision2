@@ -2,8 +2,11 @@
 # need fping install - sudo apt install fping
 # install ssh support - Exscript @ https://exscript.readthedocs.io/en/latest/install.html
 # install matplotlib -  sudo apt-get install python3-matplotlib
+# install tix - sudo apt-get install tix-dev
+
 
 from tkinter import *
+from tkinter.tix import *
 from PIL import Image, ImageTk
 import io
 import time
@@ -529,7 +532,7 @@ class rovViewerWindow(Frame):
             
             self.myStyle['disp_image'].configure(image=self.img)
             self.myStyle['disp_image'].image = self.img
-        self.parent.after(50, self.update_image)
+        self.parent.after(10, self.update_image)
 
     
     def make_image(self, name, col, row, width, height, char_width, char_height):
@@ -546,7 +549,7 @@ class rovViewerWindow(Frame):
         self.update_image()
 
 
-    def create_control_button(self, name, display_text, n_col, n_row, callback):
+    def create_control_button(self, name, display_text, n_col, n_row, callback, toolTip = ""):
         button_name = "{}_button".format(name)
         btn = Button(self.parent, text=display_text, command=callback, width=9,
                      activebackground=self.myStyle['activeControlButtonBg'])
@@ -555,6 +558,11 @@ class rovViewerWindow(Frame):
                    font=self.TFont)
         self.myStyle[button_name] = btn
 
+        if len(toolTip) > 0:
+            
+            balloon = Balloon(self.parent, bg="white", title="Help")
+            balloon.bind_widget(self.myStyle[button_name], balloonmsg= toolTip)
+        
         self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colButtonWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
 
@@ -816,19 +824,19 @@ class rovViewerWindow(Frame):
         self.myStyle["ROV_Data_label"].place(x=col1X, y=row1Y)
         rtDataRow += 1
         self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=rtDataCol, n_row=rtDataRow)
-        self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=cmd1Col , n_row=rtDataRow, textbox_width=10)
+        self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=cmd1Col , n_row=rtDataRow, textbox_width=9)
         self.myStyle['depthCmd_textbox'].bind("<Key-Return>", self.updateDepth)
         rtDataRow += 1
         self.create_label_pair(name="rtPitch", display_text="Pitch:", n_col=rtDataCol, n_row=rtDataRow)
-        self.create_text_box(name="pitchCmd", label_text="dPitch:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
+        self.create_text_box(name="pitchCmd", label_text="dPitch:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=9)
         self.myStyle['pitchCmd_textbox'].bind("<Key-Return>", self.updatePitch)
         rtDataRow += 1
         self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=rtDataCol, n_row=rtDataRow)
-        self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
+        self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=9)
         self.myStyle['yawCmd_textbox'].bind("<Key-Return>", self.updateYaw)
         rtDataRow += 1
         self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=rtDataCol, n_row=rtDataRow)
-        self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
+        self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=cmd1Col, n_row=rtDataRow, textbox_width=9)
         self.myStyle['focusCmd_textbox'].bind("<Return>", self.updateFocus)
         #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
         rtDataRow += 1
@@ -890,7 +898,7 @@ class rovViewerWindow(Frame):
             xMiddleButton = 1007
             buttonWidth = 143
             
-            self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow, self.go_up)
+            self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow, self.go_up, toolTip="yawing ROV left 5deg.")
             self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+1, self.turn_left)
             self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+2, self.go_forwards)
             control_start_col += 1
