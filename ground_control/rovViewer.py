@@ -217,6 +217,9 @@ class rovViewerWindow(Frame):
         self.checkYawControl.set(1)
         self.checkRecorder = IntVar()
         self.checkRecorder.set(1)
+
+        self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl}
+
         
         self.ping_window = None
         self.update_ping_window = False
@@ -426,6 +429,29 @@ class rovViewerWindow(Frame):
 
     def handle_ping_window_quit(self):
         pass
+
+    def depthSelect(self):
+        if self.controllerChbx['depth'].get() == 0:
+            self.selectController('depth')
+
+    def pitchSelect(self):
+        if self.controllerChbx['pitch'].get() == 0:
+            self.selectController('pitch')
+    
+    def rollSelect(self):
+        if self.controllerChbx['roll'].get() == 0:
+            self.selectController('roll')
+
+    def yawSelect(self):
+        if self.controllerChbx['yaw'].get() == 0:
+            self.selectController('yaw')
+    
+    def selectController(self, ctrl):
+        
+        for key in self.controllerChbx:
+            if key != ctrl:
+                self.controllerChbx[key].set(1)
+
 
     def updateDepth(self, event):
         chars = event.widget.get()
@@ -842,17 +868,20 @@ class rovViewerWindow(Frame):
         #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
         rtDataRow += 1
         self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=rtDataCol, n_row=rtDataRow)
-        
 
         pidRow = 7
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
+        self.myStyle["showDepth"].configure(command=self.depthSelect)
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
+        self.myStyle["showPitch"].configure(command=self.pitchSelect)
         pidRow += 1
         self.create_checkbox_button("showRoll", "roll control", pidCol, pidRow, self.checkRollControl, anchor='w')
+        self.myStyle["showRoll"].configure(command=self.rollSelect)
         pidRow += 1
         self.create_checkbox_button("showYaw", "yaw control", pidCol, pidRow, self.checkYawControl, anchor='w')
+        self.myStyle["showYaw"].configure(command=self.yawSelect)
         pidRow += 1
 
         modesRow = 6
@@ -865,8 +894,6 @@ class rovViewerWindow(Frame):
         #self.myStyle["attHold"].configure(command=self.dummy)
         self.create_button("attHold", "attitude hold", modesCol, modesRow, self.cmdAttHold)
         modesRow += 1
-        self.create_button("getRecords", "Fetch Recs", modesCol, modesRow, self.fetchRecords)
-      
         
         row_btn_idx = 2
         btnCol = 5
@@ -888,8 +915,22 @@ class rovViewerWindow(Frame):
         row_btn_idx += 1
         self.create_button("rebootRemote", "reboot ROV", btnCol, row_btn_idx, self.rebootRemote)
         
-        
+        btnCol += 2
+        row_btn_idx = 7
+        self.create_button("getRecords", "Fetch Recs", btnCol, row_btn_idx, self.fetchRecords)
+        row_btn_idx += 1
+        self.create_button("updatePIDs", "Update PID", btnCol, row_btn_idx, self.dummy)
+        row_btn_idx += 1
 
+        btnCol +=2
+        row_btn_idx = 7
+        self.create_text_box(name="K", label_text="K:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
+        row_btn_idx += 1
+        self.create_text_box(name="Kp", label_text="kP:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
+        row_btn_idx += 1
+        self.create_text_box(name="Ki", label_text="kI:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
+        row_btn_idx += 1
+        self.create_text_box(name="Kd", label_text="kD:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
         
         
         if 1:
