@@ -30,13 +30,21 @@ async def recv_and_process():
 
     jm=Joy_map()
     joy=None
+    doGuiCmd = False
 
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
         for sock in socks:
             ret=sock.recv_multipart()
             topic,data=ret[0],pickle.loads(ret[1])
-
+            
+            
+            if topic == zmq_topics.topic_gui_depthAtt:
+                print('---> got GUI command: ', data)
+                #target_att[0] = data['dYaw']
+                target_att[1] = data['dPitch']
+                
+            
             if topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
                 if 0 and 'yawr' in data:
@@ -62,7 +70,7 @@ async def recv_and_process():
                         else:
                             target_att[0]=yaw
                             yaw_cmd=0
-                        print('R{:06.3f} Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw,yaw,target_att[0],yaw_cmd))
+                        print('Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw, target_att[0], yaw_cmd))
 
                         if joy and abs(joy['pitch'])<0.1:
                             pitch_cmd = pid_p(pitch,target_att[1],rates[1],0)
@@ -81,7 +89,9 @@ async def recv_and_process():
                         pub_sock.send_multipart([zmq_topics.topic_att_hold_yaw_pid, pickle.dumps(debug_pid,-1)])
 
                         thruster_cmd = np.array(mixer.mix(0,0,0,roll_cmd,pitch_cmd,yaw_cmd,pitch,roll))
+                        
                         thruster_cmd += mixer.mix(0,0,0,-rates[0]*pid_r.D,-rates[1]*pid_p.D,-rates[2]*pid_y.D,0,0)
+                        
                         thrusters_source.send_pyobj(['att',time.time(),thruster_cmd])
                 else:
                     if pid_y is not None:
@@ -116,6 +126,7 @@ if __name__=='__main__':
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],zmq_topics.topic_gui_port))
 
     ### plugin outputs
     thrusters_source = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)

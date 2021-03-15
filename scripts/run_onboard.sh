@@ -67,7 +67,7 @@ run 0 hw hw_gate.py
 run 1 hw idsGst_proxy.py
 run 2 hw vnav.py
 #run 3 hw sonar.py
-#run 4 utils recorder.py
+run 4 utils recorder.py
 #runShell 5 . jtop
 #tmux att
 fi

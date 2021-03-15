@@ -24,9 +24,10 @@ topicsList = [ [zmq_topics.topic_thrusters_comand, zmq_topics.topic_thrusters_co
                [zmq_topics.topic_lights,           zmq_topics.topic_controller_port],
                [zmq_topics.topic_focus,            zmq_topics.topic_controller_port],
                [zmq_topics.topic_depth,            zmq_topics.topic_depth_port],
-               [zmq_topics.topic_voltage,          zmq_topics.topic_volt_port],
+               [zmq_topics.topic_volt,             zmq_topics.topic_volt_port],
                [zmq_topics.topic_imu,              zmq_topics.topic_imu_port],
                [zmq_topics.topic_stereo_camera,    zmq_topics.topic_camera_port],
+               [zmq_topics.topic_system_state,     zmq_topics.topic_controller_port],
         ]
 
 subs_socks=[]
@@ -38,27 +39,36 @@ for topic in topicsList:
    
 
 rov_type = int(os.environ.get('ROV_TYPE','1'))
-            
+
+doRec = False
+telemFile = None
+videoFile = None
+videoQFile = None
+
 recordsBasePath = "../records/"
 def initRec():
+    global telemFile, videoFile, videoQFile
     recName = time.strftime("%Y%m%d_%H%M%S", time.localtime())
-    ret = os.path.join(recordsBasePath, recName)
-    if not os.path.exists(ret):
-        os.system('mkdir -p %s'%ret)
+    recPath = os.path.join(recordsBasePath, recName)
+    if not os.path.exists(recPath):
+        os.system('mkdir -p %s'%recPath)
     
-    print(ret)
-    return ret
+    telemFile = os.path.join(recPath, 'telem.pkl')
+    videoFile = os.path.join(recPath, 'video.bin')
+    videoQFile = os.path.join(recPath, 'videoQ.bin')
+    print(recPath)
+    return recPath
+
 debugVideo = False
 
 if debugVideo:
     cv2.namedWindow('low', 0)
     cv2.namedWindow('high', 0)
 
-def recorder(doRec):
-    recPath = initRec()
-    telemFile = os.path.join(recPath, 'telem.pkl')
-    videoFile = os.path.join(recPath, 'video.bin')
-    videoQFile = os.path.join(recPath, 'videoQ.bin')
+def recorder():
+    global telemFile, videoFile, videoQFile, doRec
+    
+    
     cnt = 0
     imgCnt = 0
     while True:
@@ -79,6 +89,16 @@ def recorder(doRec):
             topic = ret[0]
             if topic in mpsDict.keys():
                 mpsDict[topic].calcMPS()
+                if topic == zmq_topics.topic_system_state:
+                    newDoRec = pickle.loads(ret[1])[1]['record']
+                    if (newDoRec) and (not doRec):
+                        recPath = initRec()
+                        print('record started, %s'%recPath)
+                        doRec = True
+                    elif (not newDoRec) and doRec:
+                        print('Stop recording...')
+                        doRec = False
+                    
                 if doRec:
                     if topic == zmq_topics.topic_stereo_camera:
                         imgCnt += 1
@@ -107,5 +127,4 @@ def recorder(doRec):
 
 if __name__=='__main__':
     if rov_type == 4:
-        doRec = True
-        recorder(doRec)
+        recorder()

@@ -150,6 +150,8 @@ def draw_mono(img,message_dict,fmt_cnt_l):
             modes_str=' '.join(modes)
         cv2.putText(img, modes_str\
                 ,(sy(140),sx(15)), font, 0.5,(255,255,255),1,cv2.LINE_AA)
+        if ss['record']:
+            cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
     if zmq_topics.topic_tracker in message_dict:
         rng  = message_dict[zmq_topics.topic_tracker].get('range_f',-1.0)
         line='{:>.2f} TRng'.format(rng)

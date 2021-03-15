@@ -59,7 +59,10 @@ async def recv_and_process():
             if topic==zmq_topics.topic_axes:
                 jm.update_axis(data)
                 target_depth+=jm.joy_mix()['ud']/250.0
-
+            if topic==zmq_topics.topic_gui_depthAtt:
+                target_depth = data['dDepth'] 
+                print('set new depth: %.2f'%target_depth)
+                
             if topic==zmq_topics.topic_imu:
                 pitch,roll=data['pitch'],data['roll']
 
@@ -80,6 +83,7 @@ if __name__=='__main__':
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_depth],zmq_topics.topic_depth_port))
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],zmq_topics.topic_gui_port))
 
     ### plugin outputs
     thrusters_source = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)

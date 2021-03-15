@@ -8,7 +8,7 @@ from PIL import Image, ImageTk
 import io
 import time
 import datetime
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
 #from PIL import ImageGrab
@@ -32,6 +32,10 @@ import zmq
 import image_enc_dec
 
 
+#### matplotlib add
+import matplotlib.pyplot as plt
+####
+
 '''
 tm = time.gmtime()
 filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
@@ -39,6 +43,34 @@ filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
     tm.tm_hour, tm.tm_min, tm.tm_sec)
 log_file = open(filename, "a")
 '''
+class CycArr():
+    def __init__(self,size=20000):
+        self.buf=[]
+        self.size=size
+
+    def add(self,arr):
+        self.buf.append(arr)
+        if len(self.buf)>self.size:
+            self.buf.pop(0)
+
+    def get_data(self,labels):
+        data = np.zeros((len(self.buf),len(labels)))
+        for i,d in enumerate(self.buf):
+            for j,l in enumerate(labels):
+                if l in d:
+                    data[i][j]=d[l]
+                else:
+                    data[i][j]=0
+        return data
+
+    def get_vec(self):
+        return np.array([d for _,d in self.buf])
+
+    def __len__(self):
+        return len(self.buf)
+
+    def reset(self):
+        self.buf=[]
 
 
 ## matplotlib functions
@@ -179,6 +211,7 @@ class rovDataHandler(Thread):
         self.keepRunning = False
         time.sleep(0.1)
     
+    
     def main(self):
         
         sx,sy=config.cam_res_rgbx,config.cam_res_rgby
@@ -242,6 +275,9 @@ neutralHatMsg = [0, 0, 0, 0, 0, 0, 0.0, 0]
 focusNearMsg = [0, 0, 0, 0, 0, 0, -1, 0]
 focusFarMsg = [0, 0, 0, 0, 0, 0, 1, 0]
 
+attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
 # this class is the base of our GUI
 class rovViewerWindow(Frame):
     def __init__(self, parent=None, **kw):
@@ -250,12 +286,8 @@ class rovViewerWindow(Frame):
 
         # init attributes
         
-        self.checkDepthHold = IntVar()
-        self.checkDepthHold.set(1)
-        
-        self.checkAttHold = IntVar()
-        self.checkAttHold.set(1)
-        
+        self.checkInertial = IntVar()
+        self.checkInertial.set(1)
         
         self.checkDepthControl = IntVar()
         self.checkDepthControl.set(1)
@@ -301,7 +333,16 @@ class rovViewerWindow(Frame):
         self.rovGuiCommandPublisher = utils.publisher(zmq_topics.topic_gui_port)
         self.armClicked = False
         self.recClicked = False
+        self.attMessage = {'dDepth':0.0, 'dPitch': 0.0, 'dYaw':0.0}
+        
+        self.pidMsgs = {}
+        self.updatePids()
+        
+        
         print(' display layer init done ')
+        
+        
+        
     
     def quit(self):
         self.ROVHandler.kill()
@@ -330,13 +371,6 @@ class rovViewerWindow(Frame):
         lbl.config(font=self.TFont)
         self.myStyle[name] = lbl
 
-    def create_disabled_label(self, name, display_text, n_col, n_row, width):
-        lbl = Label(self.parent, text=display_text, width=width)
-        lbl.grid(column=n_col, row=n_row, sticky='e', padx=2, pady=2)
-        lbl.configure(background=self.myStyle['bg'], foreground=self.myStyle['disabled_fg'])
-        lbl.config(font=self.TFont)
-        self.myStyle[name] = lbl
-
     def create_label_pair(self, name, display_text, n_col, n_row):
         first_name = "{}label".format(name)
         second_name = "{}text".format(name)
@@ -351,7 +385,7 @@ class rovViewerWindow(Frame):
         self.myStyle[second_name].config(font=self.TFont)
 
     def create_main_col_row_labels(self):
-        for number in range(0, 30):
+        for number in range(0, 10):
             lbl = Label(self.parent, text=" ", anchor="e", width=1)
             lbl.grid(column=number, row=0)
             lbl.configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
@@ -374,7 +408,7 @@ class rovViewerWindow(Frame):
         fourth_name = "{}label4".format(name)
         fifth_name = "{}label5".format(name)
 
-        self.myStyle[first_name] = Label(self.parent, text=display_text1, anchor="w", width=15)
+        self.myStyle[first_name] = Label(self.parent, text=display_text1, width=15) #, anchor="w")
         self.myStyle[second_name] = Label(self.parent, text=display_text2, width=10)
         self.myStyle[third_name] = Label(self.parent, text=display_text3, width=15)
         self.myStyle[fourth_name] = Label(self.parent, text=display_text4, width=15)
@@ -384,7 +418,7 @@ class rovViewerWindow(Frame):
         self.myStyle[second_name].grid(column=n_col + 1, row=n_row)
         self.myStyle[third_name].grid(column=n_col + 3, row=n_row)
         self.myStyle[fourth_name].grid(column=n_col + 5, row=n_row)
-        self.myStyle[fifth_name].grid(column=15, row=n_row)
+        self.myStyle[fifth_name].grid(column=n_col + 7, row=n_row)
 
         self.myStyle[first_name].configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
         self.myStyle[second_name].configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
@@ -490,6 +524,10 @@ class rovViewerWindow(Frame):
             val = float(chars.strip())
             print('new depth is %0.2f'%val)
             desiredDepth = val
+            
+            self.attMessage['dDepth'] = desiredDepth
+            data = pickle.dumps(self.attMessage, protocol=3)
+            self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
         except:
             print('failed to load value')
         
@@ -500,6 +538,9 @@ class rovViewerWindow(Frame):
             val = float(chars.strip())
             print('new pitch is %0.2f'%val)
             desiredPitch = val
+            self.attMessage['dPitch'] = desiredPitch
+            data = pickle.dumps(self.attMessage, protocol=3)
+            self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
         except:
             print('failed to load value')
         
@@ -518,6 +559,9 @@ class rovViewerWindow(Frame):
             val = float(chars.strip())
             print('new yaw is %0.2f'%val)
             desiredYaw = val
+            self.attMessage['dYaw'] = desiredYaw
+            data = pickle.dumps(self.attMessage, protocol=3)
+            self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
         except:
             print('failed to load value')
         
@@ -539,8 +583,7 @@ class rovViewerWindow(Frame):
 
     def make_square(self, col, row, width, height, bg):
         submit_btn = Button(self.parent, text='            ', borderwidth=1)
-        submit_btn.grid(row=row, column=col, columnspan=width, rowspan=height, pady=15, padx=7, ipadx=100,
-                        sticky="nsew")
+        submit_btn.grid(row=row, column=col, columnspan=width, rowspan=height, pady=15, padx=7, sticky="nwse")
         submit_btn.config(background=bg, activebackground=bg)
         self.myStyle['control_bg'] = submit_btn
 
@@ -604,7 +647,7 @@ class rovViewerWindow(Frame):
         lbl = Label(self.parent, image=self.img, width=char_width, height=char_height, borderwidth=2,
                     highlightbackground="white")
         lbl.image = self.img
-        lbl.grid(row=row, column=col, columnspan=width, rowspan=height, pady=5, padx=5, sticky="nsew")
+        lbl.grid(row=row, column=col, columnspan=width, rowspan=height, pady=5, padx=5, sticky="nw") #, sticky="nsew")
         self.myStyle[name] = lbl
         self.update_image()
 
@@ -622,17 +665,6 @@ class rovViewerWindow(Frame):
         checkbox.grid(column=n_col, row=n_row) #, sticky=anchor)
         checkbox.config(background=self.myStyle['bg'], foreground=self.myStyle['fg'], font=self.TFont)
         self.myStyle[name] = checkbox
-
-    def create_soft_button(self, name, display_text, n_col, n_row, callback, sticky="center", width=10):
-        button_name = "{}_button".format(name)
-        self.myStyle[button_name] = Button(self.parent, text=display_text, command=callback, width=width,
-                                        activebackground=self.myStyle['activeSoftButtonBg'])
-        if 'center' not in sticky:
-            self.myStyle[button_name].grid(column=n_col, row=n_row, sticky=sticky)
-        else:
-            self.myStyle[button_name].grid(column=n_col, row=n_row)
-        self.myStyle[button_name].config(background=self.myStyle['buttonBgSoft'], foreground=self.myStyle['buttonFgSoft'],
-                                      font=self.TFont)
 
     def send_command(self, opcode, x, y, z):
         pass
@@ -728,8 +760,18 @@ class rovViewerWindow(Frame):
             self.myStyle["arm_button"].config(foreground=self.myStyle['activeDisplayButtonFg'])
             self.myStyle["arm_button"].config(activebackground=self.myStyle['activeDisplayButtonBg'])
         self.armClicked = not self.armClicked
-        
-        
+    
+    def cmdDepthHold(self):
+        data = pickle.dumps(depthHoldMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+
+    def cmdAttHold(self):
+        data = pickle.dumps(attHoldMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
         
     def cmdIncLights(self):
         data = pickle.dumps(lightUpMsg, protocol=3)
@@ -777,6 +819,104 @@ class rovViewerWindow(Frame):
 
     def setStringValue(self, labelKey, val):
         self.myStyle[labelKey+'text']['text'] = str(val)
+        
+    
+    def updatePids(self):
+        telemtry = self.ROVHandler.getTelemtry()
+        rollData = None
+        pitchData = None
+        yawData = None
+        depthData = None
+        if zmq_topics.topic_att_hold_roll_pid in telemtry.keys():
+            rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
+            topic = zmq_topics.topic_att_hold_roll_pid
+            if topic not in self.pidMsgs:
+                    self.pidMsgs[topic] = CycArr(500)
+            self.pidMsgs[topic].add(rollData)
+            
+        if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
+            pitchData = telemtry[zmq_topics.topic_att_hold_pitch_pid]
+            
+            topic = zmq_topics.topic_att_hold_pitch_pid
+            if topic not in self.pidMsgs:
+                    self.pidMsgs[topic] = CycArr(500)
+            self.pidMsgs[topic].add(pitchData)
+            
+        if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
+            yawData = telemtry[zmq_topics.topic_att_hold_yaw_pid]
+            
+            topic = zmq_topics.topic_att_hold_yaw_pid
+            if topic not in self.pidMsgs:
+                    self.pidMsgs[topic] = CycArr(500)
+            self.pidMsgs[topic].add(yawData)
+                
+        if zmq_topics.topic_depth_hold_pid in telemtry.keys():
+            depthData = telemtry[zmq_topics.topic_depth_hold_pid]
+            
+            topic = zmq_topics.topic_depth_hold_pid
+            if topic not in self.pidMsgs:
+                    self.pidMsgs[topic] = CycArr(500)
+            self.pidMsgs[topic].add(depthData)
+        
+        
+        
+        if (self.checkDepthControl.get() == 0) and (depthData is not None):
+            self.plotData(zmq_topics.topic_depth_hold_pid, 'Depth control')
+            
+        if (self.checkPitchControl.get() == 0) and (pitchData is not None):
+            self.plotData(zmq_topics.topic_att_hold_pitch_pid, 'Pitch control')
+            
+        if (self.checkRollControl.get() == 0) and (rollData is not None):
+            self.plotData(zmq_topics.topic_att_hold_roll_pid, 'Roll control')
+            
+        if (self.checkYawControl.get() == 0) and (yawData is not None):
+            self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
+        
+            
+        self.parent.after(20, self.updatePids)
+        
+        
+    
+    def initPlots(self):
+
+        
+        self.hdls=[self.ax1.plot([1],'-b'), self.ax1.plot([1],'-g'), self.ax1.plot([1],'-r'), self.ax1.plot([1],'-k')]
+        self.ax1.grid('on')
+        
+        
+        self.hdls2=[self.ax2.plot([1],'-b'), self.ax2.plot([1],'-g'), self.ax2.plot([1],'-r')]
+        self.ax2.grid('on')
+        
+        self.canvas.draw()
+    
+    def plotData(self, topic, title):
+        msgs = self.pidMsgs[topic]
+        data = msgs.get_data(['TS','P','I','D','C'])
+        
+        self.ax1.set_title(title+ ' pid')
+        xs = np.arange(data.shape[0])
+        
+        for i in [0,1,2,3]:
+            self.hdls[i][0].set_ydata(data[:,i+1]) #skip timestemp
+            self.hdls[i][0].set_xdata(xs)
+        self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+        self.ax1.set_ylim(-1,1)
+        self.ax1.legend(list('pidc'),loc='upper left')
+        
+        
+        self.ax2.set_title(title)
+        data = msgs.get_data(['T','N','R'])
+        #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+        for i in [0,1,2]:
+            self.hdls2[i][0].set_ydata(data[:,i])
+            self.hdls2[i][0].set_xdata(xs)
+        self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+        min_y = data.min()
+        max_y = data.max()
+        self.ax2.set_ylim(min_y,max_y)
+        self.ax2.legend(list('TNR'),loc='upper left')
+        
+        self.canvas.draw()
 
 
     def make_widgets(self):
@@ -786,14 +926,38 @@ class rovViewerWindow(Frame):
         
         row_index = 0
         self.create_main_col_row_labels()
+        
+        ###############################
+                
+        self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
+        self.ax1 = self.figure1.add_subplot(211)
+        self.ax2 = self.figure1.add_subplot(212)
+        bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
+        
+        self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
+        #canvas.get_tk_widget().grid(column=7, row=1, rowspan=1, columnspan=4)
+        # here: plot suff to your fig
+        
+        frame = Frame(self.parent)
+        frame.grid(row=0, column=7)
+        toobar = NavigationToolbar2Tk(self.canvas, frame)
+        self.canvas.get_tk_widget().grid(column=7, row=1, rowspan=1, columnspan=8)
+        self.initPlots()
+        self.canvas.draw()
+        ###############################
+        
+        
         row_index += 1
+        initRow = 6 #15
         #set video window
-        self.make_image(name='disp_image', col=1, row=row_index, width=10, height=14, char_width=800, char_height=600)
-        row_index += 15
+        self.make_image(name='disp_image', col=1, row=row_index, width=10, height=12, char_width=800, char_height=600)
+        row_index += initRow#15
+        '''
         self.create_label_header(name="header", display_text1="Property", display_text2="Status",
                                  display_text3="Commands", display_text4="Control",
                                  display_text5=" Manual control ", n_col=1,
                                  n_row=row_index)
+        '''
         row_index += 1
         # creates ststic text with text
         self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=propertyCol, n_row=row_index,
@@ -809,8 +973,9 @@ class rovViewerWindow(Frame):
         self.myStyle['pitchCmd_textbox'].bind("<Key-Return>", self.updatePitch)
         row_index += 1
         self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="rollCmd", label_text="dRoll:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
+        self.create_text_box(name="rollCmd", label_text="dRoll:", display_text="0.0°", n_col=commandCol, n_row=row_index, textbox_width=5)
         self.myStyle['rollCmd_textbox'].bind("<Key-Return>", self.updateRoll)
+        self.myStyle['rollCmd_textbox'].configure(state=DISABLED)
         row_index += 1
         self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
@@ -830,25 +995,16 @@ class rovViewerWindow(Frame):
         
         #self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
         #self.myStyle["depthHold"].configure(command=self.cmdDepthHold)
-        self.create_button("depthHold", "Depth hold", commandCol, row_index, self.dummy)
+        self.create_button("depthHold", "Depth hold", commandCol, row_index, self.cmdDepthHold)
         row_index += 1
         #self.create_checkbox_button("attHold", "Attitude hold", commandCol, row_index, self.checkAttHold, anchor='w')
         #self.myStyle["attHold"].configure(command=self.dummy)
-        self.create_button("attHold", "attitude hold", commandCol, row_index, self.dummy)
+        self.create_button("attHold", "attitude hold", commandCol, row_index, self.cmdAttHold)
         row_index += 1
         self.create_button("getRecords", "Fetch Recs", commandCol, row_index, self.fetchRecords)
       
-        '''
-        self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
-        row_index += 1
-        self.create_button("arm", "ARM/DISARM", controlCol, row_btn_idx, self.cmdArm)
-        row_btn_idx += 1
-        '''
         
-        #row_index += 5
-        #self.create_label_buffer(name="buffer_before_buttons", n_row=row_index, n_col=100)
-        #row_index += 1
-        row_btn_idx = 17
+        row_btn_idx = initRow+2
         self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
         row_btn_idx += 1
         self.create_button("arm", "ARM/DISARM", controlCol, row_btn_idx, self.cmdArm)
@@ -871,23 +1027,26 @@ class rovViewerWindow(Frame):
 
         
         
-        control_start_col = 12
-        manualControlOffsetRow = 16
-        self.make_square(col=control_start_col, row=manualControlOffsetRow+2, width=7, height=5, bg='gray90')
-        self.create_control_button("goRight", "❱❱", control_start_col + 5, manualControlOffsetRow+4, self.turn_right)
-        self.create_control_button("goLeft", "❰❰", control_start_col + 1, manualControlOffsetRow+4, self.turn_left)
-        self.create_control_button("goForward", "⟰", control_start_col + 3, manualControlOffsetRow+3, self.go_forwards)
-        self.create_control_button("goForward", "▄ ", control_start_col + 3, manualControlOffsetRow+4, self.go_forwards)
-        self.create_control_button("goBackwords", "⟱", control_start_col + 3, manualControlOffsetRow+5, self.go_backwards)
-        
-        self.create_control_button("yawLeft", "↙ Yaw left", control_start_col + 1, manualControlOffsetRow+3, self.go_up)
-        self.create_control_button("yawRight", "Yaw right ↘", control_start_col + 5, manualControlOffsetRow+3, self.go_down)
-        
-        self.create_control_button("deeper", "Deeper ⟱", control_start_col + 1, manualControlOffsetRow+5, self.go_forwards)
-        self.create_control_button("shallower", "Shallower ⟰", control_start_col + 5, manualControlOffsetRow+5, self.go_backwards)
+        if 0:
+            ### show manual controls
+            control_start_col = 7 #12
+            manualControlOffsetRow = 16
+            #self.make_square(col=control_start_col, row=manualControlOffsetRow+2, width=10, height=5, bg='gray90')
+            self.create_control_button("goRight", "❱❱", control_start_col + 2, manualControlOffsetRow+4, self.turn_right)
+            self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+4, self.turn_left)
+            self.create_control_button("goForward", "⟰", control_start_col + 1, manualControlOffsetRow+3, self.go_forwards)
+            self.create_control_button("goForward", "▄ ", control_start_col + 1, manualControlOffsetRow+4, self.go_forwards)
+            self.create_control_button("goBackwords", "⟱", control_start_col + 1, manualControlOffsetRow+5, self.go_backwards)
+            
+            self.create_checkbox_button("inertial", "inertial movment", control_start_col + 1, manualControlOffsetRow+1, self.checkInertial, anchor='w')
+            
+            self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow+3, self.go_up)
+            self.create_control_button("yawRight", "Yaw right ↘", control_start_col + 2, manualControlOffsetRow+3, self.go_down)
+            
+            self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+5, self.go_forwards)
+            self.create_control_button("shallower", "Shallower ⟰", control_start_col + 2, manualControlOffsetRow+5, self.go_backwards)
     
-    def cmdDepthHold(self):
-        print (self.checkDepthHold.get())
+        
         
     def fetchRecords(self):
         os.system('cd ../scripts && ./recSync.sh')

@@ -83,6 +83,7 @@ def update_graph(axes):
     if not pause_satus and new_data:
         if args.type=='pid':
             update_pid(axis_hdls,args.topic.encode())
+            print(axes, '(*)')
             axes.figure.canvas.draw()
         if args.type=='vector':
             update_vector(axis_hdls,args.topic.encode())

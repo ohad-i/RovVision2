@@ -23,12 +23,23 @@ subs_socks.append(thruster_sink)
 
 focusResolution = 5
 
+
 async def recv_and_process():
     keep_running=True
     thruster_cmd=np.zeros(8)
     timer10hz=time.time()+1/10.0
     timer20hz=time.time()+1/20.0
-    system_state={'arm':False,'mode':[], 'lights':0, 'focus':1000, 'record':False} #lights 0-5
+    
+    initPwmFocus = 1400
+    preFocusFileName = '../hw/focusState.bin'
+    if os.path.exists(preFocusFileName):
+        with open(preFocusFileName, 'r') as fid:
+            initPwmFocus = int(fid.read(4))
+            print('reset focus to:', initPwmFocus)
+
+    
+    
+    system_state={'arm':False,'mode':[], 'lights':0, 'focus':initPwmFocus, 'record':False} #lights 0-5
     
     thrusters_dict={}
 
@@ -58,8 +69,10 @@ async def recv_and_process():
                     
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
+                        print('Toggle depth hold...')
                         togle_mode('DEPTH_HOLD')
                     if jm.att_hold_event():
+                        print('Toggle attitude hold...')
                         togle_mode('ATT_HOLD')
                     if jm.Rx_hold_event():
                         togle_mode('RX_HOLD')

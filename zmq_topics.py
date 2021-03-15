@@ -25,6 +25,7 @@ topic_joy_port=8899
 
 topic_gui_controller = b'gui_controller'
 topic_gui_diveModes = b'gui_diveModes'
+topic_gui_depthAtt = b'att_deptch'
 topic_gui_port = 8900
 
 
