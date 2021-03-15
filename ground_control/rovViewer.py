@@ -244,7 +244,7 @@ class rovViewerWindow(Frame):
         self.initY = 660
         self.colWidth = 100
         self.colButtonWidth = 120
-        self.rowHeight = 30
+        self.rowHeight = 30 # more space - 35
  
         # create widgets
         self.make_widgets()
@@ -822,6 +822,7 @@ class rovViewerWindow(Frame):
         # creates ststic text with text
         self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=rtDataCol,  n_row=rtDataRow, textbox_width=15)
         self.myStyle["ROV_Data_label"].place(x=col1X, y=row1Y)
+        self.myStyle['ROV_Data_textbox'].configure(state=DISABLED)
         rtDataRow += 1
         self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=rtDataCol, n_row=rtDataRow)
         self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=cmd1Col , n_row=rtDataRow, textbox_width=9)
