@@ -11,7 +11,6 @@ import datetime
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-#from PIL import ImageGrab
 import os
 import sys
 import socket
@@ -228,7 +227,6 @@ class rovViewerWindow(Frame):
                      'activeControlButtonBg': 'gray50'}
 
         self.img = None
-        self.last_cmd_from_cf = 'disarmed'
         self.last_pressed_button = 'disarm'
         
         self.TFont = ("Courier", 14)
@@ -386,7 +384,6 @@ class rovViewerWindow(Frame):
         self.parent.bind("<Key-f>", self.page_down_click_func)
         self.parent.bind("<Key-q>", self.turn_left_click_func)
         self.parent.bind("<Key-e>", self.turn_right_click_func)
-        #self.parent.protocol("WM_DELETE_WINDOW", self.client_exit)  # register kill command
 
         
     def page_up_click_func(self, event):
@@ -415,24 +412,6 @@ class rovViewerWindow(Frame):
 
     def handle_ping_window_quit(self):
         pass
-
-    def ip_clicked_func(self, event):
-        print('ip clicked')
-        if self.ping_window is not None:
-            self.ping_window.maximize()
-            return
-        self.ping_window = CPingWindow(self)
-        self.update_ping_window = True
-
-    def update_height(self, event):
-        chars = event.widget.get("1.0", "end-1c")
-        val = chars.replace('\n', '').strip()
-        self.height_val = val
-
-    def update_nominal(self, event):
-        chars = event.widget.get("1.0", "end-1c")
-        val = chars.replace('\n', '').strip()
-        self.nominal_velocity_val = val
 
     def updateDepth(self, event):
         chars = event.widget.get()
@@ -484,13 +463,6 @@ class rovViewerWindow(Frame):
             print('failed to load value')
         
 
-    
-        
-    def create_label_buffer(self, name, n_col, n_row):
-        self.myStyle[name] = Label(master=self.parent, text='    ')
-        self.myStyle[name].grid(column=n_col, row=n_row)
-        self.myStyle[name].configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
-
     def create_button(self, name, display_text, n_col, n_row, callback):
         button_name = "{}_button".format(name)
         _btn = Button(self.parent, text=display_text, command=callback, width=13,
@@ -499,11 +471,6 @@ class rovViewerWindow(Frame):
         _btn.config(background=self.myStyle['buttonBg'], foreground=self.myStyle['buttonFg'], font=self.TFont)
         self.myStyle[button_name] = _btn
 
-    def make_square(self, col, row, width, height, bg):
-        submit_btn = Button(self.parent, text='            ', borderwidth=1)
-        submit_btn.grid(row=row, column=col, columnspan=width, rowspan=height, pady=15, padx=7, sticky="nwse")
-        submit_btn.config(background=bg, activebackground=bg)
-        self.myStyle['control_bg'] = submit_btn
 
     def image_clicked(self, event):
         if self.img is None:
@@ -526,8 +493,6 @@ class rovViewerWindow(Frame):
             return
         try:
             tm_img = time.gmtime()
-            img_file = "logs/screenshot_{}_{}_{}__{}_{}_{}.jpg".format(tm_img.tm_year, tm_img.tm_mon, tm_img.tm_mday,
-                                                                tm_img.tm_hour, tm_img.tm_min, tm_img.tm_sec)
 
             x = self.parent.winfo_rootx()
             y = self.parent.winfo_rooty()
@@ -701,34 +666,6 @@ class rovViewerWindow(Frame):
     def focusNear(self):
         data = pickle.dumps(focusNearMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
-
-    def get_vers(self):
-        self.clear_version()
-
-    def get_records(self):
-        pass
-
-    def get_last_record(self):
-        pass
-
-    def cmd_manual(self):
-        self.update_button_active_command("manual__button")
-        pass
-
-    def cmd_cruise_and_return(self):
-        self.update_button_active_command("cruise_and_return__button")
-        pass
-
-    def cmd_png_viz(self):
-        pass
-
-    def cmd_png_map(self):
-        pass
-
-
-    def setStringValue(self, labelKey, val):
-        self.myStyle[labelKey+'text']['text'] = str(val)
-        
     
     def updatePids(self):
         telemtry = self.ROVHandler.getTelemtry()
@@ -834,26 +771,6 @@ class rovViewerWindow(Frame):
         row_index = 0
         self.create_main_col_row_labels()
        
-        if 0:
-            ###############################
-                    
-            self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
-            self.ax1 = self.figure1.add_subplot(211)
-            self.ax2 = self.figure1.add_subplot(212)
-            bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
-            
-            self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
-            # here: plot suff to your fig
-            
-            frame = Frame(self.parent)
-            frame.grid(row=0, column=9)
-            toobar = NavigationToolbar2Tk(self.canvas, frame)
-            self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
-            self.initPlots()
-            self.canvas.draw()
-            ###############################
-            
-        
         row_index += 1
         initRow = 6 #15
         #set video window
@@ -940,7 +857,7 @@ class rovViewerWindow(Frame):
             manualControlOffsetRow = 7
             xMiddleButton = 1007
             buttonWidth = 143
-            #self.make_square(col=control_start_col, row=manualControlOffsetRow+2, width=10, height=5, bg='gray90')
+            
             self.create_control_button("goRight", "❱❱", control_start_col + 2, manualControlOffsetRow+4, self.turn_right)
             self.myStyle["goRight_button"].place(x=xMiddleButton+buttonWidth, y=767)
             self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+4, self.turn_left)
@@ -973,7 +890,7 @@ class rovViewerWindow(Frame):
 
         frame = Frame(self.parent)
         frame.grid(row=0, column=9)
-        toobar = NavigationToolbar2Tk(self.canvas, frame)
+        toolbar = NavigationToolbar2Tk(self.canvas, frame)
         #self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
         self.canvas.get_tk_widget().grid(rowspan=1, columnspan=8)
         self.canvas.get_tk_widget().place(x=1000,y=40)
@@ -998,109 +915,6 @@ class rovViewerWindow(Frame):
     def dummy(self):
         pass
 
-    def clear_version(self):
-        self.myStyle['vers_textbox'].config(state=NORMAL)
-        self.myStyle["vers_textbox"].delete('1.0', END)
-        time.sleep(0.1)
-        self.myStyle['vers_textbox'].config(state=DISABLED)
-
-    def add_version(self, data):
-        data = " {}".format(data)
-        self.myStyle['vers_textbox'].config(state=NORMAL)
-        self.myStyle['vers_textbox'].insert(END, data)
-        self.myStyle['vers_textbox'].see(END)
-        self.myStyle['vers_textbox'].insert(END, "\n")
-        time.sleep(0.01)
-        self.myStyle['vers_textbox'].config(state=DISABLED)
-
-    def client_exit(self):
-        
-        log_file.close()
-        if self.ping_window is not None:
-            self.ping_window.quit()
-        exit()
-
-    def update_explore_display_status(self, txt):
-        try:
-            val = int(float(txt) / 1000)
-            txt = "{}".format(val)
-        finally:
-            self.myStyle['explore_d_text']['text'] = txt
-
-    def update_motor_status(self, txt):
-        color = 'black'
-        try:
-            val = int(txt)
-            m1 = val % 2
-            val = int(val/2)
-            m2 = val % 2
-            val = int(val / 2)
-            m3 = val % 2
-            val = int(val / 2)
-            m4 = val % 2
-
-            txt = "{}.{}.{}.{}".format(m1, m2, m3, m4)
-            if m1 and m2 and m3 and m4:
-                color = 'green'
-            else:
-                color = 'red'
-        finally:
-            self.myStyle['prop_test_text']['text'] = txt
-            self.myStyle['prop_test_text'].config(foreground=color)
-
-    def update_height_display_status(self, txt):
-        try:
-            val = float(txt)
-            txt = "{:.2f}".format(val)
-        finally:
-            self.myStyle['height_d_text']['text'] = txt
-
-    def update_vnom_display_status(self, txt):
-        try:
-            val = float(txt)
-            txt = "{:.1f}".format(val)
-        finally:
-            self.myStyle['nominal_d_text']['text'] = txt
-
-    def update_squal_display_status(self, txt):
-        try:
-            val = int(txt)
-            txt = "{}".format(val)
-        except Exception as err:
-            print("can't set squal value")
-            print(err)
-        finally:
-            self.myStyle['squall_d_text']['text'] = txt
-
-    def update_control_display_status(self, txt):
-        pass
-
-    def update_oper_display_status(self, txt):
-        try:
-            if int(txt) > 0:
-                txt = 'T'
-            else:
-                txt = 'F'
-        finally:
-            self.myStyle['oper_d_text']['text'] = txt
-
-    def update_zret_display_status(self, txt):
-        try:
-            if int(txt) > 0:
-                txt = 'T'
-            else:
-                txt = 'F'
-        finally:
-            self.myStyle['zreject_d_text']['text'] = txt
-
-    def update_ofret_display_status(self, txt):
-        try:
-            if int(txt) > 0:
-                txt = 'T'
-            else:
-                txt = 'F'
-        finally:
-            self.myStyle['ofreject_d_text']['text'] = txt
 
     def update_button_active_command(self, button_name):
         if button_name is self.last_pressed_button:
