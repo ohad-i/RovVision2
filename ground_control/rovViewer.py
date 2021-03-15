@@ -237,6 +237,12 @@ class rovViewerWindow(Frame):
         self.ROVHandler = rovDataHandler(self)
         self.ROVHandler.start()
 
+        self.initX = 15
+        self.initY = 660
+        self.colWidth = 100
+        self.colButtonWidth = 120
+        self.rowHeight = 30
+ 
         # create widgets
         self.make_widgets()
         self.bind_widgets_events()
@@ -252,10 +258,7 @@ class rovViewerWindow(Frame):
         self.pidMsgs = {}
         self.updatePids()
         
-        
         print(' display layer init done ')
-        
-        
         
     
     def quit(self):
@@ -289,7 +292,7 @@ class rovViewerWindow(Frame):
         first_name = "{}label".format(name)
         second_name = "{}text".format(name)
         self.myStyle[first_name] = Label(self.parent, text=display_text, anchor="w", width=15)
-        self.myStyle[second_name] = Label(self.parent, text="n/a", width=18)
+        self.myStyle[second_name] = Label(self.parent, text="n/a", width=18, anchor="w")
         self.myStyle[first_name].grid(column=n_col, row=n_row)
         self.myStyle[second_name].grid(column=n_col + 1, row=n_row)
         self.myStyle[first_name].configure(background=self.myStyle['bg'], foreground=self.myStyle['fg'])
@@ -297,6 +300,11 @@ class rovViewerWindow(Frame):
 
         self.myStyle[first_name].config(font=self.TFont)
         self.myStyle[second_name].config(font=self.TFont)
+
+        #print('-->', display_text, n_col, n_row)
+        self.myStyle[first_name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+        self.myStyle[second_name].place(x=self.initX+(n_col)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+
 
     def create_main_col_row_labels(self):
         for number in range(0, 10):
@@ -360,6 +368,9 @@ class rovViewerWindow(Frame):
         self.myStyle[second_name].grid(row=n_row, column=n_col + 1, padx=2, pady=2, sticky=stickyness)
 
         self.myStyle[second_name].insert(END, display_text)
+        #print('-->', label_text, n_col, n_row)
+        self.myStyle[first_name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+        self.myStyle[second_name].place(x=self.initX+(n_col)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
     def bind_widgets_events(self):
         
@@ -471,6 +482,11 @@ class rovViewerWindow(Frame):
         _btn.config(background=self.myStyle['buttonBg'], foreground=self.myStyle['buttonFg'], font=self.TFont)
         self.myStyle[button_name] = _btn
 
+        #print('-->', name, n_col, n_row)
+        self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+
+
+
 
     def image_clicked(self, event):
         if self.img is None:
@@ -525,17 +541,21 @@ class rovViewerWindow(Frame):
         lbl.image = self.img
         lbl.grid(row=row, column=col, columnspan=width, rowspan=height, pady=5, padx=5, sticky="nw") #, sticky="nsew")
         self.myStyle[name] = lbl
+        self.myStyle[name].place(x=15,y=35)
+
         self.update_image()
 
 
     def create_control_button(self, name, display_text, n_col, n_row, callback):
         button_name = "{}_button".format(name)
-        btn = Button(self.parent, text=display_text, command=callback, width=10,
+        btn = Button(self.parent, text=display_text, command=callback, width=9,
                      activebackground=self.myStyle['activeControlButtonBg'])
-        btn.grid(column=n_col, row=n_row)
+        #btn.grid(column=n_col, row=n_row)
         btn.config(background=self.myStyle['buttonBgControl'], foreground=self.myStyle['buttonFgControl'],
                    font=self.TFont)
         self.myStyle[button_name] = btn
+
+        self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colButtonWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
 
     def create_checkbox_button(self, name, display_text, n_col, n_row, var, anchor):
@@ -543,6 +563,9 @@ class rovViewerWindow(Frame):
         checkbox.grid(column=n_col, row=n_row) #, sticky=anchor)
         checkbox.config(background=self.myStyle['bg'], foreground=self.myStyle['fg'], font=self.TFont)
         self.myStyle[name] = checkbox
+
+        self.myStyle[name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+
 
 
 
@@ -774,6 +797,9 @@ class rovViewerWindow(Frame):
         row_index += 1
         initRow = 6 #15
         #set video window
+        col1X = 15
+        row1Y = 660
+
         self.make_image(name='disp_image', col=1, row=row_index, width=10, height=7, char_width=968, char_height=608)
         row_index += initRow#15
         '''
@@ -782,102 +808,108 @@ class rovViewerWindow(Frame):
                                  display_text5=" Manual control ", n_col=1,
                                  n_row=row_index)
         '''
-        row_index += 1
+        rtDataRow = 1
+        rtDataCol = 1
+        cmd1Col = 3
         # creates ststic text with text
-        self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=propertyCol, n_row=row_index,
-                             textbox_width=15)
-        
-        row_index += 1
-        self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=commandCol, n_row=row_index, textbox_width=1)
+        self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=rtDataCol,  n_row=rtDataRow, textbox_width=15)
+        self.myStyle["ROV_Data_label"].place(x=col1X, y=row1Y)
+        rtDataRow += 1
+        self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=rtDataCol, n_row=rtDataRow)
+        self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=cmd1Col , n_row=rtDataRow, textbox_width=10)
         self.myStyle['depthCmd_textbox'].bind("<Key-Return>", self.updateDepth)
-        row_index += 1
-        self.create_label_pair(name="rtPitch", display_text="Pitch:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="pitchCmd", label_text="dPitch:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
+        rtDataRow += 1
+        self.create_label_pair(name="rtPitch", display_text="Pitch:", n_col=rtDataCol, n_row=rtDataRow)
+        self.create_text_box(name="pitchCmd", label_text="dPitch:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
         self.myStyle['pitchCmd_textbox'].bind("<Key-Return>", self.updatePitch)
-        row_index += 1
-        self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=commandCol, n_row=row_index, textbox_width=5)
+        rtDataRow += 1
+        self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=rtDataCol, n_row=rtDataRow)
+        self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
+        self.myStyle['yawCmd_textbox'].bind("<Key-Return>", self.updateYaw)
+        rtDataRow += 1
+        self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=rtDataCol, n_row=rtDataRow)
+        self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=cmd1Col, n_row=rtDataRow, textbox_width=10)
         self.myStyle['focusCmd_textbox'].bind("<Return>", self.updateFocus)
         #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
-        row_index += 1
-        self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
-        self.myStyle['yawCmd_textbox'].bind("<Key-Return>", self.updateYaw)
-        row_index += 1
-        self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=propertyCol, n_row=row_index)
-        pidRow = row_index + 1
+        rtDataRow += 1
+        self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=rtDataCol, n_row=rtDataRow)
         
-        self.create_checkbox_button("showDepth", "depth control", propertyCol, pidRow, self.checkDepthControl, anchor='w')
+
+        pidRow = 7
+        pidCol = 1
+        self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         pidRow += 1
-        self.create_checkbox_button("showPitch", "pitch control", propertyCol, pidRow, self.checkPitchControl, anchor='w')
+        self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
         pidRow += 1
-        self.create_checkbox_button("showRoll", "roll control", propertyCol, pidRow, self.checkRollControl, anchor='w')
+        self.create_checkbox_button("showRoll", "roll control", pidCol, pidRow, self.checkRollControl, anchor='w')
         pidRow += 1
-        self.create_checkbox_button("showYaw", "yaw control", propertyCol, pidRow, self.checkYawControl, anchor='w')
+        self.create_checkbox_button("showYaw", "yaw control", pidCol, pidRow, self.checkYawControl, anchor='w')
         pidRow += 1
-        
+
+        modesRow = 6
+        modesCol =3
         #self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
         #self.myStyle["depthHold"].configure(command=self.cmdDepthHold)
-        self.create_button("depthHold", "Depth hold", commandCol, row_index, self.cmdDepthHold)
-        row_index += 1
+        self.create_button("depthHold", "Depth hold", modesCol, modesRow, self.cmdDepthHold)
+        modesRow += 1
         #self.create_checkbox_button("attHold", "Attitude hold", commandCol, row_index, self.checkAttHold, anchor='w')
         #self.myStyle["attHold"].configure(command=self.dummy)
-        self.create_button("attHold", "attitude hold", commandCol, row_index, self.cmdAttHold)
-        row_index += 1
-        self.create_button("getRecords", "Fetch Recs", commandCol, row_index, self.fetchRecords)
+        self.create_button("attHold", "attitude hold", modesCol, modesRow, self.cmdAttHold)
+        modesRow += 1
+        self.create_button("getRecords", "Fetch Recs", modesCol, modesRow, self.fetchRecords)
       
         
-        row_btn_idx = initRow+2
-        self.create_button("runRemote", "run ROV", controlCol, row_btn_idx, self.runRemote)
+        row_btn_idx = 2
+        btnCol = 5
+        self.create_button("runRemote", "run ROV", btnCol, row_btn_idx, self.runRemote)
         row_btn_idx += 1
-        self.create_button("arm", "ARM/DISARM", controlCol, row_btn_idx, self.cmdArm)
+        self.create_button("arm", "ARM/DISARM", btnCol, row_btn_idx, self.cmdArm)
         row_btn_idx += 1
-        self.create_button("record", "Record", controlCol, row_btn_idx, self.cmdRecord)
+        self.create_button("record", "Record", btnCol, row_btn_idx, self.cmdRecord)
         row_btn_idx += 1        
-        self.create_button("ledsUp", "Inc. Lights", controlCol, row_btn_idx, self.cmdIncLights)
+        self.create_button("ledsUp", "Inc. Lights", btnCol, row_btn_idx, self.cmdIncLights)
         row_btn_idx += 1
-        self.create_button("ledsDown", "Dec. Lights", controlCol, row_btn_idx, self.cmdDecLights)
+        self.create_button("ledsDown", "Dec. Lights", btnCol, row_btn_idx, self.cmdDecLights)
         row_btn_idx += 1
-        self.create_button("focusFar", "Focus far", controlCol, row_btn_idx, self.focusFar)
+        self.create_button("focusFar", "Focus far", btnCol, row_btn_idx, self.focusFar)
         row_btn_idx += 1
-        self.create_button("focusNear", "Focus near", controlCol, row_btn_idx, self.focusNear)
+        self.create_button("focusNear", "Focus near", btnCol, row_btn_idx, self.focusNear)
         row_btn_idx += 1
-        self.create_button("killRemote", "kill ROV", controlCol, row_btn_idx, self.killRemote)
+        self.create_button("killRemote", "kill ROV", btnCol, row_btn_idx, self.killRemote)
         row_btn_idx += 1
-        self.create_button("rebootRemote", "reboot ROV", controlCol, row_btn_idx, self.rebootRemote)
-        row_btn_idx += 1
+        self.create_button("rebootRemote", "reboot ROV", btnCol, row_btn_idx, self.rebootRemote)
+        
         
 
         
         
         if 1:
             ### show manual controls
-            control_start_col = 8 #12
-            manualControlOffsetRow = 7
+            control_start_col = 6#12
+            manualControlOffsetRow = 3
             xMiddleButton = 1007
             buttonWidth = 143
             
-            self.create_control_button("goRight", "❱❱", control_start_col + 2, manualControlOffsetRow+4, self.turn_right)
-            self.myStyle["goRight_button"].place(x=xMiddleButton+buttonWidth, y=767)
-            self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+4, self.turn_left)
-            self.create_control_button("goForward", "⟰", control_start_col + 1, manualControlOffsetRow+3, self.go_forwards)
-            self.myStyle["goForward_button"].place(x=xMiddleButton, y=732)
-            self.create_control_button("stopMotion", "▄ ", control_start_col + 1, manualControlOffsetRow+4, self.go_forwards)
-            self.myStyle["stopMotion_button"].place(x=xMiddleButton, y=767)
-            self.create_control_button("goBackwords", "⟱", control_start_col + 1, manualControlOffsetRow+5, self.go_backwards)
-            self.myStyle["goBackwords_button"].place(x=xMiddleButton, y=802)
+            self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow, self.go_up)
+            self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+1, self.turn_left)
+            self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+2, self.go_forwards)
+            control_start_col += 1
+            self.create_control_button("goForward", "⟰", control_start_col, manualControlOffsetRow, self.go_forwards)
+            #self.myStyle["goForward_button"].place(x=xMiddleButton, y=732)
+            self.create_control_button("stopMotion", "▄ ", control_start_col, manualControlOffsetRow+1, self.go_forwards)
+            #self.myStyle["stopMotion_button"].place(x=xMiddleButton, y=767)
+            self.create_control_button("goBackwords", "⟱", control_start_col, manualControlOffsetRow+2, self.go_backwards)
+            #self.myStyle["goBackwords_button"].place(x=xMiddleButton, y=802)
+            control_start_col += 1
+            self.create_control_button("yawRight", "Yaw right ↘", control_start_col, manualControlOffsetRow, self.go_down)
+            #self.myStyle["yawRight_button"].place(x=xMiddleButton+buttonWidth, y=732)
+            self.create_control_button("goRight", "❱❱", control_start_col, manualControlOffsetRow+1, self.turn_right)
+            #self.myStyle["goRight_button"].place(x=xMiddleButton+buttonWidth, y=767)
+            self.create_control_button("shallower", "Shallower ⟰", control_start_col, manualControlOffsetRow+2, self.go_backwards)
+            #self.myStyle["shallower_button"].place(x=xMiddleButton+buttonWidth, y=802)
             
-            self.create_checkbox_button("inertial", "inertial movment", control_start_col + 1, manualControlOffsetRow+1, self.checkInertial, anchor='w')
-            self.myStyle["inertial"].place(x=965, y=680)
-            
-            self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow+3, self.go_up)
-            self.create_control_button("yawRight", "Yaw right ↘", control_start_col + 2, manualControlOffsetRow+3, self.go_down)
-            self.myStyle["yawRight_button"].place(x=xMiddleButton+buttonWidth, y=732)
-            
-            self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+5, self.go_forwards)
-            self.create_control_button("shallower", "Shallower ⟰", control_start_col + 2, manualControlOffsetRow+5, self.go_backwards)
-            self.myStyle["shallower_button"].place(x=xMiddleButton+buttonWidth, y=802)
+            self.create_checkbox_button("inertial", "inertial movment", 8, 2, self.checkInertial, anchor='w')
+            #self.myStyle["inertial"].place(x=965, y=680)
         ###############################
 
         self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
@@ -889,11 +921,12 @@ class rovViewerWindow(Frame):
         # here: plot suff to your fig
 
         frame = Frame(self.parent)
-        frame.grid(row=0, column=9)
+        #frame.grid(row=0, column=9)
         toolbar = NavigationToolbar2Tk(self.canvas, frame)
+        frame.place(x=1000,y=1)
         #self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
         self.canvas.get_tk_widget().grid(rowspan=1, columnspan=8)
-        self.canvas.get_tk_widget().place(x=1000,y=40)
+        self.canvas.get_tk_widget().place(x=1000,y=45)
         self.initPlots()
         self.canvas.draw()
         ###############################
@@ -936,6 +969,12 @@ if __name__=='__main__':
         #root.resizable(True, False)
         guiInstance = rovViewerWindow(root)
         root.bind("<Configure>", guiInstance.resize)
+
+        def motion(event):
+            x, y = event.x, event.y
+            print('{}, {}'.format(x, y))
+
+        root.bind('<Motion>', motion)
         
         root.protocol("WM_DELETE_WINDOW", guiInstance.quit)
         root.mainloop()
