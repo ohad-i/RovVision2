@@ -73,90 +73,6 @@ class CycArr():
         self.buf=[]
 
 
-## matplotlib functions
-##CPingWindow
-class pidGraph(Frame):
-    def __init__(self, parent=None, **kw):
-        super().__init__(**kw)
-        self.max_list_size = 100
-        self.list_size = 3
-        self.x_values = range(self.list_size)
-        self.long_ping = [0] * self.list_size
-        self.short_ping = [0] * self.list_size
-        self.rssi_str = [0] * self.list_size
-        self.rssi_clar = [0] * self.list_size
-
-        self.parent = parent
-        self.window = Tk()
-        self.window.title("Crazy-Flie connection analysis")
-        # w, h = self.window.winfo_screenwidth(), self.window.winfo_screenheight()
-        self.window.geometry("%dx%d+0+0" % (420, 240))
-        self.window.protocol("WM_DELETE_WINDOW", self.parent.handle_ping_window_quit)  # register kill command
-        # self.canvas = Canvas(master=self.window, width=400, height=200)
-        # self.canvas.grid(row=1, column=0)
-
-        # the figure that will contain the plot
-        self.fig = Figure(figsize=(5, 5), dpi=100)
-
-        # adding the subplot
-        self.plot1 = self.fig.add_subplot(111)
-
-        # creating the Tkinter canvas
-        # containing the Matplotlib figure
-        self.canvas = FigureCanvasTkAgg(self.fig, master=self.window)
-
-        # self.plotline1 = self.plot1.plot(self.x_values, self.short_ping)
-        # self.plotline2 = self.plot1.plot(self.x_values, self.long_ping)
-        # self.plotline3 = self.plot1.plot(self.x_values, self.rssi_str)
-        self.plotline3 = self.plot1.plot(self.x_values, self.rssi_clar)
-
-        ax = self.canvas.figure.axes[0]
-        ax.set_xlim(0, self.list_size - 1)
-        ax.set_ylim(-0.5, 101)
-
-        self.canvas.draw()
-        # placing the canvas on the Tkinter window
-        self.canvas.get_tk_widget().pack()
-        self.window.after(500, self.refresh_figure)
-
-    def quit(self):
-        self.window.destroy()
-
-    def maximize(self):
-        self.window.geometry("%dx%d+0+0" % (420, 220))
-        self.window.lift()
-
-    def update_ping_values(self, short_val, long_val, rssi_str, rssi_clar):
-        if self.list_size >= self.max_list_size:
-            self.long_ping.pop(0)
-            self.short_ping.pop(0)
-            self.rssi_str.pop(0)
-            self.rssi_clar.pop(0)
-        else:
-            self.list_size += 1
-        self.long_ping.append(long_val)
-        self.short_ping.append(short_val)
-        self.rssi_str.append(rssi_str)
-        self.rssi_clar.append(rssi_clar)
-
-        # callback is hooked every 500 ms
-        # self.window.after(100, self.refreshFigure)
-
-    def refresh_figure(self):
-        self.plot1.clear()
-        self.x_values = range(self.list_size)
-
-        # self.plotline1 = self.plot1.plot(self.x_values, self.short_ping)
-        # self.plotline2 = self.plot1.plot(self.x_values, self.long_ping)
-        # self.plotline3 = self.plot1.plot(self.x_values, self.rssi_str)
-        self.plotline3 = self.plot1.plot(self.x_values, self.rssi_clar)
-
-        ax = self.canvas.figure.axes[0]
-        ax.set_xlim(0, self.list_size)
-        ax.set_ylim(-0.1, 101)
-        self.canvas.draw()
-        self.window.after(500, self.refresh_figure)
-        
 from threading import Thread
 class rovDataHandler(Thread):
     def __init__(self, rovViewer):
@@ -544,12 +460,14 @@ class rovViewerWindow(Frame):
         except:
             print('failed to load value')
         
-    def updateRoll(self, event):
+    def updateFocus(self, event):
         chars = event.widget.get()
         try:
-            val = float(chars.strip())
-            print('new roll is %0.2f'%val)
-            desiredRoll = val
+            val = min(max(int(chars.strip()),850),2250)
+            self.myStyle['focusCmd_textbox'].delete(0, END)
+            self.myStyle['focusCmd_textbox'].insert(0,str(val))
+            print('new focus PWM %d'%val)
+            ## send focus command
         except:
             print('failed to load value')
 
@@ -634,11 +552,6 @@ class rovViewerWindow(Frame):
             self.myStyle['disp_image'].image = self.img
         self.parent.after(50, self.update_image)
 
-    def should_rotate_180(self):
-        if self.check_inverted_cam.get() == 0:
-            return True
-        return False
-
     
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
@@ -651,6 +564,7 @@ class rovViewerWindow(Frame):
         self.myStyle[name] = lbl
         self.update_image()
 
+
     def create_control_button(self, name, display_text, n_col, n_row, callback):
         button_name = "{}_button".format(name)
         btn = Button(self.parent, text=display_text, command=callback, width=10,
@@ -660,17 +574,14 @@ class rovViewerWindow(Frame):
                    font=self.TFont)
         self.myStyle[button_name] = btn
 
+
     def create_checkbox_button(self, name, display_text, n_col, n_row, var, anchor):
         checkbox = Checkbutton(self.parent, variable=var, onvalue=0, offvalue=1, text=display_text)
         checkbox.grid(column=n_col, row=n_row) #, sticky=anchor)
         checkbox.config(background=self.myStyle['bg'], foreground=self.myStyle['fg'], font=self.TFont)
         self.myStyle[name] = checkbox
 
-    def send_command(self, opcode, x, y, z):
-        pass
 
-    def move(self, x, y, z, psi):
-        pass
 
     def turn_right(self):
         pass
@@ -879,10 +790,8 @@ class rovViewerWindow(Frame):
     
     def initPlots(self):
 
-        
         self.hdls=[self.ax1.plot([1],'-b'), self.ax1.plot([1],'-g'), self.ax1.plot([1],'-r'), self.ax1.plot([1],'-k')]
         self.ax1.grid('on')
-        
         
         self.hdls2=[self.ax2.plot([1],'-b'), self.ax2.plot([1],'-g'), self.ax2.plot([1],'-r')]
         self.ax2.grid('on')
@@ -926,31 +835,31 @@ class rovViewerWindow(Frame):
         
         row_index = 0
         self.create_main_col_row_labels()
-        
-        ###############################
-                
-        self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
-        self.ax1 = self.figure1.add_subplot(211)
-        self.ax2 = self.figure1.add_subplot(212)
-        bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
-        
-        self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
-        #canvas.get_tk_widget().grid(column=7, row=1, rowspan=1, columnspan=4)
-        # here: plot suff to your fig
-        
-        frame = Frame(self.parent)
-        frame.grid(row=0, column=7)
-        toobar = NavigationToolbar2Tk(self.canvas, frame)
-        self.canvas.get_tk_widget().grid(column=7, row=1, rowspan=1, columnspan=8)
-        self.initPlots()
-        self.canvas.draw()
-        ###############################
-        
+       
+        if 0:
+            ###############################
+                    
+            self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
+            self.ax1 = self.figure1.add_subplot(211)
+            self.ax2 = self.figure1.add_subplot(212)
+            bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
+            
+            self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
+            # here: plot suff to your fig
+            
+            frame = Frame(self.parent)
+            frame.grid(row=0, column=9)
+            toobar = NavigationToolbar2Tk(self.canvas, frame)
+            self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
+            self.initPlots()
+            self.canvas.draw()
+            ###############################
+            
         
         row_index += 1
         initRow = 6 #15
         #set video window
-        self.make_image(name='disp_image', col=1, row=row_index, width=10, height=12, char_width=800, char_height=600)
+        self.make_image(name='disp_image', col=1, row=row_index, width=10, height=7, char_width=968, char_height=608)
         row_index += initRow#15
         '''
         self.create_label_header(name="header", display_text1="Property", display_text2="Status",
@@ -973,9 +882,9 @@ class rovViewerWindow(Frame):
         self.myStyle['pitchCmd_textbox'].bind("<Key-Return>", self.updatePitch)
         row_index += 1
         self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=propertyCol, n_row=row_index)
-        self.create_text_box(name="rollCmd", label_text="dRoll:", display_text="0.0°", n_col=commandCol, n_row=row_index, textbox_width=5)
-        self.myStyle['rollCmd_textbox'].bind("<Key-Return>", self.updateRoll)
-        self.myStyle['rollCmd_textbox'].configure(state=DISABLED)
+        self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=commandCol, n_row=row_index, textbox_width=5)
+        self.myStyle['focusCmd_textbox'].bind("<Return>", self.updateFocus)
+        #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
         row_index += 1
         self.create_label_pair(name="rtYaw", display_text="Yaw:", n_col=propertyCol, n_row=row_index)
         self.create_text_box(name="yawCmd", label_text="dYaw:", display_text="[deg]", n_col=commandCol, n_row=row_index, textbox_width=5)
@@ -1027,25 +936,53 @@ class rovViewerWindow(Frame):
 
         
         
-        if 0:
+        if 1:
             ### show manual controls
-            control_start_col = 7 #12
-            manualControlOffsetRow = 16
+            control_start_col = 8 #12
+            manualControlOffsetRow = 7
+            xMiddleButton = 1007
+            buttonWidth = 143
             #self.make_square(col=control_start_col, row=manualControlOffsetRow+2, width=10, height=5, bg='gray90')
             self.create_control_button("goRight", "❱❱", control_start_col + 2, manualControlOffsetRow+4, self.turn_right)
+            self.myStyle["goRight_button"].place(x=xMiddleButton+buttonWidth, y=767)
             self.create_control_button("goLeft", "❰❰", control_start_col , manualControlOffsetRow+4, self.turn_left)
             self.create_control_button("goForward", "⟰", control_start_col + 1, manualControlOffsetRow+3, self.go_forwards)
-            self.create_control_button("goForward", "▄ ", control_start_col + 1, manualControlOffsetRow+4, self.go_forwards)
+            self.myStyle["goForward_button"].place(x=xMiddleButton, y=732)
+            self.create_control_button("stopMotion", "▄ ", control_start_col + 1, manualControlOffsetRow+4, self.go_forwards)
+            self.myStyle["stopMotion_button"].place(x=xMiddleButton, y=767)
             self.create_control_button("goBackwords", "⟱", control_start_col + 1, manualControlOffsetRow+5, self.go_backwards)
+            self.myStyle["goBackwords_button"].place(x=xMiddleButton, y=802)
             
             self.create_checkbox_button("inertial", "inertial movment", control_start_col + 1, manualControlOffsetRow+1, self.checkInertial, anchor='w')
+            self.myStyle["inertial"].place(x=965, y=680)
             
             self.create_control_button("yawLeft", "↙ Yaw left", control_start_col, manualControlOffsetRow+3, self.go_up)
             self.create_control_button("yawRight", "Yaw right ↘", control_start_col + 2, manualControlOffsetRow+3, self.go_down)
+            self.myStyle["yawRight_button"].place(x=xMiddleButton+buttonWidth, y=732)
             
             self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+5, self.go_forwards)
             self.create_control_button("shallower", "Shallower ⟰", control_start_col + 2, manualControlOffsetRow+5, self.go_backwards)
-    
+            self.myStyle["shallower_button"].place(x=xMiddleButton+buttonWidth, y=802)
+        ###############################
+
+        self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
+        self.ax1 = self.figure1.add_subplot(211)
+        self.ax2 = self.figure1.add_subplot(212)
+        bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
+
+        self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
+        # here: plot suff to your fig
+
+        frame = Frame(self.parent)
+        frame.grid(row=0, column=9)
+        toobar = NavigationToolbar2Tk(self.canvas, frame)
+        #self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
+        self.canvas.get_tk_widget().grid(rowspan=1, columnspan=8)
+        self.canvas.get_tk_widget().place(x=1000,y=40)
+        self.initPlots()
+        self.canvas.draw()
+        ###############################
+ 
         
         
     def fetchRecords(self):
