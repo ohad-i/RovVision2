@@ -6,7 +6,7 @@
 
 
 from tkinter import *
-from tkinter.tix import *
+#from tkinter.tix import *
 from PIL import Image, ImageTk
 import io
 import time
@@ -559,9 +559,9 @@ class rovViewerWindow(Frame):
         self.myStyle[button_name] = btn
 
         if len(toolTip) > 0:
-            
-            balloon = Balloon(self.parent, bg="white", title="Help")
-            balloon.bind_widget(self.myStyle[button_name], balloonmsg= toolTip)
+            pass 
+            #balloon = Balloon(self.parent, bg="white", title="Help")
+            #balloon.bind_widget(self.myStyle[button_name], balloonmsg= toolTip)
         
         self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colButtonWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
