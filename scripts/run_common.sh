@@ -60,7 +60,7 @@ tmux send-keys "./ls; $3" ENTER
 }
 
 else
-
+### simulation
 function run { #pane number, path, script
 tmux select-pane -t $1 
 [ ! -z "$RESIZE_VIEWER" ] && tmux send-keys "export RESIZE_VIEWER=$RESIZE_VIEWER" ENTER
