@@ -23,7 +23,7 @@ fi
 new_4_win
 runShell 0 scripts ./ssh_route.sh
 sleep 1
-run 1 ground_control joy_rov.py
+runLoop 1 ground_control joy_rov.py
 #run 2 ground_control "viewer.py --pub_data --udp"
 run 2 ground_control "rovViewer.py"
 #run 2 web "--version && FLASK_APP=server.py flask run"
