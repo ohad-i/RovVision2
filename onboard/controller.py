@@ -18,6 +18,7 @@ subs_socks=[]
 subs_socks.append(utils.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_diveModes],zmq_topics.topic_gui_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_focus_controller],zmq_topics.topic_gui_port))
 thruster_sink = utils.pull_sink(zmq_topics.thrusters_sink_port)
 subs_socks.append(thruster_sink)
 
@@ -94,19 +95,25 @@ async def recv_and_process():
                     if jm.inc_lights_event():
                         system_state['lights']=min(5,system_state['lights']+1)
                         pub_sock.send_multipart([zmq_topics.topic_lights,pickle.dumps(system_state['lights'])])
-                        print('lights set to',system_state['lights'])
+                        print('lights set to ',system_state['lights'])
                     if jm.dec_lights_event():
                         system_state['lights']=max(0,system_state['lights']-1)
                         pub_sock.send_multipart([zmq_topics.topic_lights,pickle.dumps(system_state['lights'])])
-                        print('lights set to',system_state['lights'])
+                        print('lights set to ',system_state['lights'])
                     if jm.inc_focus_event():
                         system_state['focus']=min(2250,system_state['focus']+focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
-                        print('focus set to',system_state['focus'])
+                        print('focus set to ',system_state['focus'])
                     if jm.dec_focus_event():
                         system_state['focus']=max(850,system_state['focus']-focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
-                        print('focus set to',system_state['focus'])
+                        print('focus set to ',system_state['focus'])
+                if topic==zmq_topics.topic_gui_focus_controller:
+                    pwm = data
+                    system_state['focus']=pwm
+                    pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
+                    print('focus set to value ',system_state['focus'])
+                    
 
 
         tic=time.time()
