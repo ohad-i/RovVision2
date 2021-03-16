@@ -17,6 +17,7 @@ import os
 import sys
 import socket
 import pickle
+import json
 
 sys.path.append('../onboard')
 sys.path.append('../utils')
@@ -424,28 +425,58 @@ class rovViewerWindow(Frame):
     def down_click_func(self, event):
         self.go_backwards()
 
+    def updatePIds(self, pids):
+        self.myStyle["K_textbox"].delete(0, END)
+        self.myStyle["K_textbox"].insert(END, "{}".format(pids['K']) )
+        self.myStyle["Kp_textbox"].delete(0, END)
+        self.myStyle["Kp_textbox"].insert(END, "{}".format(pids['P']) )
+        self.myStyle["Ki_textbox"].delete(0, END)
+        self.myStyle["Ki_textbox"].insert(END, "{}".format(pids['I']) )
+        self.myStyle["Kd_textbox"].delete(0, END)
+        self.myStyle["Kd_textbox"].insert(END, "{}".format(pids['D']) )
 
     def depthSelect(self):
         if self.controllerChbx['depth'].get() == 0:
             self.selectController('depth')
+            with open("../config_pid.json") as fid:
+                data = json.load(fid)
+            pids = data["config_pid"][0]['depth_pid']
+            self.updatePIds(pids)
+    
 
     def pitchSelect(self):
         if self.controllerChbx['pitch'].get() == 0:
             self.selectController('pitch')
+            with open("../config_pid.json") as fid:
+                data = json.load(fid)
+            pids = data["config_pid"][0]['pitch_pid']
+            self.updatePIds(pids)
+            
     
     def rollSelect(self):
         if self.controllerChbx['roll'].get() == 0:
             self.selectController('roll')
-
+            with open("../config_pid.json") as fid:
+                data = json.load(fid)
+            pids = data["config_pid"][0]['roll_pid']
+            self.updatePIds(pids)
+            
+            
     def yawSelect(self):
         if self.controllerChbx['yaw'].get() == 0:
             self.selectController('yaw')
-    
+            with open("../config_pid.json") as fid:
+                data = json.load(fid)
+            pids = data["config_pid"][0]['yaw_pid']
+            self.updatePIds(pids)
+            
+            
     def selectController(self, ctrl):
-        
         for key in self.controllerChbx:
             if key != ctrl:
                 self.controllerChbx[key].set(1)
+                self.initPlots()
+            
 
 
     def updateDepth(self, event):
@@ -635,17 +666,31 @@ class rovViewerWindow(Frame):
         try:
             telemtry = self.ROVHandler.getTelemtry()
             #print(telemtry.keys())
+            rtData = {}
             if zmq_topics.topic_imu in telemtry.keys():
                 data = telemtry[zmq_topics.topic_imu]
                 self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
+                rtData['pitch'] = data['pitch']
                 self.myStyle['rtRolltext'].config(text='%.2f°'%data['roll'])
+                rtData['roll'] = data['roll']
                 self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'])
+                rtData['yaw'] = data['yaw']
+                
             if zmq_topics.topic_depth in telemtry.keys():
                 data = telemtry[zmq_topics.topic_depth]
                 self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'])
+                topic = zmq_topics.topic_depth_hold_pid
+                rtData['depth'] = data['depth']
             if zmq_topics.topic_volt in telemtry.keys():
                 data = telemtry[zmq_topics.topic_volt]
                 self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
+            
+            
+            if 'rtData' not in self.pidMsgs:
+                self.pidMsgs['rtData'] = CycArr(500)
+            self.pidMsgs['rtData'].add(rtData)
+            
+
                 
         except:
             import traceback
@@ -769,7 +814,13 @@ class rovViewerWindow(Frame):
             
         if (self.checkYawControl.get() == 0) and (yawData is not None):
             self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
-        
+            
+        if (self.checkYawControl.get() == 1) and 
+            (self.checkRollControl.get() == 1) and 
+            (self.checkPitchControl.get() == 1) and
+            (self.checkDepthControl.get() == 1) and
+            'rtData' in self.pidMsgs.keys():
+                self.plotData('rtData')
             
         self.parent.after(20, self.updatePids)
         
@@ -786,31 +837,34 @@ class rovViewerWindow(Frame):
         self.canvas.draw()
     
     def plotData(self, topic, title):
-        msgs = self.pidMsgs[topic]
-        data = msgs.get_data(['TS','P','I','D','C'])
-        
-        self.ax1.set_title(title+ ' pid')
-        xs = np.arange(data.shape[0])
-        
-        for i in [0,1,2,3]:
-            self.hdls[i][0].set_ydata(data[:,i+1]) #skip timestemp
-            self.hdls[i][0].set_xdata(xs)
-        self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
-        self.ax1.set_ylim(-1,1)
-        self.ax1.legend(list('pidc'),loc='upper left')
-        
-        
-        self.ax2.set_title(title)
-        data = msgs.get_data(['T','N','R'])
-        #cmd_data=gdata.md_hist.get_data(label+'_cmd')
-        for i in [0,1,2]:
-            self.hdls2[i][0].set_ydata(data[:,i])
-            self.hdls2[i][0].set_xdata(xs)
-        self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
-        min_y = data.min()
-        max_y = data.max()
-        self.ax2.set_ylim(min_y,max_y)
-        self.ax2.legend(list('TNR'),loc='upper left')
+        if topic != 'rtData':
+            msgs = self.pidMsgs[topic]
+            data = msgs.get_data(['TS','P','I','D','C'])
+            
+            self.ax1.set_title(title+ ' pid')
+            xs = np.arange(data.shape[0])
+            
+            for i in [0,1,2,3]:
+                self.hdls[i][0].set_ydata(data[:,i+1]) #skip timestemp
+                self.hdls[i][0].set_xdata(xs)
+            self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+            self.ax1.set_ylim(-1,1)
+            self.ax1.legend(list('pidc'),loc='upper left')
+            
+            
+            self.ax2.set_title(title)
+            data = msgs.get_data(['T','N','R'])
+            #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+            for i in [0,1,2]:
+                self.hdls2[i][0].set_ydata(data[:,i])
+                self.hdls2[i][0].set_xdata(xs)
+            self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+            min_y = data.min()
+            max_y = data.max()
+            self.ax2.set_ylim(min_y,max_y)
+            self.ax2.legend(list('TNR'),loc='upper left')
+        else:
+            print('print rtData')
         
         self.canvas.draw()
 
@@ -914,7 +968,7 @@ class rovViewerWindow(Frame):
         row_btn_idx = 7
         self.create_button("getRecords", "Fetch Recs", btnCol, row_btn_idx, self.fetchRecords)
         row_btn_idx += 1
-        self.create_button("updatePIDs", "Update PID", btnCol, row_btn_idx, self.dummy)
+        self.create_button("updatePIDs", "Update PID", btnCol, row_btn_idx, self.updateRovPids)
         row_btn_idx += 1
 
         btnCol +=2
@@ -990,6 +1044,33 @@ class rovViewerWindow(Frame):
     def killRemote(self):
         os.system('cd ../scripts && ./kill_remote.sh')
     
+    def updateRovPids(self):
+        dkey = None
+        for key in self.controllerChbx:
+            if self.controllerChbx[key].get() == 0:
+                dkey = key
+                print(key)
+        
+        if dkey is not None:
+            with open("../config_pid.json") as fid:
+                data = json.load(fid)
+            
+            try:
+                data['config_pid'][0][dkey+'_pid']['K'] = float(self.myStyle["K_textbox"].get())
+                data['config_pid'][0][dkey+'_pid']['P'] = float(self.myStyle["Kp_textbox"].get())
+                data['config_pid'][0][dkey+'_pid']['I'] = float(self.myStyle["Ki_textbox"].get())
+                data['config_pid'][0][dkey+'_pid']['D'] = float(self.myStyle["K_textbox"].get())
+                
+                with open("../config_pid.json", 'w') as fid:
+                    json.dump(data, fid)
+                    
+                os.system("cd ../scripts && ./updateRemotePIDs.sh")
+            except:
+                import traceback
+                traceback.print_exc()
+                
+            
+        
     def dummy(self):
         pass
 
