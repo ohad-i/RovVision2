@@ -685,10 +685,10 @@ class rovViewerWindow(Frame):
                 data = telemtry[zmq_topics.topic_volt]
                 self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
             
-            
-            if 'rtData' not in self.pidMsgs:
-                self.pidMsgs['rtData'] = CycArr(500)
-            self.pidMsgs['rtData'].add(rtData)
+            if len(rtData.keys()) > 0: 
+                if 'rtData' not in self.pidMsgs:
+                    self.pidMsgs['rtData'] = CycArr(500)
+                self.pidMsgs['rtData'].add(rtData)
             
 
                 
@@ -815,12 +815,8 @@ class rovViewerWindow(Frame):
         if (self.checkYawControl.get() == 0) and (yawData is not None):
             self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
             
-        if (self.checkYawControl.get() == 1) and 
-            (self.checkRollControl.get() == 1) and 
-            (self.checkPitchControl.get() == 1) and
-            (self.checkDepthControl.get() == 1) and
-            'rtData' in self.pidMsgs.keys():
-                self.plotData('rtData')
+        if (self.checkYawControl.get() == 1) and (self.checkRollControl.get() == 1) and (self.checkPitchControl.get() == 1) and (self.checkDepthControl.get() == 1) and 'rtData' in self.pidMsgs.keys():
+                self.plotData('rtData', 'real time data')
             
         self.parent.after(20, self.updatePids)
         
@@ -864,6 +860,7 @@ class rovViewerWindow(Frame):
             self.ax2.set_ylim(min_y,max_y)
             self.ax2.legend(list('TNR'),loc='upper left')
         else:
+            #pass
             print('print rtData')
         
         self.canvas.draw()
