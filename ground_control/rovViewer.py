@@ -117,10 +117,16 @@ class rovDataHandler(Thread):
         if self.image is not None:
             ret = np.copy(self.image)
             self.image = None
+            #print("---image---", time.time())
+        else:
+            pass
+            #print(time.time(), "no image")
         return ret
     
     def getTelemtry(self):
-        return self.telemtry.copy()
+        if self.telemtry is not None:
+            return self.telemtry.copy()
+        return None
     
     def run(self):
         self.main()
@@ -140,15 +146,21 @@ class rovDataHandler(Thread):
         images = [None, None]
         bmargx,bmargy=config.viewer_blacks
         print('rovDataHandler running...')
+        
         while self.keepRunning:
+            time.sleep(0.0001)
             if len(select([self.imgSock],[],[],0.003)[0]) > 0:
                 data, addr = self.imgSock.recvfrom(1024*64)
                 img = cv2.imdecode(pickle.loads(data), 1)
                 images = [img]
-                rcv_cnt+=1
-            #if all(images):
-            while True:
+                rcv_cnt += 1
+            
 
+            #if all(images):
+            self.telemtry = None
+            while True:
+                
+                time.sleep(0.0001)
                 socks = zmq.select(self.subs_socks,[],[],0.005)[0]
                 if len(socks)==0: #flush msg buffer
                     break
@@ -158,7 +170,8 @@ class rovDataHandler(Thread):
                     data = pickle.loads(ret[1])
                     message_dict[topic]=data
                     
-                    self.telemtry = message_dict.copy()                    
+                    self.telemtry = message_dict.copy()
+                    
                     if self.pubData:
                         self.socket_pub.send_multipart([ret[0],ret[1]])
     
@@ -173,6 +186,7 @@ class rovDataHandler(Thread):
             if showIm is not None:
                 #self.rovViewer.update_image(showIm)
                 self.image = showIm
+                images[0] = None
                 if 0:
                     cv2.imshow('3dviewer', showIm)
                     cv2.waitKey(10)
@@ -246,7 +260,9 @@ class rovViewerWindow(Frame):
         self.colWidth = 100
         self.colButtonWidth = 120
         self.rowHeight = 30 # more space - 35
- 
+        
+        self.pidMsgs = {}
+        
         # create widgets
         self.make_widgets()
         self.bind_widgets_events()
@@ -259,7 +275,6 @@ class rovViewerWindow(Frame):
         self.recClicked = False
         self.attMessage = {'dDepth':0.0, 'dPitch': 0.0, 'dYaw':0.0}
         
-        self.pidMsgs = {}
         self.updatePids()
         
         print(' display layer init done ')
@@ -512,6 +527,8 @@ class rovViewerWindow(Frame):
             self.myStyle['focusCmd_textbox'].delete(0, END)
             self.myStyle['focusCmd_textbox'].insert(0,str(val))
             print('new focus PWM %d'%val)
+            data = pickle.dumps(val, protocol=3)
+            self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_focus_controller, data])
             ## send focus command
         except:
             print('failed to load value')
@@ -584,6 +601,7 @@ class rovViewerWindow(Frame):
             
             self.myStyle['disp_image'].configure(image=self.img)
             self.myStyle['disp_image'].image = self.img
+
         self.parent.after(10, self.update_image)
 
     
@@ -665,30 +683,31 @@ class rovViewerWindow(Frame):
     def updateGuiData(self):
         try:
             telemtry = self.ROVHandler.getTelemtry()
-            #print(telemtry.keys())
-            rtData = {}
-            if zmq_topics.topic_imu in telemtry.keys():
-                data = telemtry[zmq_topics.topic_imu]
-                self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
-                rtData['pitch'] = data['pitch']
-                self.myStyle['rtRolltext'].config(text='%.2f°'%data['roll'])
-                rtData['roll'] = data['roll']
-                self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'])
-                rtData['yaw'] = data['yaw']
+            if telemtry is not None:
+                #print(telemtry.keys())
+                rtData = {}
+                if zmq_topics.topic_imu in telemtry.keys():
+                    data = telemtry[zmq_topics.topic_imu]
+                    self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
+                    rtData['pitch'] = data['pitch']
+                    self.myStyle['rtRolltext'].config(text='%.2f°'%data['roll'])
+                    rtData['roll'] = data['roll']
+                    self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'])
+                    rtData['yaw'] = data['yaw']
+                    
+                if zmq_topics.topic_depth in telemtry.keys():
+                    data = telemtry[zmq_topics.topic_depth]
+                    self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'])
+                    topic = zmq_topics.topic_depth_hold_pid
+                    rtData['depth'] = data['depth']
+                if zmq_topics.topic_volt in telemtry.keys():
+                    data = telemtry[zmq_topics.topic_volt]
+                    self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
                 
-            if zmq_topics.topic_depth in telemtry.keys():
-                data = telemtry[zmq_topics.topic_depth]
-                self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'])
-                topic = zmq_topics.topic_depth_hold_pid
-                rtData['depth'] = data['depth']
-            if zmq_topics.topic_volt in telemtry.keys():
-                data = telemtry[zmq_topics.topic_volt]
-                self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
-            
-            if len(rtData.keys()) > 0: 
-                if 'rtData' not in self.pidMsgs:
-                    self.pidMsgs['rtData'] = CycArr(500)
-                self.pidMsgs['rtData'].add(rtData)
+                if len(rtData.keys()) > 0: 
+                    if 'rtData' not in self.pidMsgs:
+                        self.pidMsgs['rtData'] = CycArr(500)
+                    self.pidMsgs['rtData'].add(rtData)
             
 
                 
@@ -759,67 +778,79 @@ class rovViewerWindow(Frame):
     def focusFar(self):
         data = pickle.dumps(focusFarMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
         
     def focusNear(self):
         data = pickle.dumps(focusNearMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_controller, data])
     
     def updatePids(self):
         telemtry = self.ROVHandler.getTelemtry()
-        rollData = None
-        pitchData = None
-        yawData = None
-        depthData = None
-        if zmq_topics.topic_att_hold_roll_pid in telemtry.keys():
-            rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
-            topic = zmq_topics.topic_att_hold_roll_pid
-            if topic not in self.pidMsgs:
-                    self.pidMsgs[topic] = CycArr(500)
-            self.pidMsgs[topic].add(rollData)
-            
-        if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
-            pitchData = telemtry[zmq_topics.topic_att_hold_pitch_pid]
-            
-            topic = zmq_topics.topic_att_hold_pitch_pid
-            if topic not in self.pidMsgs:
-                    self.pidMsgs[topic] = CycArr(500)
-            self.pidMsgs[topic].add(pitchData)
-            
-        if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
-            yawData = telemtry[zmq_topics.topic_att_hold_yaw_pid]
-            
-            topic = zmq_topics.topic_att_hold_yaw_pid
-            if topic not in self.pidMsgs:
-                    self.pidMsgs[topic] = CycArr(500)
-            self.pidMsgs[topic].add(yawData)
+        if telemtry is not None:
+            rollData = None
+            pitchData = None
+            yawData = None
+            depthData = None
+            if zmq_topics.topic_att_hold_roll_pid in telemtry.keys():
+                rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
+                topic = zmq_topics.topic_att_hold_roll_pid
+                if topic not in self.pidMsgs:
+                        self.pidMsgs[topic] = CycArr(500)
+                self.pidMsgs[topic].add(rollData)
                 
-        if zmq_topics.topic_depth_hold_pid in telemtry.keys():
-            depthData = telemtry[zmq_topics.topic_depth_hold_pid]
+            if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
+                pitchData = telemtry[zmq_topics.topic_att_hold_pitch_pid]
+                
+                topic = zmq_topics.topic_att_hold_pitch_pid
+                if topic not in self.pidMsgs:
+                        self.pidMsgs[topic] = CycArr(500)
+                self.pidMsgs[topic].add(pitchData)
+                
+            if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
+                yawData = telemtry[zmq_topics.topic_att_hold_yaw_pid]
+                
+                topic = zmq_topics.topic_att_hold_yaw_pid
+                if topic not in self.pidMsgs:
+                        self.pidMsgs[topic] = CycArr(500)
+                self.pidMsgs[topic].add(yawData)
+                    
+            if zmq_topics.topic_depth_hold_pid in telemtry.keys():
+                depthData = telemtry[zmq_topics.topic_depth_hold_pid]
+                
+                topic = zmq_topics.topic_depth_hold_pid
+                if topic not in self.pidMsgs:
+                        self.pidMsgs[topic] = CycArr(500)
+                self.pidMsgs[topic].add(depthData)
             
-            topic = zmq_topics.topic_depth_hold_pid
-            if topic not in self.pidMsgs:
-                    self.pidMsgs[topic] = CycArr(500)
-            self.pidMsgs[topic].add(depthData)
-        
-        
-        
-        if (self.checkDepthControl.get() == 0) and (depthData is not None):
-            self.plotData(zmq_topics.topic_depth_hold_pid, 'Depth control')
             
-        if (self.checkPitchControl.get() == 0) and (pitchData is not None):
-            self.plotData(zmq_topics.topic_att_hold_pitch_pid, 'Pitch control')
             
-        if (self.checkRollControl.get() == 0) and (rollData is not None):
-            self.plotData(zmq_topics.topic_att_hold_roll_pid, 'Roll control')
-            
-        if (self.checkYawControl.get() == 0) and (yawData is not None):
-            self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
-            
-        if (self.checkYawControl.get() == 1) and (self.checkRollControl.get() == 1) and (self.checkPitchControl.get() == 1) and (self.checkDepthControl.get() == 1) and 'rtData' in self.pidMsgs.keys():
-                self.plotData('rtData', 'real time data')
-            
+            if (self.checkDepthControl.get() == 0) and (depthData is not None):
+                self.plotData(zmq_topics.topic_depth_hold_pid, 'Depth control')
+                
+            if (self.checkPitchControl.get() == 0) and (pitchData is not None):
+                self.plotData(zmq_topics.topic_att_hold_pitch_pid, 'Pitch control')
+                
+            if (self.checkRollControl.get() == 0) and (rollData is not None):
+                self.plotData(zmq_topics.topic_att_hold_roll_pid, 'Roll control')
+                
+            if (self.checkYawControl.get() == 0) and (yawData is not None):
+                self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
+                
+            if (self.checkYawControl.get() == 1) and (self.checkRollControl.get() == 1) and (self.checkPitchControl.get() == 1) and (self.checkDepthControl.get() == 1) and 'rtData' in self.pidMsgs.keys():
+                    self.plotData('rtData', 'real time')
+                    self.restPIDVals()
+                
         self.parent.after(20, self.updatePids)
+            
         
+    def restPIDVals(self):
+        self.myStyle["K_textbox"].delete(0, END)
+        self.myStyle["Kp_textbox"].delete(0, END)
+        self.myStyle["Ki_textbox"].delete(0, END)
+        self.myStyle["Kd_textbox"].delete(0, END)
         
     
     def initPlots(self):
@@ -832,9 +863,12 @@ class rovViewerWindow(Frame):
         
         self.canvas.draw()
     
+    
     def plotData(self, topic, title):
+        #print('--->', topic, title)
         if topic != 'rtData':
             msgs = self.pidMsgs[topic]
+            
             data = msgs.get_data(['TS','P','I','D','C'])
             
             self.ax1.set_title(title+ ' pid')
@@ -859,9 +893,39 @@ class rovViewerWindow(Frame):
             max_y = data.max()
             self.ax2.set_ylim(min_y,max_y)
             self.ax2.legend(list('TNR'),loc='upper left')
-        else:
-            #pass
-            print('print rtData')
+        elif topic == 'rtData':
+            msgs = self.pidMsgs[topic]
+            data = msgs.get_data(['pitch','roll','yaw','depth'])
+            self.ax1.set_title(title + ' angular data')
+            xs = np.arange(data.shape[0])
+            
+            for i in [0,1,2]:
+                self.hdls[i][0].set_ydata(data[:,i]) 
+                self.hdls[i][0].set_xdata(xs)
+            self.hdls[3][0].set_ydata(0)
+            self.hdls[3][0].set_xdata(0)
+            self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+            
+            self.ax1.set_ylim(data.min()-5,data.max()+5)
+            self.ax1.legend(list('pry'),loc='upper left')
+            
+            self.ax2.set_title(title + ' depth data')
+            #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+            self.hdls2[0][0].set_ydata(data[:,3])
+            self.hdls2[0][0].set_xdata(xs)
+            
+            self.hdls2[1][0].set_ydata(0)
+            self.hdls2[1][0].set_xdata(0)
+            
+            self.hdls2[2][0].set_ydata(0)
+            self.hdls2[2][0].set_xdata(0)
+
+            self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+            min_y = data[:,3].min()-0.1
+            max_y = data[:,3].max()+0.1
+            self.ax2.set_ylim(min_y,max_y)
+            self.ax2.legend(list('d'),loc='upper left')
+            
         
         self.canvas.draw()
 
@@ -979,7 +1043,7 @@ class rovViewerWindow(Frame):
         self.create_text_box(name="Kd", label_text="kD:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
         
         
-        if 1:
+        if 0:
             ### show manual controls
             control_start_col = 6#12
             manualControlOffsetRow = 3
@@ -1008,7 +1072,7 @@ class rovViewerWindow(Frame):
             #self.myStyle["inertial"].place(x=965, y=680)
         ###############################
 
-        self.figure1 = plt.Figure(figsize=(7,5), dpi=100)
+        self.figure1 = plt.Figure(figsize=(8,6), dpi=100)
         self.ax1 = self.figure1.add_subplot(211)
         self.ax2 = self.figure1.add_subplot(212)
         bar1 = FigureCanvasTkAgg(self.figure1, self.parent)
@@ -1030,7 +1094,7 @@ class rovViewerWindow(Frame):
         
         
     def fetchRecords(self):
-        os.system('cd ../scripts && ./recSync.sh')
+        os.system('cd ../scripts && ./recSync.sh && sleep 3')
         
     def runRemote(self):
         os.system('cd ../scripts && ./run_remote.sh')
