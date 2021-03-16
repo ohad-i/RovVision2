@@ -1,5 +1,4 @@
 #!/usr/bin/python3
-# need fping install - sudo apt install fping
 # install ssh support - Exscript @ https://exscript.readthedocs.io/en/latest/install.html
 # install matplotlib -  sudo apt-get install python3-matplotlib
 # install tix - sudo apt-get install tix-dev
@@ -221,8 +220,6 @@ class rovViewerWindow(Frame):
         self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl}
 
         
-        self.ping_window = None
-        self.update_ping_window = False
         self.resize_called = True
         
         self.myStyle = {'fg': 'black', 'bg': 'LightSteelBlue', 'buttonBg': 'gray90', 'buttonFg': 'black',
@@ -427,8 +424,6 @@ class rovViewerWindow(Frame):
     def down_click_func(self, event):
         self.go_backwards()
 
-    def handle_ping_window_quit(self):
-        pass
 
     def depthSelect(self):
         if self.controllerChbx['depth'].get() == 0:
