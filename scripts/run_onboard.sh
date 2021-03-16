@@ -2,14 +2,15 @@
 source run_common.sh
 
 
-tmux select-pane -t 1
-tmux send-keys C-c ENTER
-sleep 0.5
-tmux send-keys C-c ENTER
-tmux send-keys ENTER
+#tmux select-pane -t 1
+#tmux send-keys C-c ENTER
+#sleep 0.5
+#tmux send-keys C-c ENTER
+#tmux send-keys ENTER
+## Kill camera
+pkill -f ids
+sleep 3
 
-
-sleep 1
 
 tmux kill-ser
 
