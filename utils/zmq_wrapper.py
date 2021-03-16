@@ -5,6 +5,8 @@ context = zmq.Context()
 
 def subscribe(topics,port,ip='127.0.0.1'):
     zmq_sub = context.socket(zmq.SUB)
+    zmq_sub.setsockopt(zmq.SNDHWM, 20)
+    zmq_sub.setsockopt(zmq.RCVHWM, 20)
     zmq_sub.connect("tcp://%s:%d" % (ip,port))
     for topic in topics:
         zmq_sub.setsockopt(zmq.SUBSCRIBE,topic)
