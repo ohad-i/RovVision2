@@ -9,10 +9,11 @@ def getDiffAng(a, b):
     return r
 
 class PID(object):
-    def __init__(self,P,I,D,limit,step_limit,i_limit,FF=0,angle_deg_type=False,initial_i=0, func_in_err=None):
+    def __init__(self,P,I,D,limit,step_limit,i_limit,K=1,FF=0,angle_deg_type=False,initial_i=0, func_in_err=None):
         self.P=P
         self.I=I
         self.D=D
+        print('--->',P,I,D,K)
         self.step_limit=step_limit
         self.limit=limit
         self.i_limit=i_limit
