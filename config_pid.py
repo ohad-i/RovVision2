@@ -2,7 +2,7 @@
 import json
 useJson = True
 if useJson:
-    with open('config_pid.json') as fid:
+    with open('../config_pid.json') as fid:
         data = json.load(fid)
     
     depth_pid = data['config_pid'][0]['depth_pid']
