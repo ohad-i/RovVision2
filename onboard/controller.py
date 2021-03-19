@@ -28,8 +28,9 @@ focusResolution = 5
 async def recv_and_process():
     keep_running=True
     thruster_cmd=np.zeros(8)
-    timer10hz=time.time()+1/10.0
-    timer20hz=time.time()+1/20.0
+    timer10hz  = time.time()+1/10.0
+    timer20hz  = time.time()+1/20.0
+    timer0_1hz = time.time()+10
     
     initPwmFocus = 1400
     preFocusFileName = '../hw/focusState.bin'
@@ -39,8 +40,8 @@ async def recv_and_process():
             print('reset focus to:', initPwmFocus)
 
     
-    
-    system_state={'arm':False,'mode':[], 'lights':0, 'focus':initPwmFocus, 'record':False} #lights 0-5
+    diskUsage = int(os.popen('df -h / | tail -n 1').readline().strip().split()[-2][:-1])
+    system_state={'ts':time.time(), 'arm':False,'mode':[], 'lights':0, 'focus':initPwmFocus, 'record':False, 'diskUsage':diskUsage} #lights 0-5
     
     thrusters_dict={}
 
@@ -55,7 +56,7 @@ async def recv_and_process():
 
     def test_togle(b):
         return new_joy_buttons[b]==1 and joy_buttons[b]==0
-
+    
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.002)[0]
         for sock in socks:
@@ -129,6 +130,9 @@ async def recv_and_process():
                     thruster_cmd += thrusters_dict[k]
             pub_sock.send_multipart([zmq_topics.topic_thrusters_comand,pickle.dumps((tic,list(thruster_cmd)))])
             thruster_cmd = np.zeros(8)
+        if tic-timer0_1hz>0:
+            timer0_1hz=tic+10
+            system_state['diskUsage'] = int(os.popen('df -h / | tail -n 1').readline().strip().split()[-2][:-1])
 
 
                 #print('botton',ret)

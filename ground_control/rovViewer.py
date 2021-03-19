@@ -704,6 +704,10 @@ class rovViewerWindow(Frame):
                     data = telemtry[zmq_topics.topic_volt]
                     self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
                 
+                if zmq_topics.topic_system_state in telemtry.keys():
+                    data = telemtry[zmq_topics.topic_system_state]
+                    self.myStyle['rtDisktext'].config(text='%d[%]'%data['diskUsage'])
+                
                 if len(rtData.keys()) > 0: 
                     if 'rtData' not in self.pidMsgs:
                         self.pidMsgs['rtData'] = CycArr(500)
@@ -978,8 +982,10 @@ class rovViewerWindow(Frame):
         #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
         rtDataRow += 1
         self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=rtDataCol, n_row=rtDataRow)
+        rtDataRow += 1
+        self.create_label_pair(name="rtDisk", display_text="Disk:", n_col=rtDataCol, n_row=rtDataRow)
 
-        pidRow = 7
+        pidRow = 8
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         self.myStyle["showDepth"].configure(command=self.depthSelect)
