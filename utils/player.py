@@ -204,8 +204,8 @@ if __name__=='__main__':
                                 frameId += 1
                                 ## handle image
                                 metaData = pickle.loads(data[1][1])
-                                imShape = metaData[1]
-                                imgCnt += 1
+                                imShape  = metaData[1]
+                                imgCnt  += 1
                                 # load image
                                 try:
                                     '''
@@ -234,10 +234,18 @@ if __name__=='__main__':
                                
                                 if not ret:
                                     break
+
+                                #import ipdb; ipdb.set_trace()
+                                #recTs, telData = pickle.loads(data[1][1])
+                                
                                 topicPubDict[curTopic].send_multipart(data[1])
                             else:
+                                #print(topic, data[1])
+                                recTs, telData = pickle.loads(data[1][1])
+                                topicPubDict[curTopic].send_multipart([curTopic, pickle.dumps(telData)] )
+                                
                                 #pass
-                                topicPubDict[curTopic].send_multipart(data[1])
+                                #topicPubDict[curTopic].send_multipart(data[1])
                     
                       
     except:
