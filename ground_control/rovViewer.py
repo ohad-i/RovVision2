@@ -33,10 +33,18 @@ from select import select
 import zmq
 import image_enc_dec
 
+import argparse
+
+
 
 #### matplotlib add
 import matplotlib.pyplot as plt
 ####
+
+
+parser = argparse.ArgumentParser(description='ROV viewer application', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('-r', '--rawVideo', action='store_true', help='Recieve raw video')
+args = parser.parse_args()
 
 '''
 tm = time.gmtime()
@@ -96,10 +104,13 @@ class rovDataHandler(Thread):
                                            zmq_topics.topic_att_hold_pitch_pid,
                                            zmq_topics.topic_att_hold_roll_pid], zmq_topics.topic_att_hold_port))
         
-        
-        self.imgSock =  socket.socket(socket.AF_INET, # Internet
-                     socket.SOCK_DGRAM) # UDP
-        self.imgSock.bind(('', config.udpPort))
+        self.rawVideo = args.rawVideo
+        if not self.rawVideo:
+            self.imgSock =  socket.socket(socket.AF_INET, # Internet
+                         socket.SOCK_DGRAM) # UDP
+            self.imgSock.bind(('', config.udpPort))
+        else:
+            self.subs_socks.append(utils.subscribe([zmq_topics.topic_stereo_camera], zmq_topics.topic_camera_port))
         
         self.image = None 
         
@@ -110,6 +121,7 @@ class rovDataHandler(Thread):
         self.rovViewer = rovViewer
         self.keepRunning = True
         self.telemtry = {}
+        
         
         
     def getNewImage(self):
@@ -149,14 +161,13 @@ class rovDataHandler(Thread):
         
         while self.keepRunning:
             time.sleep(0.0001)
-            if len(select([self.imgSock],[],[],0.003)[0]) > 0:
-                data, addr = self.imgSock.recvfrom(1024*64)
-                img = cv2.imdecode(pickle.loads(data), 1)
-                images = [img]
-                rcv_cnt += 1
-            
+            if not self.rawVideo:
+                if len(select([self.imgSock],[],[],0.003)[0]) > 0:
+                    data, addr = self.imgSock.recvfrom(1024*64)
+                    img = cv2.imdecode(pickle.loads(data), 1)
+                    images = [img]
+                    rcv_cnt += 1
 
-            #if all(images):
             self.telemtry = None
             while True:
                 
@@ -166,18 +177,23 @@ class rovDataHandler(Thread):
                     break
                 for sock in socks:
                     ret = sock.recv_multipart()
-                    topic, data = ret
-                    data = pickle.loads(ret[1])
-                    message_dict[topic]=data
-                    
-                    self.telemtry = message_dict.copy()
-                    
-                    if self.pubData:
-                        self.socket_pub.send_multipart([ret[0],ret[1]])
+                    topic = ret[0]
+                    if zmq_topics.topic_stereo_camera != topic:
+                        topic, data = ret
+                        data = pickle.loads(ret[1])
+                        message_dict[topic] = data
+                        self.telemtry = message_dict.copy()
+                        
+                        if self.pubData:
+                            self.socket_pub.send_multipart([ret[0],ret[1]])
+                    elif self.rawVideo and zmq_topics.topic_stereo_camera == topic:
+                        imShape = pickle.loads(ret[1])[1]
+                        imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
+                        images = [imRaw]
     
             showIm = None
             if images[0] is not None:
-                images[0] = cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB)
+                #images[0] = cv2.cvtColor(images[0], cv2.COLOR_BGR2RGB)
                 fmt_cnt_l=image_enc_dec.decode(images[0])
                 draw_mono(images[0],message_dict,fmt_cnt_l)
                 
@@ -499,7 +515,7 @@ class rovViewerWindow(Frame):
         try:
             val = float(chars.strip())
             print('new depth is %0.2f'%val)
-            desiredDepth = val
+            desiredDepth = -val
             
             self.attMessage['dDepth'] = desiredDepth
             data = pickle.dumps(self.attMessage, protocol=3)
@@ -702,11 +718,17 @@ class rovViewerWindow(Frame):
                     rtData['depth'] = data['depth']
                 if zmq_topics.topic_volt in telemtry.keys():
                     data = telemtry[zmq_topics.topic_volt]
-                    self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'])
+                    fg = 'black'
+                    if data['V'] < 3.2*4:
+                        fg = 'red'
+                    self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'], foreground=fg)
                 
                 if zmq_topics.topic_system_state in telemtry.keys():
                     data = telemtry[zmq_topics.topic_system_state]
-                    self.myStyle['rtDisktext'].config(text='%d[%]'%data['diskUsage'])
+                    fg = 'black'
+                    if data['diskUsage'] > 85:
+                        bg='red'
+                    self.myStyle['rtDisktext'].config(text='%d[%%]'%data['diskUsage'], foreground=fg)
                 
                 if len(rtData.keys()) > 0: 
                     if 'rtData' not in self.pidMsgs:
@@ -859,6 +881,8 @@ class rovViewerWindow(Frame):
     
     def initPlots(self):
 
+        self.ax1.clear()
+        self.ax2.clear()
         self.hdls=[self.ax1.plot([1],'-b'), self.ax1.plot([1],'-g'), self.ax1.plot([1],'-r'), self.ax1.plot([1],'-k')]
         self.ax1.grid('on')
         
