@@ -140,7 +140,7 @@ def draw_mono(img,message_dict,fmt_cnt_l):
         if message_dict[zmq_topics.topic_record_state]:
             cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
     if zmq_topics.topic_system_state in message_dict:
-        ss = message_dict[zmq_topics.topic_system_state][1]
+        ss = message_dict[zmq_topics.topic_system_state]
         cv2.putText(img,'ARM' if ss['arm'] else 'DISARM' \
                 ,(sy(50),sx(15)), font, 0.5,(0,0,255) if ss['arm'] else (0,255,0),1,cv2.LINE_AA)
         modes = sorted(ss['mode'])

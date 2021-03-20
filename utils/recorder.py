@@ -20,14 +20,18 @@ from select import select
 current_command=[0 for _ in range(8)] # 8 thrusters
 keep_running=True
 
-topicsList = [ [zmq_topics.topic_thrusters_comand, zmq_topics.topic_thrusters_comand_port],
-               [zmq_topics.topic_lights,           zmq_topics.topic_controller_port],
-               [zmq_topics.topic_focus,            zmq_topics.topic_controller_port],
-               [zmq_topics.topic_depth,            zmq_topics.topic_depth_port],
-               [zmq_topics.topic_volt,             zmq_topics.topic_volt_port],
-               [zmq_topics.topic_imu,              zmq_topics.topic_imu_port],
-               [zmq_topics.topic_stereo_camera,    zmq_topics.topic_camera_port],
-               [zmq_topics.topic_system_state,     zmq_topics.topic_controller_port],
+topicsList = [ [zmq_topics.topic_thrusters_comand,   zmq_topics.topic_thrusters_comand_port],
+               [zmq_topics.topic_lights,             zmq_topics.topic_controller_port],
+               [zmq_topics.topic_focus,              zmq_topics.topic_controller_port],
+               [zmq_topics.topic_depth,              zmq_topics.topic_depth_port],
+               [zmq_topics.topic_volt,               zmq_topics.topic_volt_port],
+               [zmq_topics.topic_imu,                zmq_topics.topic_imu_port],
+               [zmq_topics.topic_stereo_camera,      zmq_topics.topic_camera_port],
+               [zmq_topics.topic_system_state,       zmq_topics.topic_controller_port],
+               [zmq_topics.topic_att_hold_roll_pid,  zmq_topics.topic_att_hold_port],
+               [zmq_topics.topic_att_hold_pitch_pid, zmq_topics.topic_att_hold_port],
+               [zmq_topics.topic_att_hold_yaw_pid,   zmq_topics.topic_att_hold_port],
+               [zmq_topics.topic_depth_hold_pid,     zmq_topics.topic_depth_hold_port]
         ]
 
 subs_socks=[]
@@ -92,7 +96,7 @@ def recorder():
             if topic in mpsDict.keys():
                 mpsDict[topic].calcMPS()
                 if topic == zmq_topics.topic_system_state:
-                    newDoRec = pickle.loads(ret[1])[1]['record']
+                    newDoRec = pickle.loads(ret[1])['record']
                     if (newDoRec) and (not doRec):
                         recPath = initRec()
                         print('record started, %s'%recPath)

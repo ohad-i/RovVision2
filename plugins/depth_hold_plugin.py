@@ -67,7 +67,7 @@ async def recv_and_process():
                 pitch,roll=data['pitch'],data['roll']
 
             if topic==zmq_topics.topic_system_state:
-                _,system_state=data
+                system_state=data
 
         await asyncio.sleep(0.001)
 

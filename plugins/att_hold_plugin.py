@@ -110,7 +110,7 @@ async def recv_and_process():
 
 
             if topic==zmq_topics.topic_system_state:
-                _,system_state=data
+                system_state=data
 
         await asyncio.sleep(0.001)
 
