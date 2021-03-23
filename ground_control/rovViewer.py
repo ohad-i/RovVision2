@@ -5,6 +5,8 @@
 
 
 from tkinter import *
+from tkinter import filedialog
+
 #from tkinter.tix import *
 from PIL import Image, ImageTk
 import io
@@ -105,12 +107,7 @@ class rovDataHandler(Thread):
                                            zmq_topics.topic_att_hold_roll_pid], zmq_topics.topic_att_hold_port))
         
         self.rawVideo = args.rawVideo
-        if not self.rawVideo:
-            self.imgSock =  socket.socket(socket.AF_INET, # Internet
-                         socket.SOCK_DGRAM) # UDP
-            self.imgSock.bind(('', config.udpPort))
-        else:
-            self.subs_socks.append(utils.subscribe([zmq_topics.topic_stereo_camera], zmq_topics.topic_camera_port))
+        self.initImgSource()
         
         self.image = None 
         
@@ -121,6 +118,15 @@ class rovDataHandler(Thread):
         self.rovViewer = rovViewer
         self.keepRunning = True
         self.telemtry = {}
+        
+    
+    def initImgSource(self):
+        if not self.rawVideo:
+            self.imgSock =  socket.socket(socket.AF_INET, # Internet
+                         socket.SOCK_DGRAM) # UDP
+            self.imgSock.bind(('', config.udpPort))
+        else:
+            self.subs_socks.append(utils.subscribe([zmq_topics.topic_stereo_camera], zmq_topics.topic_camera_port))
         
         
         
@@ -1080,6 +1086,8 @@ class rovViewerWindow(Frame):
         
         btnCol += 2
         row_btn_idx = 7
+        self.create_button("runRecords", "Run record", btnCol, row_btn_idx, self.runRecord)
+        row_btn_idx += 1
         self.create_button("getRecords", "Fetch Recs", btnCol, row_btn_idx, self.fetchRecords)
         row_btn_idx += 1
         self.create_button("pausePlots", "Pause plots", btnCol, row_btn_idx, self.pausePlots)
@@ -1146,7 +1154,16 @@ class rovViewerWindow(Frame):
         self.canvas.draw()
         ###############################
  
-        
+    
+    def runRecord(self):
+         recFolder = filedialog.askdirectory()
+         if len(recFolder)> 0:
+             print('Run record: %s'%recFolder)
+             self.ROVHandler.rawVideo = True
+             self.ROVHandler.initImgSource()
+             os.system('cd ../scripts && ./runRec.sh %s && sleep 3'%recFolder)
+         
+
         
     def fetchRecords(self):
         os.system('cd ../scripts && ./recSync.sh && sleep 3')

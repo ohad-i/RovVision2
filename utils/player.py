@@ -56,9 +56,8 @@ def CallBackFunc(event, x, y, flags, params):
 if showVideo:
     winName = 'player'
     winNameLowRes = 'player - low Res'
-    cv2.namedWindow(winName, 0)
     cv2.namedWindow(winNameLowRes, 0)
-    cv2.setMouseCallback(winName, CallBackFunc)
+    #cv2.setMouseCallback(winName, CallBackFunc)
 
 
 frameId = 0
@@ -116,7 +115,8 @@ def vidProc(im, imLowRes, imPub = None):
             #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
             cv2.imwrite( os.path.join(imgsPath, curImName), im )
     
-        if showVideo:
+        if showVideo and 0:
+            cv2.namedWindow(winName, 0)
             cv2.imshow(winName, showIm) #im[:200,:])
             
 
