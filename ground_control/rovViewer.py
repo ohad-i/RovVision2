@@ -249,6 +249,7 @@ class rovViewerWindow(Frame):
         self.checkRecorder.set(1)
         
         self.OpencvWinInit = False
+        self.image = None
 
         self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl}
 
@@ -416,7 +417,9 @@ class rovViewerWindow(Frame):
     def bind_widgets_events(self):
         
         self.myStyle['disp_image'].bind("<Button-1>", self.image_clicked)
-        self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
+        self.myStyle['disp_image'].bind("<Button-3>", self.grabImageEvent)
+        ## double click -> "<Double-1>"
+        #self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
         #self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
         
         self.parent.bind("<Left>", self.left_click_func)
@@ -582,6 +585,16 @@ class rovViewerWindow(Frame):
         self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
 
+    def grabImageEvent(self, event):
+        if self.image is not None:
+            picturePath = os.path.join(os.getenv("HOME"), "Pictures/roViewer")
+            if not os.path.exists(picturePath):
+                os.system('mkdir -p %s'%picturePath)
+            imgName = time.strftime("roViewer_%Y%m%d_%H%M%S.png", time.localtime())
+            imgPath = os.path.join(picturePath, imgName)
+            print('image saved, %s'%imgPath)
+            im2save = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+            cv2.imwrite(imgPath, im2save, [cv2.IMWRITE_PNG_COMPRESSION, 0])
 
 
     def image_clicked(self, event):
@@ -600,26 +613,12 @@ class rovViewerWindow(Frame):
         except Exception as err:
             print(err)
 
-    def image_right_clicked(self, event):
-        if self.img is None:
-            return
-        try:
-            tm_img = time.gmtime()
-
-            x = self.parent.winfo_rootx()
-            y = self.parent.winfo_rooty()
-            height = self.parent.winfo_height() + y
-            width = self.parent.winfo_width() + x
-            # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
-            # os.system("xdg-open {}".format(img_file))
-        except Exception as err:
-            print(err)
-
     def update_image(self):
         
         rawImg = self.ROVHandler.getNewImage()
         if rawImg is not None:
             #self.img = Image.open(io.BytesIO(img)) ## jpg stream
+            self.image = rawImg.copy()
             img = Image.fromarray(rawImg)
             self.img = ImageTk.PhotoImage(img)
             
@@ -944,7 +943,7 @@ class rovViewerWindow(Frame):
             elif topic == 'rtData':
                 msgs = self.pidMsgs[topic]
                 data = msgs.get_data(['pitch','roll','yaw','depth'])
-                self.ax1.set_title(title + ' angular data')
+                self.ax1.set_title(title + ' attitude')
                 xs = np.arange(data.shape[0])
                 
                 for i in [0,1,2]:
@@ -957,7 +956,7 @@ class rovViewerWindow(Frame):
                 self.ax1.set_ylim(data.min()-5,data.max()+5)
                 self.ax1.legend(list('pry'),loc='upper left')
                 
-                self.ax2.set_title(title + ' depth data')
+                self.ax2.set_title(title + ' depth')
                 #cmd_data=gdata.md_hist.get_data(label+'_cmd')
                 self.hdls2[0][0].set_ydata(data[:,3])
                 self.hdls2[0][0].set_xdata(xs)
@@ -1003,18 +1002,13 @@ class rovViewerWindow(Frame):
         rtDataRow = 1
         rtDataCol = 1
         cmd1Col = 3
-        # creates ststic text with text
+
+        self.create_button("showOpenCV", "Full screen", 0, 0, self.openVideoWindow)
+        self.myStyle["showOpenCV_button"].place(x=15, y=2) # put the button on the top left corner
+
         self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=rtDataCol,  n_row=rtDataRow, textbox_width=15)
         self.myStyle["ROV_Data_label"].place(x=col1X, y=row1Y)
         self.myStyle['ROV_Data_textbox'].configure(state=DISABLED)
-        
-        '''
-        self.create_checkbox_button("showOpenCV", "Full screen", 4, rtDataRow, self.checkOpencvWin, anchor='w')
-        self.myStyle["showOpenCV"].configure(command=self.openVideoWindow)
-        '''
-        self.create_button("showOpenCV", "Full screen", 0, 0, self.openVideoWindow)
-        self.myStyle["showOpenCV_button"].place(x=0, y=0)
-        
         
         rtDataRow += 1
         self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=rtDataCol, n_row=rtDataRow)
