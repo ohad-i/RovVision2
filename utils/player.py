@@ -157,7 +157,7 @@ def vidProc(im, imLowRes, imPub = None):
         elif key == ord('-'):
             curDelay = min(1000, curDelay+5 )
         elif key == ord('r'):
-            curDelay = 100
+            curDelay = 1
     else:
         pass 
         #print('current frame process %d'%frameId)

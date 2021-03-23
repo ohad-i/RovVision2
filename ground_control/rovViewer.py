@@ -247,6 +247,8 @@ class rovViewerWindow(Frame):
         self.checkYawControl.set(1)
         self.checkRecorder = IntVar()
         self.checkRecorder.set(1)
+        
+        self.OpencvWinInit = False
 
         self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl}
 
@@ -267,7 +269,8 @@ class rovViewerWindow(Frame):
         self.TextboxFont = ("Courier", 12)
         self.HeaderFont = ("Courier", 16, "underline")
         
-        
+        self.cvWindow = False
+        self.cvWinName = "ROViewer"
         self.ROVHandler = rovDataHandler(self)
         self.ROVHandler.start()
 
@@ -278,6 +281,8 @@ class rovViewerWindow(Frame):
         self.rowHeight = 30 # more space - 35
         
         self.pidMsgs = {}
+        
+        self.runPlotsFlag = True
         
         # create widgets
         self.make_widgets()
@@ -294,6 +299,7 @@ class rovViewerWindow(Frame):
         self.updatePids()
         
         print(' display layer init done ')
+
         
     
     def quit(self):
@@ -411,7 +417,7 @@ class rovViewerWindow(Frame):
         
         self.myStyle['disp_image'].bind("<Button-1>", self.image_clicked)
         self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
-        self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
+        #self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
         
         self.parent.bind("<Left>", self.left_click_func)
         self.parent.bind("<Right>", self.right_click_func)
@@ -430,6 +436,8 @@ class rovViewerWindow(Frame):
         self.parent.bind("<Key-f>", self.page_down_click_func)
         self.parent.bind("<Key-q>", self.turn_left_click_func)
         self.parent.bind("<Key-e>", self.turn_right_click_func)
+        
+        self.parent.bind("<F11>", self.fullVideoScreenEvent)
 
         
     def page_up_click_func(self, event):
@@ -609,14 +617,24 @@ class rovViewerWindow(Frame):
 
     def update_image(self):
         
-        img = self.ROVHandler.getNewImage()
-        if img is not None:
+        rawImg = self.ROVHandler.getNewImage()
+        if rawImg is not None:
             #self.img = Image.open(io.BytesIO(img)) ## jpg stream
-            img = Image.fromarray(img)
+            img = Image.fromarray(rawImg)
             self.img = ImageTk.PhotoImage(img)
             
             self.myStyle['disp_image'].configure(image=self.img)
             self.myStyle['disp_image'].image = self.img
+            
+            if self.cvWindow:
+                if not self.OpencvWinInit:
+                    self.initOpencvWin(True)
+                rawImg = cv2.cvtColor(rawImg, cv2.COLOR_BGR2RGB)
+                cv2.imshow(self.cvWinName, rawImg)
+                key = cv2.waitKey(1)
+                if key&0xff == ord('q') or key == 200: # 200 -> F11
+                    self.initOpencvWin(False)
+                    self.cvWindow = False
 
         self.parent.after(10, self.update_image)
 
@@ -893,69 +911,71 @@ class rovViewerWindow(Frame):
     
     
     def plotData(self, topic, title):
-        #print('--->', topic, title)
-        if topic != 'rtData':
-            msgs = self.pidMsgs[topic]
-            
-            data = msgs.get_data(['TS','P','I','D','C'])
-            
-            self.ax1.set_title(title+ ' pid')
-            xs = np.arange(data.shape[0])
-            
-            for i in [0,1,2,3]:
-                self.hdls[i][0].set_ydata(data[:,i+1]) #skip timestemp
-                self.hdls[i][0].set_xdata(xs)
-            self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
-            self.ax1.set_ylim(-1,1)
-            self.ax1.legend(list('pidc'),loc='upper left')
-            
-            
-            self.ax2.set_title(title)
-            data = msgs.get_data(['T','N','R'])
-            #cmd_data=gdata.md_hist.get_data(label+'_cmd')
-            for i in [0,1,2]:
-                self.hdls2[i][0].set_ydata(data[:,i])
-                self.hdls2[i][0].set_xdata(xs)
-            self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
-            min_y = data.min()
-            max_y = data.max()
-            self.ax2.set_ylim(min_y,max_y)
-            self.ax2.legend(list('TNR'),loc='upper left')
-        elif topic == 'rtData':
-            msgs = self.pidMsgs[topic]
-            data = msgs.get_data(['pitch','roll','yaw','depth'])
-            self.ax1.set_title(title + ' angular data')
-            xs = np.arange(data.shape[0])
-            
-            for i in [0,1,2]:
-                self.hdls[i][0].set_ydata(data[:,i]) 
-                self.hdls[i][0].set_xdata(xs)
-            self.hdls[3][0].set_ydata(0)
-            self.hdls[3][0].set_xdata(0)
-            self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
-            
-            self.ax1.set_ylim(data.min()-5,data.max()+5)
-            self.ax1.legend(list('pry'),loc='upper left')
-            
-            self.ax2.set_title(title + ' depth data')
-            #cmd_data=gdata.md_hist.get_data(label+'_cmd')
-            self.hdls2[0][0].set_ydata(data[:,3])
-            self.hdls2[0][0].set_xdata(xs)
-            
-            self.hdls2[1][0].set_ydata(0)
-            self.hdls2[1][0].set_xdata(0)
-            
-            self.hdls2[2][0].set_ydata(0)
-            self.hdls2[2][0].set_xdata(0)
-
-            self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
-            min_y = data[:,3].min()-0.1
-            max_y = data[:,3].max()+0.1
-            self.ax2.set_ylim(min_y,max_y)
-            self.ax2.legend(list('d'),loc='upper left')
-            
         
-        self.canvas.draw()
+        if self.runPlotsFlag:
+            #print('--->', topic, title)
+            if topic != 'rtData':
+                msgs = self.pidMsgs[topic]
+                
+                data = msgs.get_data(['TS','P','I','D','C'])
+                
+                self.ax1.set_title(title+ ' pid')
+                xs = np.arange(data.shape[0])
+                
+                for i in [0,1,2,3]:
+                    self.hdls[i][0].set_ydata(data[:,i+1]) #skip timestemp
+                    self.hdls[i][0].set_xdata(xs)
+                self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+                self.ax1.set_ylim(-1,1)
+                self.ax1.legend(list('pidc'),loc='upper left')
+                
+                
+                self.ax2.set_title(title)
+                data = msgs.get_data(['T','N','R'])
+                #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+                for i in [0,1,2]:
+                    self.hdls2[i][0].set_ydata(data[:,i])
+                    self.hdls2[i][0].set_xdata(xs)
+                self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+                min_y = data.min()
+                max_y = data.max()
+                self.ax2.set_ylim(min_y,max_y)
+                self.ax2.legend(list('TNR'),loc='upper left')
+            elif topic == 'rtData':
+                msgs = self.pidMsgs[topic]
+                data = msgs.get_data(['pitch','roll','yaw','depth'])
+                self.ax1.set_title(title + ' angular data')
+                xs = np.arange(data.shape[0])
+                
+                for i in [0,1,2]:
+                    self.hdls[i][0].set_ydata(data[:,i]) 
+                    self.hdls[i][0].set_xdata(xs)
+                self.hdls[3][0].set_ydata(0)
+                self.hdls[3][0].set_xdata(0)
+                self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+                
+                self.ax1.set_ylim(data.min()-5,data.max()+5)
+                self.ax1.legend(list('pry'),loc='upper left')
+                
+                self.ax2.set_title(title + ' depth data')
+                #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+                self.hdls2[0][0].set_ydata(data[:,3])
+                self.hdls2[0][0].set_xdata(xs)
+                
+                self.hdls2[1][0].set_ydata(0)
+                self.hdls2[1][0].set_xdata(0)
+                
+                self.hdls2[2][0].set_ydata(0)
+                self.hdls2[2][0].set_xdata(0)
+    
+                self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+                min_y = data[:,3].min()-0.1
+                max_y = data[:,3].max()+0.1
+                self.ax2.set_ylim(min_y,max_y)
+                self.ax2.legend(list('d'),loc='upper left')
+                
+            
+            self.canvas.draw()
 
 
     def make_widgets(self):
@@ -987,6 +1007,15 @@ class rovViewerWindow(Frame):
         self.create_text_box(name="ROV_Data", label_text="ROV ip:", display_text="192.168.3.10", n_col=rtDataCol,  n_row=rtDataRow, textbox_width=15)
         self.myStyle["ROV_Data_label"].place(x=col1X, y=row1Y)
         self.myStyle['ROV_Data_textbox'].configure(state=DISABLED)
+        
+        '''
+        self.create_checkbox_button("showOpenCV", "Full screen", 4, rtDataRow, self.checkOpencvWin, anchor='w')
+        self.myStyle["showOpenCV"].configure(command=self.openVideoWindow)
+        '''
+        self.create_button("showOpenCV", "Full screen", 0, 0, self.openVideoWindow)
+        self.myStyle["showOpenCV_button"].place(x=0, y=0)
+        
+        
         rtDataRow += 1
         self.create_label_pair(name="rtDepth", display_text="Depth:", n_col=rtDataCol, n_row=rtDataRow)
         self.create_text_box(name="depthCmd", label_text="dDepth:", display_text="[m]", n_col=cmd1Col , n_row=rtDataRow, textbox_width=9)
@@ -1059,9 +1088,11 @@ class rovViewerWindow(Frame):
         row_btn_idx = 7
         self.create_button("getRecords", "Fetch Recs", btnCol, row_btn_idx, self.fetchRecords)
         row_btn_idx += 1
+        self.create_button("pausePlots", "Pause plots", btnCol, row_btn_idx, self.pausePlots)
+        row_btn_idx += 1
         self.create_button("updatePIDs", "Update PID", btnCol, row_btn_idx, self.updateRovPids)
         row_btn_idx += 1
-
+        
         btnCol +=2
         row_btn_idx = 7
         self.create_text_box(name="K", label_text="K:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
@@ -1135,6 +1166,20 @@ class rovViewerWindow(Frame):
     def killRemote(self):
         os.system('cd ../scripts && ./kill_remote.sh')
     
+    def pausePlots(self):
+        self.runPlotsFlag = not self.runPlotsFlag
+        if self.runPlotsFlag:
+            self.myStyle["pausePlots_button"].config(foreground=self.myStyle['buttonFg'])
+            self.myStyle["pausePlots_button"].config(activebackground=self.myStyle['activeButtonBg'])
+            self.myStyle["pausePlots_button"].config(text='Pause plots')
+        
+        else:
+            self.myStyle["pausePlots_button"].config(foreground=self.myStyle['activeDisplayButtonFg'])
+            self.myStyle["pausePlots_button"].config(activebackground=self.myStyle['activeDisplayButtonBg'])
+            self.myStyle["pausePlots_button"].config(text='Run plots')
+        
+        
+    
     def updateRovPids(self):
         dkey = None
         for key in self.controllerChbx:
@@ -1160,7 +1205,27 @@ class rovViewerWindow(Frame):
                 import traceback
                 traceback.print_exc()
                 
+    def initOpencvWin(self, doInit):
+        if doInit:
+            cv2.namedWindow(self.cvWinName, cv2.WND_PROP_FULLSCREEN)
+            cv2.setWindowProperty(self.cvWinName, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            self.OpencvWinInit = True
+        else:
+            try:
+                cv2.destroyWindow(self.cvWinName)
+            except:
+                pass
+            self.OpencvWinInit = False
+    
+    def openVideoWindow(self):
+        self.cvWindow = not self.cvWindow
+        if not self.cvWindow:
+            self.initOpencvWin(False)
             
+    
+    def fullVideoScreenEvent(self, event):
+        self.openVideoWindow()
+        
         
     def dummy(self):
         pass
