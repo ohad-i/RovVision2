@@ -1156,7 +1156,7 @@ class rovViewerWindow(Frame):
  
     
     def runRecord(self):
-         recFolder = filedialog.askdirectory()
+         recFolder = filedialog.askdirectory(initialdir = "../records", title = "Select record folder")
          if len(recFolder)> 0:
              print('Run record: %s'%recFolder)
              self.ROVHandler.rawVideo = True
