@@ -4,5 +4,5 @@ PANE_NAME=runRec
 tmux kill-session -t $PANE_NAME
 tmux new-session -d -s $PANE_NAME
 
-tmux send-keys -t $PANE_NAME "cd ../utils/ && python player.py -r $1 && tmux kill-session -t $PANE_NAME" ENTER
+tmux send-keys -t $PANE_NAME "cd ../utils/ && python player.py -r $1 && sleep 300 && tmux kill-session -t $PANE_NAME" ENTER
 #tmux attach -d
