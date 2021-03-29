@@ -41,8 +41,11 @@ async def recv_and_process():
             
             if topic == zmq_topics.topic_gui_depthAtt:
                 print('---> got GUI command: ', data)
-                #target_att[0] = data['dYaw']
-                target_att[1] = data['dPitch']
+                if data['dYaw'] is not None:
+                    target_att[0] = data['dYaw']
+                if data['dPitch'] is not None:
+                    target_att[1] = data['dPitch']
+                
                 
             
             if topic==zmq_topics.topic_imu:

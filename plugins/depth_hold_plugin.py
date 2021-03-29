@@ -60,8 +60,9 @@ async def recv_and_process():
                 jm.update_axis(data)
                 target_depth+=jm.joy_mix()['ud']/250.0
             if topic==zmq_topics.topic_gui_depthAtt:
-                target_depth = data['dDepth'] 
-                print('set new depth: %.2f'%target_depth)
+                if data['dDepth'] is not None:
+                    target_depth = data['dDepth'] 
+                    print('set new depth: %.2f'%target_depth)
                 
             if topic==zmq_topics.topic_imu:
                 pitch,roll=data['pitch'],data['roll']

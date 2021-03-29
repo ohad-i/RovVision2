@@ -532,8 +532,9 @@ class rovViewerWindow(Frame):
         try:
             val = float(chars.strip())
             print('new depth is %0.2f'%val)
-            desiredDepth = -val
-            
+            desiredDepth = val
+            self.attMessage['dYaw'] = None
+            self.attMessage['dPitch'] = None
             self.attMessage['dDepth'] = desiredDepth
             data = pickle.dumps(self.attMessage, protocol=3)
             self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
@@ -547,6 +548,8 @@ class rovViewerWindow(Frame):
             val = float(chars.strip())
             print('new pitch is %0.2f'%val)
             desiredPitch = val
+            self.attMessage['dDepth'] = None
+            self.attMessage['dYaw'] = None
             self.attMessage['dPitch'] = desiredPitch
             data = pickle.dumps(self.attMessage, protocol=3)
             self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
@@ -572,7 +575,9 @@ class rovViewerWindow(Frame):
             val = float(chars.strip())
             print('new yaw is %0.2f'%val)
             desiredYaw = val
+            self.attMessage['dDepth'] = None
             self.attMessage['dYaw'] = desiredYaw
+            self.attMessage['dPitch'] = None
             data = pickle.dumps(self.attMessage, protocol=3)
             self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_depthAtt, data])
         except:
