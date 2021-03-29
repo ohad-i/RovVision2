@@ -3,7 +3,7 @@
 tmux kill-session -t syncRec
 tmux new-session -d -s syncRec
 
-tmux send-keys -t syncRec "rsync -avzu --progress --remove-source-files --exclude=".git" --include="*/"  --include="*.pkl" --include="*.bin" $REMOTE_SUB:/home/nanosub/proj/RovVision2/records $HOME/proj/RovVision2/" ENTER
+tmux send-keys -t syncRec "rsync -avzu --progress --partial-dir=.rsync-partial --remove-source-files --exclude=".git" --include="*/"  --include="*.pkl" --include="*.bin" $REMOTE_SUB:/home/nanosub/proj/RovVision2/records $HOME/proj/RovVision2/" ENTER
 tmux send-keys -t syncRec "sleep 30" ENTER
 tmux send-keys -t syncRec "tmux kill-session -t syncRec" ENTER
 tmux attach -d
