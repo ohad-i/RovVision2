@@ -264,7 +264,7 @@ if __name__=='__main__':
                     #print('-->', curTopic)
                     topicPubDict[curTopic].send_multipart(videoMsg)
                 else:
-                    recTs = data[0]
+                    #recTs = data[0]
                     telData = pickle.loads(data[1][1])
                     topicPubDict[curTopic].send_multipart([curTopic, pickle.dumps(telData)] )
                     
@@ -275,7 +275,14 @@ if __name__=='__main__':
                 time.sleep(nextTicToc)
                 nextData = pickle.load(telFid)
                 nextTicToc = 0.9*(nextData[0] - curData[0])
-                    
+                ### workaround - overcome a problem of serialization of telemetry
+                # next step is calculated by the telemtry time stamp - which can 
+                #recorded not in the right order, the player should be run initially by the recorder ts
+                ###
+                if nextTicToc<0:
+                    nextTicToc = 0
+                    print('--err--> next sleep err: %.5f'%(nextData[0]-curData[0] ) )
+                ###############################################################
                       
     except:
         import traceback
