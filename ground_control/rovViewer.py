@@ -189,6 +189,8 @@ class rovDataHandler(Thread):
                         data = pickle.loads(ret[1])
                         message_dict[topic] = data
                         self.telemtry = message_dict.copy()
+                        #if topic == zmq_topics.topic_system_state:
+                        #    import ipdb; ipdb.set_trace()
                         
                         if self.pubData:
                             self.socket_pub.send_multipart([ret[0],ret[1]])
@@ -292,6 +294,8 @@ class rovViewerWindow(Frame):
         self.runPlotsFlag = True
         
         # create widgets
+        self.focusVal = -1 
+        
         self.make_widgets()
         self.bind_widgets_events()
         self.maximize_with_title()
@@ -564,6 +568,7 @@ class rovViewerWindow(Frame):
             self.myStyle['focusCmd_textbox'].insert(0,str(val))
             print('new focus PWM %d'%val)
             data = pickle.dumps(val, protocol=3)
+            self.focusVal = -1 # update gui to updated focus value from messages
             self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_focus_controller, data])
             ## send focus command
         except:
@@ -757,6 +762,11 @@ class rovViewerWindow(Frame):
                     if data['diskUsage'] > 85:
                         bg='red'
                     self.myStyle['rtDisktext'].config(text='%d[%%]'%data['diskUsage'], foreground=fg)
+                    #import ipdb; ipdb.set_trace()
+                    if self.focusVal != data['focus']:
+                        self.focusVal = data['focus']
+                        self.myStyle["focusCmd_textbox"].delete(0, END)
+                        self.myStyle["focusCmd_textbox"].insert(END, "{}".format(data['focus']) )
                 
                 if len(rtData.keys()) > 0: 
                     if 'rtData' not in self.pidMsgs:
