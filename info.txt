@@ -1,3 +1,7 @@
 sub user: nanosub
     pass: subsub
 
+
+simulation requirements:
+pybullet
+dill

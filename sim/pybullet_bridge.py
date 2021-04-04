@@ -107,7 +107,7 @@ def resize(img,factor):
 def main():
     cnt=0
     frame_cnt=0
-    frame_ratio=6 # for 6 sim cycles 1 video frame
+    frame_ratio=10 # for 6 sim cycles 1 video frame
     resize_fact=0.5
     mono=True
     imgl = None
@@ -187,7 +187,7 @@ def main():
                 cv2.imshow('r',imgrs)
                 cv2.waitKey(1)
             if mono:
-                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,imgl.shape]),imgl.tostring()])
+                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([ frame_cnt, imgl.shape, time.time() ]),imgl.tostring()])
             else:
                 zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,imgl.shape]),imgl.tostring(),imgr.tostring()])
             time.sleep(0.001) 

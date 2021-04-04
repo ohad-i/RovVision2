@@ -19,13 +19,24 @@ import cv2
 import socket
 import pickle
 
+import argparse
+
 subs_socks=[]
 subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_stereo_camera],zmq_topics.topic_camera_port))
 keep_running=True
 
 doResize = True
 sx,sy=config.cam_res_rgbx,config.cam_res_rgby
-udpImIpPort = (config.groundIp, int(config.udpPort))
+
+parser = argparse.ArgumentParser(description='Image udp gate', formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('-l', '--localSend', action='store_true', help='Recieve raw video')
+args = parser.parse_args()
+
+
+if args.localSend:
+    udpImIpPort = ('', int(config.udpPort))
+else:
+    udpImIpPort = (config.groundIp, int(config.udpPort))
 
 
 
@@ -46,6 +57,7 @@ async def recv_and_process():
             ret=sock.recv_multipart()
             if ret[0]==zmq_topics.topic_stereo_camera:
                 inImgCnt += 1
+                
                 frame_cnt,shape,ts=pickle.loads(ret[1])
                 
                 imgl=np.frombuffer(ret[2],'uint8').reshape(shape).copy()
