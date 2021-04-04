@@ -24,6 +24,7 @@ parser.add_argument('-r', '--recPath', default=None, help=' path to record ')
 parser.add_argument('-s', '--skipFrame', type=int, default=-1, help='start of parsed frame, by frame counter not file index')
 parser.add_argument('-t', '--saveTiff', action='store_true', help='save tiffs files to record folder')
 parser.add_argument('-q', '--showVideo', action='store_false', help='quite run, if -q - parse only, no show')
+parser.add_argument('-f', '--freeRun', action='store_true', help='Not true realtime')
 parser.add_argument('-V', '--saveAvi', action='store_true', help='quite run, if -V - create avi files')
 
 args = parser.parse_args()
@@ -34,6 +35,7 @@ skipFrame = args.skipFrame
 saveTiff = args.saveTiff
 showVideo = args.showVideo
 saveAvi = args.saveAvi
+highSpeed = args.freeRun
 
 
 print(usageDescription)
@@ -206,6 +208,7 @@ if __name__=='__main__':
             nextData = pickle.load(telFid)
             nextTicToc = 0.9*(nextData[0] - curData[0]) 
             while True:
+                time.sleep(0.0001)
                 try:
                     data = curData #pickle.load(telFid)
                     
@@ -272,17 +275,19 @@ if __name__=='__main__':
                     #topicPubDict[curTopic].send_multipart(data[1])
             
                 curData = nextData
-                time.sleep(nextTicToc)
                 nextData = pickle.load(telFid)
-                nextTicToc = 0.9*(nextData[0] - curData[0])
-                ### workaround - overcome a problem of serialization of telemetry
-                # next step is calculated by the telemtry time stamp - which can 
-                #recorded not in the right order, the player should be run initially by the recorder ts
-                ###
-                if nextTicToc<0:
-                    nextTicToc = 0
-                    print('--err--> next sleep err: %.5f'%(nextData[0]-curData[0] ) )
-                ###############################################################
+                    
+                if not highSpeed:
+                    time.sleep(nextTicToc)
+                    nextTicToc = 0.9*(nextData[0] - curData[0])
+                    ### workaround - overcome a problem of serialization of telemetry
+                    # next step is calculated by the telemtry time stamp - which can 
+                    #recorded not in the right order, the player should be run initially by the recorder ts
+                    ###
+                    if nextTicToc<0:
+                        nextTicToc = 0
+                        print('--err--> next sleep err: %.5f'%(nextData[0]-curData[0] ) )
+                    ###############################################################
                       
     except:
         import traceback
@@ -290,5 +295,7 @@ if __name__=='__main__':
     finally:
         if writer is not None:
             writer.release()
+        if writerLowRes is not None:
+            writerLowRes.release()
         print("done...")            
         
