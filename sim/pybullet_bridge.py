@@ -33,9 +33,10 @@ lamb=dill.load(open('lambda.pkl','rb'))
 current_command=[0 for _ in range(8)] # 8 thrusters
 dt=1/60.0
 #pybullet init
-render = pb.DIRECT # pb.GUI
+#render = pb.GUI #pb.DIRECT
+render = pb.DIRECT
 #physicsClient = pb.connect(pb.GUI)#or p.DIRECT for non-graphical version
-physicsClient = pb.connect(render)#or p.DIRECT for non-graphical version
+physicsClient = pb.connect(render, options='--background_color_blue=1.0')#or p.DIRECT for non-graphical version
 pb.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
 pb.setGravity(0,0,-0)
 print('start...')
@@ -107,7 +108,7 @@ def resize(img,factor):
 def main():
     cnt=0
     frame_cnt=0
-    frame_ratio=10 # for 6 sim cycles 1 video frame
+    frame_ratio=3 # for 6 sim cycles 1 video frame
     resize_fact=0.5
     mono=True
     imgl = None
@@ -132,7 +133,7 @@ def main():
         curr_q,curr_u=next_q,next_u
 
         ps={}
-        print('dsim {:4.2f} {:4.2f} {:4.2f} {:3.1f} {:3.1f} {:3.1f}'.format(*curr_q),current_command)
+        #print('dsim {:4.2f} {:4.2f} {:4.2f} {:3.1f} {:3.1f} {:3.1f}'.format(*curr_q),current_command)
         ps['posx'],ps['posy'],ps['posz']=curr_q[:3]
         yaw,roll,pitch = curr_q[3:]
         ps['yaw'],ps['roll'],ps['pitch']=np.rad2deg(curr_q[3:])
@@ -231,7 +232,7 @@ def main():
 
 
         time.sleep(0.010)
-        if cnt%20==0 and imgl is not None:
+        if 0: #cnt%20==0 and imgl is not None:
             print('send...',cnt, imgl.shape)
         cnt+=1
 
