@@ -33,6 +33,9 @@ topic_gui_depthAtt = b'att_depth'
 topic_gui_autoFocus = b'auto_focus'
 topic_gui_port = 8900
 
+topic_motors_output = b'motors_output'
+topic_motors_output_port = 8898
+
 
 #diffrent topics due to difrent freq devices
 topic_imu = b'topic_imu'

@@ -30,6 +30,8 @@ rov_type = int(os.environ.get('ROV_TYPE','1'))
 if rov_type == 4:
     pub_depth = utils.publisher(zmq_topics.topic_depth_port)
     pub_volt = utils.publisher(zmq_topics.topic_volt_port)
+    pub_motors = utils.publisher(zmq_topics.topic_motors_output_port)
+    
     subs_socks.append(
                 utils.subscribe([zmq_topics.topic_lights],
                          zmq_topics.topic_controller_port))
@@ -211,6 +213,9 @@ def mainHwGate():
                 motorsPwm = setCmdToPWM(m)
                 #print('---from controller.py--->',current_command)
                 #print('---to esp32 --->',motorsPwm)
+                
+                pub_motors.send_multipart( [zmq_topics.topic_motors_output, pickle.dumps( {'ts':time.time(), 'motors':motorsPwm} )])
+                
                 msgBuf = struct.pack(serialMotorsMsgPack, marker, OP_MOTORS, *motorsPwm)
                 ser.write(msgBuf)
                 ser.flush()
