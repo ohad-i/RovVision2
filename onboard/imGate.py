@@ -6,7 +6,6 @@ import sys
 import asyncio
 import time
 import pickle
-import mixer
 import cv2
 
 
@@ -17,7 +16,6 @@ import zmq_topics
 import config
 import cv2
 import socket
-import pickle
 
 import argparse
 
