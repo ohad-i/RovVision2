@@ -428,10 +428,11 @@ class rovViewerWindow(Frame):
         
         self.myStyle['disp_image'].bind("<Button-1>", self.image_clicked)
         self.myStyle['disp_image'].bind("<Button-3>", self.grabImageEvent)
+        self.myStyle['disp_image'].bind("<Button-2>", self.setAutoFocus)
         ## double click -> "<Double-1>"
         #self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
         #self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
-        
+
         self.parent.bind("<Left>", self.left_click_func)
         self.parent.bind("<Right>", self.right_click_func)
         self.parent.bind("<Up>", self.up_click_func)
@@ -628,7 +629,13 @@ class rovViewerWindow(Frame):
             # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
         except Exception as err:
             print(err)
-
+            
+    def setAutoFocus(self, event):
+        print('run auto focus')
+        data = pickle.dumps('run auto focus...', protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_autoFocus, data])
+        
+        
     def update_image(self):
         
         rawImg = self.ROVHandler.getNewImage()
