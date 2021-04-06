@@ -11,6 +11,9 @@ thrusters_sink_port = 7787
 topic_lights=b'topic_lights'
 topic_focus=b'topic_set_focus_state'
 
+topic_autoFocus_port = 7790
+topic_autoFocus = b'autoFocus'
+
 
 #topic_camera_left=b'topic_camera_left'
 #topic_camera_right=b'topic_camera_right'
@@ -27,6 +30,7 @@ topic_gui_controller = b'gui_controller'
 topic_gui_diveModes = b'gui_diveModes'
 topic_gui_focus_controller = b'manual_focus'
 topic_gui_depthAtt = b'att_depth'
+topic_gui_autoFocus = b'auto_focus'
 topic_gui_port = 8900
 
 

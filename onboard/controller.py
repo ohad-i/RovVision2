@@ -18,7 +18,9 @@ subs_socks=[]
 subs_socks.append(utils.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_diveModes],zmq_topics.topic_gui_port))
-subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_focus_controller],zmq_topics.topic_gui_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_focus_controller, zmq_topics.topic_gui_autoFocus],zmq_topics.topic_gui_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_autoFocus], zmq_topics.topic_autoFocus_port))
+                                   
 thruster_sink = utils.pull_sink(zmq_topics.thrusters_sink_port)
 subs_socks.append(thruster_sink)
 
@@ -109,11 +111,14 @@ async def recv_and_process():
                         system_state['focus']=max(850,system_state['focus']-focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                         print('focus set to ',system_state['focus'])
-                if topic==zmq_topics.topic_gui_focus_controller:
+                if topic==zmq_topics.topic_gui_focus_controller or topic == zmq_topics.topic_autoFocus:
                     pwm = data
                     system_state['focus']=pwm
                     pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                     print('focus set to value ',system_state['focus'])
+                
+                if topic== zmq_topics.topic_gui_autoFocus:
+                    os.system('../scripts/runAutofocus.sh')
                     
 
 
