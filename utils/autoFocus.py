@@ -92,8 +92,8 @@ if __name__=='__main__':
                             print('temp vals --->', maxFocusSate )
                         
                         
-                        curFocus = min(maxFocusVal, curFocus+jump)
-                        if curFocus >= maxFocusVal:
+                        curFocus = curFocus+jump
+                        if curFocus > maxFocusVal:
                             print('next iteration --->', maxFocusSate, jump )
                             curIter += 1
                             if curIter < len(jumps):
