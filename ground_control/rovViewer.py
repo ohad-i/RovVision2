@@ -101,6 +101,8 @@ class rovDataHandler(Thread):
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_volt], zmq_topics.topic_volt_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_hw_stats], zmq_topics.topic_hw_stats_port))
         
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_motors_output], zmq_topics.topic_motors_output_port))
+        
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_pos_hold_pid_fmt%i for i in range(3)], zmq_topics.topic_pos_hold_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_att_hold_yaw_pid,
                                            zmq_topics.topic_att_hold_pitch_pid,
@@ -247,6 +249,8 @@ class rovViewerWindow(Frame):
         
         self.checkDepthControl = IntVar()
         self.checkDepthControl.set(1)
+        self.checkThrusters = IntVar()
+        self.checkThrusters.set(1)
         self.checkPitchControl = IntVar()
         self.checkPitchControl.set(1)
         self.checkRollControl = IntVar()
@@ -259,7 +263,7 @@ class rovViewerWindow(Frame):
         self.OpencvWinInit = False
         self.image = None
 
-        self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl}
+        self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl, 'thrusters':self.checkThrusters}
 
         
         self.resize_called = True
@@ -289,7 +293,7 @@ class rovViewerWindow(Frame):
         self.colButtonWidth = 120
         self.rowHeight = 30 # more space - 35
         
-        self.pidMsgs = {}
+        self.plotMsgs = {}
         
         self.runPlotsFlag = True
         
@@ -495,7 +499,10 @@ class rovViewerWindow(Frame):
                 data = json.load(fid)
             pids = data["config_pid"][0]['depth_pid']
             self.updatePIds(pids)
-    
+            
+    def threustersSelect(self):
+        if self.controllerChbx['thrusters'].get() == 0:
+            self.selectController('thrusters')
 
     def pitchSelect(self):
         if self.controllerChbx['pitch'].get() == 0:
@@ -528,7 +535,9 @@ class rovViewerWindow(Frame):
         for key in self.controllerChbx:
             if key != ctrl:
                 self.controllerChbx[key].set(1)
-                self.initPlots()
+        self.initPlots()
+                
+            
             
 
 
@@ -742,6 +751,7 @@ class rovViewerWindow(Frame):
             if telemtry is not None:
                 #print(telemtry.keys())
                 rtData = {}
+                motors = {}
                 if zmq_topics.topic_imu in telemtry.keys():
                     data = telemtry[zmq_topics.topic_imu]
                     self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
@@ -775,10 +785,23 @@ class rovViewerWindow(Frame):
                         self.myStyle["focusCmd_textbox"].delete(0, END)
                         self.myStyle["focusCmd_textbox"].insert(END, "{}".format(data['focus']) )
                 
+                if zmq_topics.topic_motors_output in telemtry.keys():
+                    data = telemtry[zmq_topics.topic_motors_output]
+                    #print('---> motors: ', data['motors'])
+                    for i in range(8):
+                        motors[str(i)] = data['motors'][i]
+                        
+                    if 'thrusters' not in self.plotMsgs:
+                        self.plotMsgs['thrusters'] = CycArr(500)
+                    
+                    self.plotMsgs['thrusters'].add(motors)
+                    
+                                    
                 if len(rtData.keys()) > 0: 
-                    if 'rtData' not in self.pidMsgs:
-                        self.pidMsgs['rtData'] = CycArr(500)
-                    self.pidMsgs['rtData'].add(rtData)
+                    if 'rtData' not in self.plotMsgs:
+                        self.plotMsgs['rtData'] = CycArr(500)
+                    self.plotMsgs['rtData'].add(rtData)
+                
             
 
                 
@@ -868,33 +891,33 @@ class rovViewerWindow(Frame):
             if zmq_topics.topic_att_hold_roll_pid in telemtry.keys():
                 rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
                 topic = zmq_topics.topic_att_hold_roll_pid
-                if topic not in self.pidMsgs:
-                        self.pidMsgs[topic] = CycArr(500)
-                self.pidMsgs[topic].add(rollData)
+                if topic not in self.plotMsgs:
+                        self.plotMsgs[topic] = CycArr(500)
+                self.plotMsgs[topic].add(rollData)
                 
             if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
                 pitchData = telemtry[zmq_topics.topic_att_hold_pitch_pid]
                 
                 topic = zmq_topics.topic_att_hold_pitch_pid
-                if topic not in self.pidMsgs:
-                        self.pidMsgs[topic] = CycArr(500)
-                self.pidMsgs[topic].add(pitchData)
+                if topic not in self.plotMsgs:
+                        self.plotMsgs[topic] = CycArr(500)
+                self.plotMsgs[topic].add(pitchData)
                 
             if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
                 yawData = telemtry[zmq_topics.topic_att_hold_yaw_pid]
                 
                 topic = zmq_topics.topic_att_hold_yaw_pid
-                if topic not in self.pidMsgs:
-                        self.pidMsgs[topic] = CycArr(500)
-                self.pidMsgs[topic].add(yawData)
+                if topic not in self.plotMsgs:
+                        self.plotMsgs[topic] = CycArr(500)
+                self.plotMsgs[topic].add(yawData)
                     
             if zmq_topics.topic_depth_hold_pid in telemtry.keys():
                 depthData = telemtry[zmq_topics.topic_depth_hold_pid]
                 
                 topic = zmq_topics.topic_depth_hold_pid
-                if topic not in self.pidMsgs:
-                        self.pidMsgs[topic] = CycArr(500)
-                self.pidMsgs[topic].add(depthData)
+                if topic not in self.plotMsgs:
+                        self.plotMsgs[topic] = CycArr(500)
+                self.plotMsgs[topic].add(depthData)
             
             
             
@@ -910,7 +933,15 @@ class rovViewerWindow(Frame):
             if (self.checkYawControl.get() == 0) and (yawData is not None):
                 self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
                 
-            if (self.checkYawControl.get() == 1) and (self.checkRollControl.get() == 1) and (self.checkPitchControl.get() == 1) and (self.checkDepthControl.get() == 1) and 'rtData' in self.pidMsgs.keys():
+            if (self.checkThrusters.get() == 0) and ('thrusters' in self.plotMsgs.keys()):
+                self.plotData('thrusters', 'Thrusters')
+                
+            if ( (self.checkYawControl.get() == 1) and 
+                    (self.checkRollControl.get() == 1) and 
+                    (self.checkPitchControl.get() == 1) and 
+                    (self.checkDepthControl.get() == 1) and 
+                    (self.checkThrusters.get() == 1) and 
+                    'rtData' in self.plotMsgs.keys() ):
                     self.plotData('rtData', 'real time')
                     self.restPIDVals()
                 
@@ -925,13 +956,17 @@ class rovViewerWindow(Frame):
         
     
     def initPlots(self):
-
+        
         self.ax1.clear()
         self.ax2.clear()
+        
         self.hdls=[self.ax1.plot([1],'-b'), self.ax1.plot([1],'-g'), self.ax1.plot([1],'-r'), self.ax1.plot([1],'-k')]
+        
+        #self.hdlsMotors=[self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black')]
+        
         self.ax1.grid('on')
         
-        self.hdls2=[self.ax2.plot([1],'-b'), self.ax2.plot([1],'-g'), self.ax2.plot([1],'-r')]
+        self.hdls2=[self.ax2.plot([1],'-b'), self.ax2.plot([1],'-g'), self.ax2.plot([1],'-r'), self.ax2.plot([1],'-k')]
         self.ax2.grid('on')
         
         self.canvas.draw()
@@ -940,9 +975,10 @@ class rovViewerWindow(Frame):
     def plotData(self, topic, title):
         
         if self.runPlotsFlag:
-            #print('--->', topic, title)
-            if topic != 'rtData':
-                msgs = self.pidMsgs[topic]
+            
+            if 'control' in str(topic): #topic != 'rtData':
+                ## control plots
+                msgs = self.plotMsgs[topic]
                 
                 data = msgs.get_data(['TS','P','I','D','C'])
                 
@@ -960,7 +996,11 @@ class rovViewerWindow(Frame):
                 self.ax2.set_title(title)
                 data = msgs.get_data(['T','N','R'])
                 #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+                factor = [1,1,1]
+                if topic == zmq_topics.topic_depth_hold_pid:
+                    factor = [-1.0,-1.0,1.0] # (-) for depth
                 for i in [0,1,2]:
+                    data[:,i] = data[:,i]*factor[i]
                     self.hdls2[i][0].set_ydata(data[:,i])
                     self.hdls2[i][0].set_xdata(xs)
                 self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
@@ -969,7 +1009,7 @@ class rovViewerWindow(Frame):
                 self.ax2.set_ylim(min_y,max_y)
                 self.ax2.legend(list('TNR'),loc='upper left')
             elif topic == 'rtData':
-                msgs = self.pidMsgs[topic]
+                msgs = self.plotMsgs[topic]
                 data = msgs.get_data(['pitch','roll','yaw','depth'])
                 self.ax1.set_title(title + ' attitude')
                 xs = np.arange(data.shape[0])
@@ -977,6 +1017,7 @@ class rovViewerWindow(Frame):
                 for i in [0,1,2]:
                     self.hdls[i][0].set_ydata(data[:,i]) 
                     self.hdls[i][0].set_xdata(xs)
+                    
                 self.hdls[3][0].set_ydata(0)
                 self.hdls[3][0].set_xdata(0)
                 self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
@@ -986,6 +1027,9 @@ class rovViewerWindow(Frame):
                 
                 self.ax2.set_title(title + ' depth')
                 #cmd_data=gdata.md_hist.get_data(label+'_cmd')
+                
+                data[:,3] = data[:,3]*(-1.0) ## depth (-) for depth
+                
                 self.hdls2[0][0].set_ydata(data[:,3])
                 self.hdls2[0][0].set_xdata(xs)
                 
@@ -1001,8 +1045,35 @@ class rovViewerWindow(Frame):
                 self.ax2.set_ylim(min_y,max_y)
                 self.ax2.legend(list('d'),loc='upper left')
                 
+                
+            elif topic == 'thrusters':
+                
+                msgs = self.plotMsgs[topic]
+                
+                data = msgs.get_data(['0','1','2','3', '4', '5', '6', '7'])
+                self.ax1.set_title(title)
+                
+                xs = np.arange(data.shape[0])
+                
+                for i in range(4):
+                    self.hdls[i][0].set_ydata(data[:,i]) 
+                    self.hdls[i][0].set_xdata(xs)
+                    
+                self.ax1.set_xlim(data.shape[0]-400,data.shape[0])
+                
+                self.ax1.set_ylim(data.min()-5,data.max()+5)
+                self.ax1.legend(list('0123'),loc='upper left')
+                
+                for i in range(4,8):
+                    self.hdls2[i-4][0].set_ydata(data[:,i]) 
+                    self.hdls2[i-4][0].set_xdata(xs)
+                    
+                self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
+                
+                self.ax2.set_ylim(data.min()-5,data.max()+5)
+                self.ax2.legend(list('4567'),loc='upper left')
             
-            self.canvas.draw()
+        self.canvas.draw()
 
 
     def make_widgets(self):
@@ -1064,6 +1135,8 @@ class rovViewerWindow(Frame):
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         self.myStyle["showDepth"].configure(command=self.depthSelect)
+        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow, self.checkThrusters, anchor='w')
+        self.myStyle["showmotors"].configure(command=self.threustersSelect)
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
         self.myStyle["showPitch"].configure(command=self.pitchSelect)

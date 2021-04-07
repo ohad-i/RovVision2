@@ -24,6 +24,8 @@ pub_imu = utils.publisher(zmq_topics.topic_imu_port)
 pub_depth = utils.publisher(zmq_topics.topic_depth_port)
 
 pub_sonar = utils.publisher(zmq_topics.topic_sonar_port)
+pub_motors = utils.publisher(zmq_topics.topic_motors_output_port)
+
 cvshow=0
 #cvshow=False
 test=1
@@ -127,7 +129,10 @@ def main():
             if topic==zmq_topics.topic_thrusters_comand:
                 _,current_command=pickle.loads(data[1])
                 current_command=[i*1.3 for i in current_command]
+                
+                motorsPwm = [e * 400 for e in current_command]
 
+                pub_motors.send_multipart( [zmq_topics.topic_motors_output, pickle.dumps( {'ts':time.time(), 'motors':motorsPwm} )])
         next_q,next_u=get_next_state(curr_q,curr_u,current_command,dt,lamb)
         next_q,next_u=next_q.flatten(),next_u.flatten()
         curr_q,curr_u=next_q,next_u
@@ -151,7 +156,9 @@ def main():
             yawd,pitchd,rolld=ps['yaw'],ps['roll'],ps['pitch']
             VM = pb.computeViewMatrixFromYawPitchRoll((py,px,-pz),1.0,-yawd+00,pitchd,rolld,2)
             #VM=translateM(VM,0.4,-0.1,0) 
-            VM=translateM(VM,0.2,-1.1,0.0)#left camera 0.2 for left 
+            if not mono:
+                VM=translateM(VM,0.2,-1.1,0.0)#left camera 0.2 for left 
+            
             PM = pb.computeProjectionMatrixFOV(fov=60.0,aspect=1.0,nearVal=0.1,farVal=1000)
             w = int(config.cam_res_rgbx*resize_fact)
             h = int(config.cam_res_rgby*resize_fact)
