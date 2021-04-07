@@ -89,7 +89,7 @@ if __name__=='__main__':
                         if fm > maxFocusSate['maxFm']:
                             maxFocusSate['maxFm'] = fm
                             maxFocusSate['maxFocusValue'] = curFocus
-                            print('temp vals --->', maxFocusSate )
+                            print('--- best vals so far --->', maxFocusSate )
                         
                         
                         curFocus = curFocus+jump
@@ -118,7 +118,7 @@ if __name__=='__main__':
             imgCnt = 0.0
             tic = time.time()
         
-    print('---> done focus... ', maxFocusSate)
+    print('--- done focus, autofocus sets to: ', maxFocusSate)
     data = pickle.dumps(maxFocusSate['maxFocusValue'], protocol=3)
     autoFocusPublisher.send_multipart( [zmq_topics.topic_autoFocus, data])
     
