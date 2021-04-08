@@ -1304,7 +1304,7 @@ class rovViewerWindow(Frame):
                 data['config_pid'][0][dkey+'_pid']['D'] = float(self.myStyle["K_textbox"].get())
                 
                 with open("../config_pid.json", 'w') as fid:
-                    json.dump(data, fid)
+                    json.dump(data, fid, indent=4)
                     
                 os.system("cd ../scripts && ./updateRemotePIDs.sh")
             except:
