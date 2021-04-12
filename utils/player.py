@@ -199,15 +199,24 @@ if __name__=='__main__':
             highResEndFlag = False
             lowResEndFlag = False
             telemRecEndFlag = False
-            telFid = open(telemPath, 'rb')
-            vidFid = open(vidPath, 'rb')
-            vidQFid = open(vidQPath, 'rb')
+            
+            telFid  = None
+            vidFid  = None
+            vidQFid = None
+            
+            if os.path.exists(telemPath):
+                telFid = open(telemPath, 'rb')
+            if os.path.exists(vidPath):
+                vidFid = open(vidPath, 'rb')
+            if os.path.exists(vidQPath):
+                vidQFid = open(vidQPath, 'rb')
             
             
             curData = pickle.load(telFid)
             nextData = pickle.load(telFid)
             nextTicToc = 0.9*(nextData[0] - curData[0]) 
             while True:
+                
                 time.sleep(0.0001)
                 try:
                     data = curData #pickle.load(telFid)
@@ -236,36 +245,43 @@ if __name__=='__main__':
                     imShape  = metaData[1]
                     imgCnt  += 1
                     # load image
-                    try:
+                    
+                    if not lowResEndFlag:
                         
-                        imLowRes = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], 
-                                               dtype = 'uint8').reshape((imShape[0]//2, imShape[1]//2, imShape[2] ))
-                    except:
-                        imLowRes = None
-                        if not lowResEndFlag:
-                            print('low res video ended')
-                            lowResEndFlag = True
-                    if hasHighRes:
                         try:
-                            imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
+                            imLowRes = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], 
+                                                   dtype = 'uint8').reshape((imShape[0]//2, imShape[1]//2, imShape[2] ))
                         except:
+                            imLowRes = None
+                            if not lowResEndFlag:
+                                print('low res video ended')
+                                lowResEndFlag = True
+                                showVideo = False
+                                continue
+                        if hasHighRes:
+                            try:
+                                imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
+                            except:
+                                imRaw = None
+                                if not highResEndFlag:
+                                    print('high res video ended')
+                                    highResEndFlag = True
+                                    continue
+                        else:
                             imRaw = None
-                            if not highResEndFlag:
-                                print('high res video ended')
-                                highResEndFlag = True
-                    else:
-                        imRaw = None
-                    ret = vidProc(imRaw, imLowRes)
-                   
-                    if not ret:
-                        break
-
-                    #import ipdb; ipdb.set_trace()
-                    videoMsg = [zmq_topics.topic_stereo_camera,
-                                        pickle.dumps((metaData[0], imLowRes.shape, metaData[2])),
-                                            imLowRes.tobytes()] # [topic, (frameId, frameShape, ts) rawFrame]
-                    #print('-->', curTopic)
-                    topicPubDict[curTopic].send_multipart(videoMsg)
+                        
+                        ret = vidProc(imRaw, imLowRes)
+                       
+                        if not ret:
+                            break
+    
+                        #import ipdb; ipdb.set_trace()
+                        videoMsg = [zmq_topics.topic_stereo_camera,
+                                            pickle.dumps((metaData[0], imLowRes.shape, metaData[2])),
+                                                imLowRes.tobytes()] # [topic, (frameId, frameShape, ts) rawFrame]
+                        #print('-->', curTopic)
+                        topicPubDict[curTopic].send_multipart(videoMsg)
+                        
                 else:
                     #recTs = data[0]
                     telData = pickle.loads(data[1][1])
