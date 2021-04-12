@@ -46,6 +46,7 @@ import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='ROV viewer application', formatter_class=argparse.RawTextHelpFormatter)
 parser.add_argument('-r', '--rawVideo', action='store_true', help='Recieve raw video')
+parser.add_argument('-s', '--sim', action='store_true', help='Simulation')
 args = parser.parse_args()
 
 '''
@@ -55,6 +56,15 @@ filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
     tm.tm_hour, tm.tm_min, tm.tm_sec)
 log_file = open(filename, "a")
 '''
+
+if args.sim:
+    rovType = -1
+else:
+    rovType = int(os.environ.get('ROV_TYPE','1'))
+
+print('--->', rovType)
+
+
 class CycArr():
     def __init__(self,size=20000):
         self.buf=[]
@@ -277,6 +287,16 @@ class rovViewerWindow(Frame):
 
         self.img = None
         self.last_pressed_button = 'disarm'
+        
+        self.dPitchVal = None
+        self.dDepthVal = None
+        self.dYawVal = None
+        
+        self.dRtPitchVal = None
+        self.dRtDepthVal = None
+        self.dRtYawVal = None
+        
+        self.initRtColPlace = None
         
         self.TFont = ("Courier", 14)
         self.TextboxFont = ("Courier", 12)
@@ -752,18 +772,49 @@ class rovViewerWindow(Frame):
                 #print(telemtry.keys())
                 rtData = {}
                 motors = {}
-                if zmq_topics.topic_imu in telemtry.keys():
+                telemKeys = telemtry.keys()
+                if zmq_topics.topic_imu in telemKeys:
                     data = telemtry[zmq_topics.topic_imu]
-                    self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'])
+                    if self.dRtPitchVal is None:
+                        self.myStyle['rtPitchtext'].config(text='%.2f°'%data['pitch'], font = ("Courier", 12))
+                        if self.initRtColPlace is not None:
+                            self.myStyle['rtPitchtext'].place(x = self.initRtColPlace )
+                    else:
+                        if self.initRtColPlace is None:
+                           self.initRtColPlace =  int(self.myStyle['rtPitchtext'].place_info()['x']) 
+                        self.myStyle['rtPitchtext'].config(text='%.1f/%.1f°'%(data['pitch'], self.dRtPitchVal ), font = ("Courier", 11) )
+                        self.myStyle['rtPitchtext'].place(x = self.initRtColPlace - 30)
                     rtData['pitch'] = data['pitch']
+                    
+                    
                     self.myStyle['rtRolltext'].config(text='%.2f°'%data['roll'])
                     rtData['roll'] = data['roll']
-                    self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'])
+                    
+                    if self.dRtYawVal is None:
+                    
+                        self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'], font = ("Courier", 12))
+                        if self.initRtColPlace is not None:
+                            self.myStyle['rtYawtext'].place(x = self.initRtColPlace )
+                    else:
+                        if self.initRtColPlace is None:
+                           self.initRtColPlace =  int(self.myStyle['rtYawtext'].place_info()['x'])
+                        self.myStyle['rtYawtext'].place(x = self.initRtColPlace - 30)
+                        self.myStyle['rtYawtext'].config(text='%.1f/%.1f°'%(data['yaw'], self.dRtYawVal ), font = ("Courier", 11) )
+                    
                     rtData['yaw'] = data['yaw']
                     
-                if zmq_topics.topic_depth in telemtry.keys():
+                if zmq_topics.topic_depth in telemKeys:
                     data = telemtry[zmq_topics.topic_depth]
-                    self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'])
+                    if self.dRtDepthVal is None:
+                        self.myStyle['rtDepthtext'].config(text='%.2f[m]'%data['depth'], font = ("Courier", 12) )
+                        if self.initRtColPlace is not None:
+                            self.myStyle['rtDepthtext'].place(x = self.initRtColPlace )
+                    else:
+                        if self.initRtColPlace is None:
+                           self.initRtColPlace =  int(self.myStyle['rtDepthtext'].place_info()['x'])
+                        self.myStyle['rtDepthtext'].config(text='%.1f/%.1f[m]'%(data['depth'], self.dRtDepthVal ), font = ("Courier", 11) )
+                        self.myStyle['rtDepthtext'].place(x = self.initRtColPlace - 30)
+                        
                     topic = zmq_topics.topic_depth_hold_pid
                     rtData['depth'] = data['depth']
                 if zmq_topics.topic_volt in telemtry.keys():
@@ -773,7 +824,7 @@ class rovViewerWindow(Frame):
                         fg = 'red'
                     self.myStyle['rtBatterytext'].config(text='%.2f[v]'%data['V'], foreground=fg)
                 
-                if zmq_topics.topic_system_state in telemtry.keys():
+                if zmq_topics.topic_system_state in telemKeys:
                     data = telemtry[zmq_topics.topic_system_state]
                     fg = 'black'
                     if data['diskUsage'] > 85:
@@ -785,7 +836,7 @@ class rovViewerWindow(Frame):
                         self.myStyle["focusCmd_textbox"].delete(0, END)
                         self.myStyle["focusCmd_textbox"].insert(END, "{}".format(data['focus']) )
                 
-                if zmq_topics.topic_motors_output in telemtry.keys():
+                if zmq_topics.topic_motors_output in telemKeys:
                     data = telemtry[zmq_topics.topic_motors_output]
                     #print('---> motors: ', data['motors'])
                     for i in range(8):
@@ -795,8 +846,30 @@ class rovViewerWindow(Frame):
                         self.plotMsgs['thrusters'] = CycArr(500)
                     
                     self.plotMsgs['thrusters'].add(motors)
+                
+                
+                if zmq_topics.topic_system_state in telemKeys:
+                    system_state = telemtry[zmq_topics.topic_system_state]
+                        
+                    if 'ATT_HOLD' in system_state['mode']:
+                        if zmq_topics.topic_att_hold_pitch_pid in telemKeys:
+                            data = telemtry[zmq_topics.topic_att_hold_pitch_pid]
+                            self.dRtPitchVal = data['T']
+                        if zmq_topics.topic_att_hold_yaw_pid in telemKeys:
+                            data = telemtry[zmq_topics.topic_att_hold_yaw_pid]
+                            self.dRtYawVal = data['T']
+                    else: 
+                        self.dRtPitchVal = None
+                        self.dRtYawVal = None
                     
-                                    
+                    if 'DEPTH_HOLD' in system_state['mode']:
+                        
+                        if zmq_topics.topic_depth_hold_pid in telemKeys:
+                            data = telemtry[zmq_topics.topic_depth_hold_pid]
+                            self.dRtDepthVal = data['T']
+                    else:
+                        self.dRtDepthVal = None
+                                 
                 if len(rtData.keys()) > 0: 
                     if 'rtData' not in self.plotMsgs:
                         self.plotMsgs['rtData'] = CycArr(500)
@@ -960,13 +1033,13 @@ class rovViewerWindow(Frame):
         self.ax1.clear()
         self.ax2.clear()
         
-        self.hdls=[self.ax1.plot([1],'-b'), self.ax1.plot([1],'-g'), self.ax1.plot([1],'-r'), self.ax1.plot([1],'-k')]
+        self.hdls=[self.ax1.plot([1],'-b', alpha=0.3), self.ax1.plot([1],'-g', alpha=0.3), self.ax1.plot([1],'-r', alpha=0.3), self.ax1.plot([1],'-k', alpha=0.3)]
         
         #self.hdlsMotors=[self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black'), self.ax1.plot([1],'black')]
         
         self.ax1.grid('on')
         
-        self.hdls2=[self.ax2.plot([1],'-b'), self.ax2.plot([1],'-g'), self.ax2.plot([1],'-r'), self.ax2.plot([1],'-k')]
+        self.hdls2=[self.ax2.plot([1],'-b', alpha=0.3), self.ax2.plot([1],'-g', alpha=0.3), self.ax2.plot([1],'-r', alpha=0.3), self.ax2.plot([1],'-k', alpha=0.3)]
         self.ax2.grid('on')
         
         self.canvas.draw()
@@ -1064,9 +1137,18 @@ class rovViewerWindow(Frame):
                 self.ax1.set_ylim(data.min()-5,data.max()+5)
                 self.ax1.legend(list('0123'),loc='upper left')
                 
-                for i in range(4,8):
-                    self.hdls2[i-4][0].set_ydata(data[:,i]) 
-                    self.hdls2[i-4][0].set_xdata(xs)
+                #for i in range(4,8):
+                if rovType == 4:
+                    for i in range(4,8):
+                        tt = 1
+                        if (i == 4) or (i == 7):
+                            tt = -1
+                        self.hdls2[i-4][0].set_ydata(tt*data[:,i]) 
+                        self.hdls2[i-4][0].set_xdata(xs)
+                else:
+                    for i in range(4,8):
+                        self.hdls2[i-4][0].set_ydata(tt*data[:,i]) 
+                        self.hdls2[i-4][0].set_xdata(xs)
                     
                 self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
                 
@@ -1301,7 +1383,7 @@ class rovViewerWindow(Frame):
                 data['config_pid'][0][dkey+'_pid']['K'] = float(self.myStyle["K_textbox"].get())
                 data['config_pid'][0][dkey+'_pid']['P'] = float(self.myStyle["Kp_textbox"].get())
                 data['config_pid'][0][dkey+'_pid']['I'] = float(self.myStyle["Ki_textbox"].get())
-                data['config_pid'][0][dkey+'_pid']['D'] = float(self.myStyle["K_textbox"].get())
+                data['config_pid'][0][dkey+'_pid']['D'] = float(self.myStyle["Kd_textbox"].get())
                 
                 with open("../config_pid.json", 'w') as fid:
                     json.dump(data, fid, indent=4)

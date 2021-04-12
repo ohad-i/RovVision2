@@ -66,7 +66,7 @@ new_6_win
 
 run 0 sim pybullet_bridge.py
 run 1 utils recorder.py
-run 2 ground_control rovViewer.py
+run 2 ground_control "rovViewer.py -s"
 run 3 ground_control joy_rov.py
 #runShell 5 . jtop
 #tmux att
