@@ -50,6 +50,7 @@ async def recv_and_process():
             
             if topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
+                #print('--1->roll %.2f'%roll)
                 if 0 and 'yawr' in data:
                     ans = (data['yawr'],data['pitchr'],data['rollr'])
                     yawr,pitchr,rollr=ans
@@ -69,21 +70,22 @@ async def recv_and_process():
                     else:
                         #if joy and joy['inertial'] and abs(joy['yaw'])<0.05:
                         if joy and abs(joy['yaw'])<0.1:
-                            yaw_cmd = pid_y(yaw,target_att[0],rates[0],0)
+                            yaw_cmd = pid_y(yaw,target_att[0], 0, 0)
                         else:
                             target_att[0]=yaw
                             yaw_cmd=0
                         print('Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw, target_att[0], yaw_cmd))
 
                         if joy and abs(joy['pitch'])<0.1:
-                            pitch_cmd = pid_p(pitch,target_att[1],rates[1],0)
+                            pitch_cmd = pid_p(pitch,target_att[1], 0, 0)
                         else:
                             target_att[1]=pitch
                             pitch_cmd=0
                         #print('R{:06.3f} P{:06.3f} PT{:06.3f} C{:06.3f}'.format(pitchr,pitch,target_att[1],pitch_cmd))
-                        roll_cmd = pid_r(roll,0 if roll_target_0 else target_att[2],rates[2],0)
+                        roll_cmd = pid_r(roll,0 if roll_target_0 else target_att[2], 0, 0)
                         #print('RR{:06.3f} R{:06.3f} RT{:06.3f} C{:06.3f}'.format(rollr,roll,target_att[2],roll_cmd))
                         ts=time.time()
+                        #print('--2->roll %.2f'%roll)
                         debug_pid = {'P':pid_r.p,'I':pid_r.i,'D':pid_r.d,'C':roll_cmd,'T':0,'N':roll, 'R':rates[0], 'TS':ts}
                         pub_sock.send_multipart([zmq_topics.topic_att_hold_roll_pid, pickle.dumps(debug_pid,-1)])
                         debug_pid = {'P':pid_p.p,'I':pid_p.i,'D':pid_p.d,'C':pitch_cmd,'T':target_att[1],'N':pitch, 'R':rates[1],'TS':ts}
@@ -93,7 +95,7 @@ async def recv_and_process():
 
                         thruster_cmd = np.array(mixer.mix(0,0,0,roll_cmd,pitch_cmd,yaw_cmd,pitch,roll))
                         
-                        thruster_cmd += mixer.mix(0,0,0,-rates[0]*pid_r.D,-rates[1]*pid_p.D,-rates[2]*pid_y.D,0,0)
+                        thruster_cmd += mixer.mix(0,0,0,-rates[0]*pid_r.D,-rates[1]*pid_p.D,-rates[2]*pid_y.D, 0, 0)
                         
                         thrusters_source.send_pyobj(['att',time.time(),thruster_cmd])
                 else:
