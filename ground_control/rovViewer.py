@@ -1387,7 +1387,9 @@ class rovViewerWindow(Frame):
                 
                 with open("../config_pid.json", 'w') as fid:
                     json.dump(data, fid, indent=4)
-                    
+                
+                self.cmdDepthHold()
+                self.cmdAttHold()
                 os.system("cd ../scripts && ./updateRemotePIDs.sh")
             except:
                 import traceback
