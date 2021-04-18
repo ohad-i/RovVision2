@@ -1147,7 +1147,7 @@ class rovViewerWindow(Frame):
                         self.hdls2[i-4][0].set_xdata(xs)
                 else:
                     for i in range(4,8):
-                        self.hdls2[i-4][0].set_ydata(tt*data[:,i]) 
+                        self.hdls2[i-4][0].set_ydata(data[:,i]) 
                         self.hdls2[i-4][0].set_xdata(xs)
                     
                 self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
