@@ -313,6 +313,7 @@ class rovViewerWindow(Frame):
         self.colButtonWidth = 120
         self.rowHeight = 30 # more space - 35
         
+        self.plotHistory = 500
         self.plotMsgs = {}
         
         self.runPlotsFlag = True
@@ -791,7 +792,10 @@ class rovViewerWindow(Frame):
                     rtData['roll'] = data['roll']
                     
                     if self.dRtYawVal is None:
-                    
+                        curYaw = data['yaw']
+                        if curYaw < 0:
+                            curYaw += 360
+                            
                         self.myStyle['rtYawtext'].config(text='%.2f°'%data['yaw'], font = ("Courier", 12))
                         if self.initRtColPlace is not None:
                             self.myStyle['rtYawtext'].place(x = self.initRtColPlace )
@@ -799,7 +803,15 @@ class rovViewerWindow(Frame):
                         if self.initRtColPlace is None:
                            self.initRtColPlace =  int(self.myStyle['rtYawtext'].place_info()['x'])
                         self.myStyle['rtYawtext'].place(x = self.initRtColPlace - 30)
-                        self.myStyle['rtYawtext'].config(text='%.1f/%.1f°'%(data['yaw'], self.dRtYawVal ), font = ("Courier", 11) )
+                        if self.dRtYawVal < 0:
+                           self.dRtYawVal += 360
+                        
+                        if self.dRtYawVal < 0:
+                           self.dRtYawVal += 360
+                        curYaw = data['yaw']
+                        if curYaw < 0:
+                            curYaw += 360
+                        self.myStyle['rtYawtext'].config(text='%.1f/%.1f°'%(curYaw, self.dRtYawVal ), font = ("Courier", 11) )
                     
                     rtData['yaw'] = data['yaw']
                     
@@ -813,7 +825,7 @@ class rovViewerWindow(Frame):
                         if self.initRtColPlace is None:
                            self.initRtColPlace =  int(self.myStyle['rtDepthtext'].place_info()['x'])
                         self.myStyle['rtDepthtext'].config(text='%.1f/%.1f[m]'%(data['depth'], self.dRtDepthVal ), font = ("Courier", 11) )
-                        self.myStyle['rtDepthtext'].place(x = self.initRtColPlace - 30)
+                        self.myStyle['rtDepthtext'].place(x = self.initRtColPlace - 20)
                         
                     topic = zmq_topics.topic_depth_hold_pid
                     rtData['depth'] = data['depth']
@@ -843,7 +855,7 @@ class rovViewerWindow(Frame):
                         motors[str(i)] = data['motors'][i]
                         
                     if 'thrusters' not in self.plotMsgs:
-                        self.plotMsgs['thrusters'] = CycArr(500)
+                        self.plotMsgs['thrusters'] = CycArr(self.plotHistory)
                     
                     self.plotMsgs['thrusters'].add(motors)
                 
@@ -872,7 +884,7 @@ class rovViewerWindow(Frame):
                                  
                 if len(rtData.keys()) > 0: 
                     if 'rtData' not in self.plotMsgs:
-                        self.plotMsgs['rtData'] = CycArr(500)
+                        self.plotMsgs['rtData'] = CycArr(self.plotHistory)
                     self.plotMsgs['rtData'].add(rtData)
                 
             
@@ -965,7 +977,7 @@ class rovViewerWindow(Frame):
                 rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
                 topic = zmq_topics.topic_att_hold_roll_pid
                 if topic not in self.plotMsgs:
-                        self.plotMsgs[topic] = CycArr(500)
+                        self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(rollData)
                 
             if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
@@ -973,7 +985,7 @@ class rovViewerWindow(Frame):
                 
                 topic = zmq_topics.topic_att_hold_pitch_pid
                 if topic not in self.plotMsgs:
-                        self.plotMsgs[topic] = CycArr(500)
+                        self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(pitchData)
                 
             if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
@@ -981,7 +993,7 @@ class rovViewerWindow(Frame):
                 
                 topic = zmq_topics.topic_att_hold_yaw_pid
                 if topic not in self.plotMsgs:
-                        self.plotMsgs[topic] = CycArr(500)
+                        self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(yawData)
                     
             if zmq_topics.topic_depth_hold_pid in telemtry.keys():
@@ -989,7 +1001,7 @@ class rovViewerWindow(Frame):
                 
                 topic = zmq_topics.topic_depth_hold_pid
                 if topic not in self.plotMsgs:
-                        self.plotMsgs[topic] = CycArr(500)
+                        self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(depthData)
             
             
@@ -1072,10 +1084,20 @@ class rovViewerWindow(Frame):
                 factor = [1,1,1]
                 if topic == zmq_topics.topic_depth_hold_pid:
                     factor = [-1.0,-1.0,1.0] # (-) for depth
-                for i in [0,1,2]:
-                    data[:,i] = data[:,i]*factor[i]
-                    self.hdls2[i][0].set_ydata(data[:,i])
-                    self.hdls2[i][0].set_xdata(xs)
+                
+                if topic == zmq_topics.topic_att_hold_yaw_pid:
+                    mod = [360, 360, 1]
+                    for i in [0,1,2]:
+                        data[:,i] = (data[:,i]%mod[i])*factor[i]
+                        self.hdls2[i][0].set_ydata(data[:,i])
+                        self.hdls2[i][0].set_xdata(xs)
+                else:
+                    for i in [0,1,2]:
+                        data[:,i] = data[:,i]*factor[i]
+                        self.hdls2[i][0].set_ydata(data[:,i])
+                        self.hdls2[i][0].set_xdata(xs)
+                    
+                
                 self.ax2.set_xlim(data.shape[0]-400,data.shape[0])
                 min_y = data.min()
                 max_y = data.max()

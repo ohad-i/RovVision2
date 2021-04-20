@@ -12,7 +12,7 @@ pkill -f ids
 sleep 3
 
 
-tmux kill-ser
+tmux kill-sess
 
 
 if [ "$1" = "kill" ]; then
