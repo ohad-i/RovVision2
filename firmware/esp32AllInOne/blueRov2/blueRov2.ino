@@ -78,10 +78,10 @@ void setup() {
       delay_ms(100);
     }
     // Init Leds pwm output
-
     leds.attach(ledsPort, 1100, 1900);
-    leds.write(1000);
+    leds.write(1100);
     delay_ms(100);
+
 
     camServo.attach(camServoPin, 750, 2200);
     camServo.write(1500);
@@ -159,7 +159,7 @@ uint16_t voltage_u16 = 0;
 void loop() {
   
 
-  if( (millis() - tic) >= 180)
+  if( (millis() - tic) >= 190)
   {
      tic = millis(); //XTHAL_GET_CCOUNT();;
 
@@ -172,20 +172,34 @@ void loop() {
      
      uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
      uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
+     if(depth_m <= 0)
+     {
+          depth_u16 = (uint16_t)(0.01*200);
+     }
      msg.value[0] = depth_u16;     
      msg.value[1] = tempC_u16;
      msg.value[2] = voltage_u16;
-     /*
+     
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
+     /*
      WRITE_DEBUG_MSG("voltage: ");
      WRITE_DEBUG_MSGLN(voltage);
+     
      WRITE_DEBUG_MSG("current: ");
      WRITE_DEBUG_MSGLN(current);
+     */
+     /*
      WRITE_DEBUG_MSG(" got depth ");
      WRITE_DEBUG_MSG(depth_m);
-     WRITE_DEBUG_MSG(" ");
+     WRITE_DEBUG_MSGLN(" ");
+
+     WRITE_DEBUG_MSG(" got depth raw:");
+     WRITE_DEBUG_MSG(depth_u16 );
+     WRITE_DEBUG_MSGLN(" ");
      */
+
+     
      synMsg.b[0] = 0xac;
      synMsg.b[1] = 0xad;
      MAIN_SER_PORT.write(synMsg.b, 2);
