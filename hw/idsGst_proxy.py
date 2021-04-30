@@ -255,9 +255,14 @@ if __name__ == '__main__':
                     key = cv2.waitKey(1)
                     if key&0xff == 27:
                         break
-                    
+                
+                imShape = ret['image'][1].shape
+                imRaw = np.frombuffer(ret['image'][1], dtype='uint8').reshape(imShape)
+                
+                QRes = cv2.resize(imRaw, (imShape[1]//2, imShape[0]//2))
+                
                 socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-                                        pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'])),
+                                        pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'])), QRes.tobytes(),
                                             ret['image'][1].tobytes()])
                 socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
                                             pickle.dumps( (frameCnt, ret['ts']) )] )
