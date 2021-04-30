@@ -149,13 +149,17 @@ def draw_mono(img,message_dict,fmt_cnt_l):
         else:
             modes_str=' '.join(modes)
         cv2.putText(img, modes_str\
-                ,(sy(140),sx(15)), font, 0.5,(255,255,255),1,cv2.LINE_AA)
+                ,(sy(140),sx(15)), font, 0.5,(255,0,255),1,cv2.LINE_AA)
         if ss['record']:
-            cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
+            cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(255,0,0),1,cv2.LINE_AA)
     if zmq_topics.topic_tracker in message_dict:
         rng  = message_dict[zmq_topics.topic_tracker].get('range_f',-1.0)
         line='{:>.2f} TRng'.format(rng)
         cv2.putText(img,line,(sy(350),sx(580+voff)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
+    
+    if zmq_topics.topic_tracker_result in message_dict:
+        trckRes  = message_dict[zmq_topics.topic_tracker_result][1]
+        cv2.circle(img, (trckRes[0], trckRes[1]), 10, (255,0,255), 2)
 
     if zmq_topics.topic_volt in message_dict:
         v=message_dict[zmq_topics.topic_volt]['V']

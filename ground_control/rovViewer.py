@@ -107,7 +107,7 @@ class rovDataHandler(Thread):
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_depth_hold_pid], zmq_topics.topic_depth_hold_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_sonar], zmq_topics.topic_sonar_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_stereo_camera_ts], zmq_topics.topic_camera_port)) #for sync perposes
-        self.subs_socks.append(utils.subscribe([zmq_topics.topic_tracker], zmq_topics.topic_tracker_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_tracker, zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_volt], zmq_topics.topic_volt_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_hw_stats], zmq_topics.topic_hw_stats_port))
         
@@ -122,6 +122,7 @@ class rovDataHandler(Thread):
         self.initImgSource()
         
         self.image = None 
+        self.curFrameId = -1
         
         self.pubData = True
         self.socket_pub = None
@@ -143,14 +144,15 @@ class rovDataHandler(Thread):
         
         
     def getNewImage(self):
-        ret = None
+        ret = [self.curFrameId, None]
         if self.image is not None:
-            ret = np.copy(self.image)
+            ret = [self.curFrameId, np.copy(self.image)]
             self.image = None
             #print("---image---", time.time())
         else:
             pass
             #print(time.time(), "no image")
+            #print('--->', ret[0])
         return ret
     
     def getTelemtry(self):
@@ -182,7 +184,9 @@ class rovDataHandler(Thread):
             if not self.rawVideo:
                 if len(select([self.imgSock],[],[],0.003)[0]) > 0:
                     data, addr = self.imgSock.recvfrom(1024*64)
-                    img = cv2.imdecode(pickle.loads(data), 1)
+                    self.curFrameId, encIm = pickle.loads(data)
+                    img = cv2.imdecode(encIm, 1)
+                    
                     images = [img]
                     rcv_cnt += 1
 
@@ -206,8 +210,16 @@ class rovDataHandler(Thread):
                         
                         if self.pubData:
                             self.socket_pub.send_multipart([ret[0],ret[1]])
+                        
+                        if zmq_topics.topic_tracker_result == topic:
+                            #print('trck data res:', data)
+                            if data[1][0] == -1:
+                                message_dict.pop(zmq_topics.topic_tracker_result)
+                                
                     elif self.rawVideo and zmq_topics.topic_stereo_camera == topic:
-                        imShape = pickle.loads(ret[1])[1]
+                        
+                        self.curFrameId, imShape, ts = pickle.loads(ret[1])
+                        print('<><>', self.curFrameId, imShape, ts)
                         imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
                         images = [imRaw]
     
@@ -315,6 +327,7 @@ class rovViewerWindow(Frame):
         
         self.plotHistory = 500
         self.plotMsgs = {}
+        self.frameId = -1
         
         self.runPlotsFlag = True
         
@@ -657,6 +670,10 @@ class rovViewerWindow(Frame):
 
             print('clicked x=%d, y=%d'%(x,y))
             # ImageGrab.grab().crop((x, y, width, height)).save(img_file)
+            print('--->', {'trackPnt':(x,y), 'frameId':self.frameId } )
+            msg = [zmq_topics.topic_gui_start_stop_track, pickle.dumps({'trackPnt':(x,y), 'frameId':self.frameId } , protocol=3)]
+            self.rovGuiCommandPublisher.send_multipart(msg)
+            
         except Exception as err:
             print(err)
             
@@ -668,7 +685,7 @@ class rovViewerWindow(Frame):
         
     def update_image(self):
         
-        rawImg = self.ROVHandler.getNewImage()
+        self.frameId, rawImg = self.ROVHandler.getNewImage()
         if rawImg is not None:
             #self.img = Image.open(io.BytesIO(img)) ## jpg stream
             self.image = rawImg.copy()

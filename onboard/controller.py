@@ -17,9 +17,13 @@ pub_sock = utils.publisher(zmq_topics.topic_controller_port)
 subs_socks=[]
 subs_socks.append(utils.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
-subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_diveModes],zmq_topics.topic_gui_port))
-subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, zmq_topics.topic_gui_focus_controller, zmq_topics.topic_gui_autoFocus],zmq_topics.topic_gui_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller, 
+                                   zmq_topics.topic_gui_diveModes, 
+                                   zmq_topics.topic_gui_focus_controller, 
+                                   zmq_topics.topic_gui_autoFocus,
+                                   zmq_topics.topic_gui_start_stop_track],  zmq_topics.topic_gui_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_autoFocus], zmq_topics.topic_autoFocus_port))
+subs_socks.append(utils.subscribe([zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
                                    
 thruster_sink = utils.pull_sink(zmq_topics.thrusters_sink_port)
 subs_socks.append(thruster_sink)
@@ -74,10 +78,16 @@ async def recv_and_process():
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
                         print('Toggle depth hold...')
-                        togle_mode('DEPTH_HOLD')
+                        if ('IM_TRACKER_MODE' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
+                            print('failed to toggle to ATT_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
+                        else:
+                            togle_mode('DEPTH_HOLD')
                     if jm.att_hold_event():
                         print('Toggle attitude hold...')
-                        togle_mode('ATT_HOLD')
+                        if ('IM_TRACKER_MODE' in system_state['mode']) and ('ATT_HOLD' in system_state['mode']):
+                            print('failed to toggle to ATT_HOLD (needs to stay on ATT_HOLD) while IM_TRACKER_MODE')
+                        else:
+                            togle_mode('ATT_HOLD')
                     if jm.Rx_hold_event():
                         togle_mode('RX_HOLD')
                     if jm.Ry_hold_event():
@@ -93,7 +103,7 @@ async def recv_and_process():
                         if not system_state['arm']:
                             system_state['mode']=[]
                            
-                if topic==zmq_topics.topic_axes or topic==zmq_topics.topic_gui_controller:
+                elif topic==zmq_topics.topic_axes or topic==zmq_topics.topic_gui_controller:
                     jm.update_axis(data)
                     if jm.inc_lights_event():
                         system_state['lights']=min(5,system_state['lights']+1)
@@ -111,14 +121,33 @@ async def recv_and_process():
                         system_state['focus']=max(850,system_state['focus']-focusResolution)
                         pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                         print('focus set to ',system_state['focus'])
-                if topic==zmq_topics.topic_gui_focus_controller or topic == zmq_topics.topic_autoFocus:
+                elif topic==zmq_topics.topic_gui_focus_controller or topic == zmq_topics.topic_autoFocus:
                     pwm = data
                     system_state['focus']=pwm
                     pub_sock.send_multipart([zmq_topics.topic_focus,pickle.dumps(system_state['focus'])])
                     print('focus set to value ',system_state['focus'])
                 
-                if topic== zmq_topics.topic_gui_autoFocus:
+                elif topic == zmq_topics.topic_gui_autoFocus:
                     os.system('../scripts/runAutofocus.sh')
+                
+                elif topic == zmq_topics.topic_gui_start_stop_track:
+                    print('start/stop tracker... ', data)
+                    if 'ATT_HOLD' not in system_state['mode']:
+                        togle_mode('ATT_HOLD')
+                    if 'DEPTH_HOLD' not in system_state['mode']:
+                        togle_mode('DEPTH_HOLD')
+                    togle_mode('IM_TRACKER_MODE')
+                    if 'IM_TRACKER_MODE' in system_state['mode']:
+                        pub_sock.send_multipart([zmq_topics.topic_tracker_cmd, pickle.dumps(data)])
+                    else:
+                        pub_sock.send_multipart([zmq_topics.topic_tracker_cmd, pickle.dumps( {'frameId':-1, 'trackPnt':(-1,-1 ) } )])
+                elif topic == zmq_topics.topic_tracker_result:
+                    #print('--->', data)
+                    if data[1] is None:
+                        if 'IM_TRACKER_MODE' in system_state['mode']:
+                            print('Tracker ended...')
+                            togle_mode('IM_TRACKER_MODE')
+                        
                     
 
 

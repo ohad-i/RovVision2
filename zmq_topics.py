@@ -10,6 +10,7 @@ topic_controller_port=topic_thrusters_comand_port=7788
 thrusters_sink_port = 7787
 topic_lights=b'topic_lights'
 topic_focus=b'topic_set_focus_state'
+topic_tracker_cmd=b'topic_tracker_start_stop_cmd'
 
 topic_autoFocus_port = 7790
 topic_autoFocus = b'autoFocus'
@@ -17,20 +18,21 @@ topic_autoFocus = b'autoFocus'
 
 #topic_camera_left=b'topic_camera_left'
 #topic_camera_right=b'topic_camera_right'
-topic_stereo_camera=b'topic_stereo_camera'
-topic_stereo_camera_ts=b'topic_stereo_camera_ts'
+topic_stereo_camera    = b'topic_stereo_camera'
+topic_stereo_camera_ts = b'topic_stereo_camera_ts'
 topic_camera_port=7789
 
 topic_button = b'joy_button'
-topic_axes = b'joy_axes'
-topic_hat = b'joy_hat'
+topic_axes   = b'joy_axes'
+topic_hat    = b'joy_hat'
 topic_joy_port=8899
 
-topic_gui_controller = b'gui_controller'
-topic_gui_diveModes = b'gui_diveModes'
+topic_gui_controller       = b'gui_controller'
+topic_gui_diveModes        = b'gui_diveModes'
 topic_gui_focus_controller = b'manual_focus'
-topic_gui_depthAtt = b'att_depth'
-topic_gui_autoFocus = b'auto_focus'
+topic_gui_depthAtt         = b'att_depth'
+topic_gui_autoFocus        = b'auto_focus'
+topic_gui_start_stop_track = b'tracker_cmd'
 topic_gui_port = 8900
 
 topic_motors_output = b'motors_output'
@@ -68,8 +70,9 @@ topic_pos_hold_pid_fmt=b'topic_pos_hold_pid_%d'
 topic_pos_hold_port=10053
 
 
-topic_tracker=b'topic_tracker'
-topic_tracker_port=10101
+topic_tracker        = b'topic_tracker'
+topic_tracker_result = b'topic_simple_tracker_result'
+topic_tracker_port   = 10101
 
 
 topic_volt=b'topic_volt'

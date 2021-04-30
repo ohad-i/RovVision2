@@ -40,7 +40,7 @@ sleep 1
 runLoop 2 plugins manual_plugin.py
 runLoop 3 plugins depth_hold_plugin.py
 runLoop 4 plugins att_hold_plugin.py
-#run 5 plugins tracker_plugin.py
+run 5 plugins oiTracker_plugin.py
 
 #tmux new-window
 #new_6_win
