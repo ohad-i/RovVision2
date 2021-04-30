@@ -114,19 +114,21 @@ def recorder():
                                 # write image raw data
                                 fid.write(ret[-1])
                                 hasHighQuality = True
-                        
+                        '''
                         imShape = pickle.loads(ret[1])[1]
                         imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
                         
                         low = cv2.resize(imRaw, (imShape[1]//2, imShape[0]//2))
+                        '''
+                        low = ret[-2]
                         #print('--->', low.shape, imRaw.shape)
                         if debugVideo:
-                            cv2.imshow('high', imRaw)
-                            cv2.imshow('low', low)
+                            #cv2.imshow('high', imRaw)
+                            #cv2.imshow('low', low)
                             cv2.waitKey(1)
                         with open(videoQFile, 'ab') as fid:
                             # write image raw data
-                            fid.write(low.tobytes())
+                            fid.write(low) #.tobytes())
                         with open(telemFile, 'ab') as fid:
                             # write image metadata
                             imMetaData = ret[:-1]
