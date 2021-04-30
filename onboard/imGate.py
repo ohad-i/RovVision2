@@ -38,6 +38,7 @@ else:
 
 
 
+
 jpgQuality = 75
 maxImSize = 1024*63
 
@@ -49,6 +50,7 @@ async def recv_and_process():
     global current_command, inImgCnt, sentImgCnt, jpgQuality
     tic = time.time()
     udpSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+    
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
         for sock in socks:
@@ -57,9 +59,9 @@ async def recv_and_process():
                 inImgCnt += 1
                 
                 frame_cnt,shape,ts=pickle.loads(ret[1])
+                imgl = np.frombuffer(ret[-2],'uint8').reshape( (shape[0]//2, shape[1]//2, 3) ).copy()
                 
-                imgl=np.frombuffer(ret[2],'uint8').reshape(shape).copy()
-                if doResize:
+                if 0: #doResize:
                     imgl = cv2.resize(imgl, (sx,sy))
                 #cv2.imshow('aa', imgl)
                 #cv2.waitKey(10)
@@ -72,7 +74,7 @@ async def recv_and_process():
                 elif len(encIm) >= maxImSize:
                     jpgQuality = max(30, jpgQuality-2)
                     doSend = False
-                msg = pickle.dumps(encIm)
+                msg = pickle.dumps([frame_cnt, encIm])
                 if doSend:
                     sentImgCnt += 1
                     udpSock.sendto(msg, udpImIpPort)
