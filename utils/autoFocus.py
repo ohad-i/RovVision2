@@ -76,7 +76,7 @@ if __name__=='__main__':
                     if focusValue == curFocus:
                         frame_cnt,shape,ts=pickle.loads(ret[1])
                         
-                        imgl=np.frombuffer(ret[2],'uint8').reshape(shape).copy()
+                        imgl=np.frombuffer(ret[2],'uint8').reshape((shape[0]//2,shape[1]//2, 3)).copy()
                         if doResize:
                             imgl = cv2.resize(imgl, (sx,sy))
                         #cv2.imshow('aa', imgl)
