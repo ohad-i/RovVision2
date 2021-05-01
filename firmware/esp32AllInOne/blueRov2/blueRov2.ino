@@ -7,7 +7,7 @@
 
 
 //#define DSHOT_TIMEOUT_C 20000
-#define SERIAL_MSG_START_B 0b10010000
+#define SERIAL_MSG_START_B 0b10010001
 
 #define DEBUG 1
 #define DEBUG_SER_PORT Serial
@@ -106,7 +106,7 @@ void setup() {
     }
     DepthSensor.setModel(MS5837::MS5837_30BA);
     DepthSensor.setFluidDensity(1029); // kg/m^3 (997 for freshwater, 1029 for seawater)
-      
+
     delay_ms(1000);
     WRITE_DEBUG_MSGLN("done init.");    
     tic = millis(); //XTHAL_GET_CCOUNT();
@@ -211,17 +211,25 @@ void loop() {
   char opCode = 0 ;
   short focusStep;
   short val;
-  int pwm; 
+  int pwm;
 
-    if((MAIN_SER_PORT.read() & 0b11110000) == SERIAL_MSG_START_B)
+  if(MAIN_SER_PORT.available()>1)
+  {
+    char bla = MAIN_SER_PORT.read();
+    Serial.println(bla,HEX);
+  
+    if((bla ) == SERIAL_MSG_START_B)
     {
       WRITE_DEBUG_MSGLN("got msg");
-      
+
       opCode = MAIN_SER_PORT.read();
       if(opCode == OP_MOTORS)
       {
         WRITE_DEBUG_MSG("got motors cmd - ");
-        
+        while(!(MAIN_SER_PORT.available() >= 16))
+        {
+          
+        }
         MAIN_SER_PORT.readBytes(motVals.b, 16);
         for(int iMot = 0; iMot < motorsNum; iMot++)
         {
@@ -236,15 +244,23 @@ void loop() {
       }
       if(opCode == OP_LEDS)
       {
+          while(!(MAIN_SER_PORT.available() > 1))
+          {
+            
+          }
           WRITE_DEBUG_MSG("got leds cmd - ");
           val = readShortFromSerial();
           pwm = map(val, -400, 400, 1100, 1900);
-          WRITE_DEBUG_MSGLN(pwm);
+          WRITE_DEBUG_MSGLN(val);
           WRITE_DEBUG_MSGLN("-------");
           leds.write(pwm);
       }
       if(opCode == OP_CAMSERVO)
       {
+          while(!(MAIN_SER_PORT.available() > 1))
+            {
+              
+            }
           WRITE_DEBUG_MSG("got cam servo cmd - ");
           focusStep = readShortFromSerial();
           WRITE_DEBUG_MSGLN(focusStep);
@@ -253,5 +269,5 @@ void loop() {
           camServo.write(focusStep);
       }
     }
-
+  }
 }
