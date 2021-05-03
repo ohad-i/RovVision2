@@ -131,7 +131,7 @@ def recorder():
                             fid.write(low) #.tobytes())
                         with open(telemFile, 'ab') as fid:
                             # write image metadata
-                            imMetaData = ret[:-1]
+                            imMetaData = ret[:-2]
                             imMetaData.append(hasHighQuality)
                             pickle.dump([ts, imMetaData], fid)
                             hasHighQuality = False
