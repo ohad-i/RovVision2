@@ -32,7 +32,7 @@ autoFocusPublisher = zmq_wrapper.publisher(zmq_topics.topic_autoFocus_port)
 
 if __name__=='__main__':
     
-    doResize = True
+    doResize = False
     sx,sy=config.cam_res_rgbx,config.cam_res_rgby
     
     imgCnt  = 0.0
@@ -97,8 +97,8 @@ if __name__=='__main__':
                             print('next iteration --->', maxFocusSate, jump )
                             curIter += 1
                             if curIter < len(jumps):
-                                curFocus = maxFocusSate['maxFocusValue']-jump
-                                maxFocusVal = maxFocusSate['maxFocusValue']+jump
+                                curFocus = max(maxFocusSate['maxFocusValue']-jump//2, 850)
+                                maxFocusVal = min(maxFocusSate['maxFocusValue']+jump//2, 2250)
                                 jump = jumps[curIter]
                             else:
                                 keep_running = False
