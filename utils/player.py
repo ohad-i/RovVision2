@@ -211,16 +211,42 @@ if __name__=='__main__':
             if os.path.exists(vidQPath):
                 vidQFid = open(vidQPath, 'rb')
             
-            
-            curData = pickle.load(telFid)
+            telId = 0
+            # skip frame loop 
+            while frameId < skipFrame:
+               
+                curData = pickle.load(telFid)
+                telId += 1                
+                curTopic = curData[1][0]
+
+                if curTopic == zmq_topics.topic_stereo_camera:
+                    frameId += 1
+                    hasHighRes = curData[1][-1]
+                    metaData = pickle.loads(curData[1][1])
+                    
+                    imShape  = metaData[1]
+                
+                    try:
+                        imLowRes = np.fromfile(vidQFid, count=imShape[1]//2*imShape[0]//2*imShape[2], 
+                                           dtype = 'uint8').reshape((imShape[0]//2, imShape[1]//2, imShape[2] ))
+
+                        if hasHighRes:
+                            imRaw = np.fromfile(vidFid, count=imShape[1]*imShape[0]*imShape[2], dtype = 'uint8').reshape(imShape)
+                    except:
+                        pass
+            else:
+                curData = pickle.load(telFid)
             nextData = pickle.load(telFid)
             nextTicToc = 0.9*(nextData[0] - curData[0]) 
+
+            #import ipdb; ipdb.set_trace()
+            
             while True:
                 
                 time.sleep(0.0001)
                 try:
                     data = curData #pickle.load(telFid)
-                    
+                    telId += 1
                 except:
                     if not telemRecEndFlag:
                         print('record Ended...')
@@ -309,6 +335,7 @@ if __name__=='__main__':
         import traceback
         traceback.print_exc()
     finally:
+        print("--->",frameId, telId)
         if writer is not None:
             writer.release()
         if writerLowRes is not None:
