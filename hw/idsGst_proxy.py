@@ -260,10 +260,17 @@ if __name__ == '__main__':
                 imRaw = np.frombuffer(ret['image'][1], dtype='uint8').reshape(imShape)
                 
                 QRes = cv2.resize(imRaw, (imShape[1]//2, imShape[0]//2))
-                
-                socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-                                        pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'])), QRes.tobytes(),
-                                            ret['image'][1].tobytes()])
+                hasHighRes = True
+                if frameCnt%4 == 0:
+                    socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
+                                            pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'], hasHighRes)), QRes.tobytes(),
+                                                ret['image'][1].tobytes()])
+                else:
+                    hasHighRes = False
+                    socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
+                                            pickle.dumps((frameCnt, ret['image'][1].shape, ret['ts'], hasHighRes)), QRes.tobytes(),
+                                                b''])
+                        
                 socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts, 
                                             pickle.dumps( (frameCnt, ret['ts']) )] )
                 #print('got image',ret['image'][0],ret['image'][1].shape,time.time()-tic)

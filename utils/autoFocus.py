@@ -59,6 +59,7 @@ if __name__=='__main__':
     focusValue = -1
     
     cnt = 1
+    lastFm = -1
     while keep_running:
         time.sleep(0.01)
         socks=zmq.select(subs_socks,[],[],0.005)[0]
@@ -72,9 +73,9 @@ if __name__=='__main__':
                 imgCnt += 1
                 cnt += 1
                 
-                if cnt%4 == 0:
+                if cnt%6 == 0:
                     if focusValue == curFocus:
-                        frame_cnt,shape,ts=pickle.loads(ret[1])
+                        frame_cnt,shape,ts, hasHighRes =pickle.loads(ret[1])
                         
                         imgl=np.frombuffer(ret[2],'uint8').reshape((shape[0]//2,shape[1]//2, 3)).copy()
                         if doResize:
@@ -85,13 +86,18 @@ if __name__=='__main__':
                         gray = cv2.cvtColor(imgl, cv2.COLOR_BGR2GRAY)
                         gray = gray[margin:-margin, margin:-margin]
                         fm = cv2.Laplacian(gray, cv2.CV_64F).var()
-            
+                        
                         if fm > maxFocusSate['maxFm']:
                             maxFocusSate['maxFm'] = fm
                             maxFocusSate['maxFocusValue'] = curFocus
                             print('--- best vals so far --->', maxFocusSate )
                         
-                        
+                        if fm - lastFm < 0:
+                            #curFocus = maxFocusVal ## force jump to next focus level
+                            print('start decent...', fm, lastFm)
+                        #else:
+                        #    print('good direction...', fm, lastFm)
+                        lastFm = fm
                         curFocus = curFocus+jump
                         if curFocus > maxFocusVal:
                             print('next iteration --->', maxFocusSate, jump )
@@ -99,6 +105,7 @@ if __name__=='__main__':
                             if curIter < len(jumps):
                                 curFocus = max(maxFocusSate['maxFocusValue']-jump//2, 850)
                                 maxFocusVal = min(maxFocusSate['maxFocusValue']+jump//2, 2250)
+                                maxFocusSate['maxFm'] = -1
                                 jump = jumps[curIter]
                             else:
                                 keep_running = False

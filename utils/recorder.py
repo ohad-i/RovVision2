@@ -109,11 +109,13 @@ def recorder():
                 if doRec:
                     if topic == zmq_topics.topic_stereo_camera:
                         imgCnt += 1
-                        if imgCnt%imgDilution == 0:
+                        imMetaData = ret[:-2]
+                        hasHighQuality = imMetaData[-1]
+                        if hasHighQuality:
                             with open(videoFile, 'ab') as fid:
                                 # write image raw data
                                 fid.write(ret[-1])
-                                hasHighQuality = True
+                                
                         '''
                         imShape = pickle.loads(ret[1])[1]
                         imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
@@ -121,20 +123,13 @@ def recorder():
                         low = cv2.resize(imRaw, (imShape[1]//2, imShape[0]//2))
                         '''
                         low = ret[-2]
-                        #print('--->', low.shape, imRaw.shape)
-                        if debugVideo:
-                            #cv2.imshow('high', imRaw)
-                            #cv2.imshow('low', low)
-                            cv2.waitKey(1)
                         with open(videoQFile, 'ab') as fid:
                             # write image raw data
                             fid.write(low) #.tobytes())
                         with open(telemFile, 'ab') as fid:
                             # write image metadata
-                            imMetaData = ret[:-2]
                             imMetaData.append(hasHighQuality)
                             pickle.dump([ts, imMetaData], fid)
-                            hasHighQuality = False
                     else:
                         with open(telemFile, 'ab') as fid:
                             pickle.dump([ts, ret], fid)

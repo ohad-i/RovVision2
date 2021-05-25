@@ -58,7 +58,7 @@ async def recv_and_process():
             if ret[0]==zmq_topics.topic_stereo_camera:
                 inImgCnt += 1
                 
-                frame_cnt,shape,ts=pickle.loads(ret[1])
+                frame_cnt,shape,ts, hasHighRes=pickle.loads(ret[1])
                 imgl = np.frombuffer(ret[-2],'uint8').reshape( (shape[0]//2, shape[1]//2, 3) ).copy()
                 
                 if 0: #doResize:

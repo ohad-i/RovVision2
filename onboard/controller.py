@@ -153,11 +153,11 @@ async def recv_and_process():
 
         tic=time.time()
         if tic-timer10hz>0:
-            timer10hz=tic+1/10.0
+            timer10hz=tic+1/10.0*0.95
             system_state['ts']=tic
             pub_sock.send_multipart([zmq_topics.topic_system_state,pickle.dumps(system_state)]) 
         if tic-timer20hz>0:
-            timer20hz=tic+1/20.0
+            timer20hz=tic+1/20.0*0.95
             if not system_state['arm']:
                 thruster_cmd=np.zeros(8)
             else:
