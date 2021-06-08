@@ -34,7 +34,7 @@ async def recv_and_process():
             topic, data = ret[0],pickle.loads(ret[1])
 
             if topic==zmq_topics.topic_stereo_camera:
-                frameCnt, shape,ts=pickle.loads(ret[1])
+                frameCnt, shape,ts, curExp, hasHighRes=pickle.loads(ret[1])
                 frame = np.frombuffer(ret[-2],'uint8').reshape( (shape[0]//2, shape[1]//2, 3) ).copy()
 
                 if 'IM_TRACKER_MODE' in system_state['mode'] and trackerInitiated:

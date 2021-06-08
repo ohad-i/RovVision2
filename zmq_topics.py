@@ -15,11 +15,18 @@ topic_tracker_cmd=b'topic_tracker_start_stop_cmd'
 topic_autoFocus_port = 7790
 topic_autoFocus = b'autoFocus'
 
+#cameta control topics
+topic_cam_toggle_auto_exp  = b'auto_exposureCam'
+topic_cam_toggle_auto_gain = b'auto_gainCam'
+topic_cam_inc_exp          = b'inc_exposureCam'
+topic_cam_dec_exp          = b'dec_exposureCam'
+topic_cam_ctrl_port = 7791
 
 #topic_camera_left=b'topic_camera_left'
 #topic_camera_right=b'topic_camera_right'
 topic_stereo_camera    = b'topic_stereo_camera'
 topic_stereo_camera_ts = b'topic_stereo_camera_ts'
+
 topic_camera_port=7789
 
 topic_button = b'joy_button'
@@ -33,6 +40,10 @@ topic_gui_focus_controller = b'manual_focus'
 topic_gui_depthAtt         = b'att_depth'
 topic_gui_autoFocus        = b'auto_focus'
 topic_gui_start_stop_track = b'tracker_cmd'
+topic_gui_toggle_auto_exp  = b'auto_exposureCmd'
+topic_gui_inc_exp          = b'inc_exposureCmd'
+topic_gui_dec_exp          = b'dec_exposureCmd'
+topic_gui_toggle_auto_gain = b'auto_gainCmd'
 topic_gui_port = 8900
 
 topic_motors_output = b'motors_output'

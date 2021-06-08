@@ -747,8 +747,24 @@ class rovViewerWindow(Frame):
 
         self.myStyle[name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
 
-
-
+    
+    def autoExposure(self):
+        print('auto exp. command')
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_toggle_auto_exp, pickle.dumps(b'', protocol=3)])
+        
+    def incExp(self):
+        print('increase exposure command')
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_inc_exp, pickle.dumps(b'', protocol=3)])
+        
+    def decExp(self):
+        print('decrease exposure command')
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_dec_exp, pickle.dumps(b'', protocol=3)])
+        
+        
+    def autoGain(self):
+        print('auto gain command')
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_toggle_auto_gain, pickle.dumps(b'', protocol=3) ])
+        
 
     def turn_right(self):
         pass
@@ -1349,6 +1365,21 @@ class rovViewerWindow(Frame):
             
             self.create_checkbox_button("inertial", "inertial movment", 8, 2, self.checkInertial, anchor='w')
             #self.myStyle["inertial"].place(x=965, y=680)
+        ###############################
+        
+        showCamControl = True
+        if showCamControl:
+            ### show manual controls
+            control_start_col = 10
+            manualControlOffsetRow = 1
+            
+            self.create_control_button("autoGain", "auto gain", control_start_col , manualControlOffsetRow, self.autoGain)
+            self.create_control_button("autoExp", "auto exp.", control_start_col, manualControlOffsetRow+1, self.autoExposure)
+            
+            self.create_control_button("incExp", "inc. Exp.", control_start_col , manualControlOffsetRow+2, self.incExp)
+            self.create_control_button("decExp", "dec. Exp.", control_start_col , manualControlOffsetRow+3, self.decExp)
+            #self.create_control_button("deeper", "Deeper ⟱", control_start_col , manualControlOffsetRow+2, self.go_forwards)
+            
         ###############################
 
         self.figure1 = plt.Figure(figsize=(8,6), dpi=100)

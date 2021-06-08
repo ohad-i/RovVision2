@@ -14,6 +14,8 @@ import zmq_topics
 from joy_mix import Joy_map
 
 pub_sock = utils.publisher(zmq_topics.topic_controller_port)
+camPubSock = utils.publisher(zmq_topics.topic_cam_ctrl_port)
+
 subs_socks=[]
 subs_socks.append(utils.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
@@ -21,7 +23,11 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller,
                                    zmq_topics.topic_gui_diveModes, 
                                    zmq_topics.topic_gui_focus_controller, 
                                    zmq_topics.topic_gui_autoFocus,
-                                   zmq_topics.topic_gui_start_stop_track],  zmq_topics.topic_gui_port))
+                                   zmq_topics.topic_gui_start_stop_track,
+                                   zmq_topics.topic_gui_toggle_auto_exp,
+                                   zmq_topics.topic_gui_toggle_auto_gain,
+                                   zmq_topics.topic_gui_inc_exp,
+                                   zmq_topics.topic_gui_dec_exp],  zmq_topics.topic_gui_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_autoFocus], zmq_topics.topic_autoFocus_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
                                    
@@ -44,10 +50,32 @@ async def recv_and_process():
         with open(preFocusFileName, 'r') as fid:
             initPwmFocus = int(fid.read(4))
             print('reset focus to:', initPwmFocus)
+            
+    gainCtl = -1
+    expCtl = -1
+    camStateFile = '../hw/camSate.pkl'
+    if os.path.exists(camStateFile):
+        try:
+            with open(camStateFile, 'rb') as fid:
+                camState = pickle.load(fid)
+                if 'aGain' in camState.keys():
+                    gainCtl = camState['aGain']
+                if 'aExp' in camState.keys():
+                    expCtl = camState['aExp']
+        except:
+            print('no cam state...')
 
     
     diskUsage = int(os.popen('df -h / | tail -n 1').readline().strip().split()[-2][:-1])
-    system_state={'ts':time.time(), 'arm':False,'mode':[], 'lights':0, 'focus':initPwmFocus, 'record':False, 'diskUsage':diskUsage} #lights 0-5
+    system_state={'ts':time.time(), 
+                  'arm':False,
+                  'mode':[], 
+                  'lights':0, 
+                  'focus':initPwmFocus, 
+                  'record':False, 
+                  'diskUsage':diskUsage,
+                  'autoGain':gainCtl,
+                  'autoExp':expCtl} #lights 0-5
     
     thrusters_dict={}
 
@@ -147,6 +175,34 @@ async def recv_and_process():
                         if 'IM_TRACKER_MODE' in system_state['mode']:
                             print('Tracker ended...')
                             togle_mode('IM_TRACKER_MODE')
+                elif topic == zmq_topics.topic_gui_toggle_auto_exp:
+                    print('got auto exposure command')
+                    if expCtl == 0:
+                        expCtl = 1
+                    else:
+                        expCtl = 0
+                    system_state['autoExp'] = expCtl 
+                    camPubSock.send_multipart([zmq_topics.topic_cam_toggle_auto_exp, pickle.dumps(expCtl)])
+                  
+                
+                elif topic == zmq_topics.topic_gui_toggle_auto_gain:
+                    print('got auto gain command')
+                    if gainCtl == 0:
+                        gainCtl = 1
+                    else:
+                        gainCtl = 0
+                    system_state['autoGain'] = gainCtl
+                    camPubSock.send_multipart([zmq_topics.topic_cam_toggle_auto_gain, pickle.dumps(gainCtl)])
+                    
+                    
+                elif topic == zmq_topics.topic_gui_inc_exp:
+                    print('got camera inc exp.')
+                    camPubSock.send_multipart([zmq_topics.topic_cam_inc_exp, pickle.dumps([0])])
+                    
+                                    
+                elif topic == zmq_topics.topic_gui_dec_exp:
+                    print('got camera dec exp.')
+                    camPubSock.send_multipart([zmq_topics.topic_cam_dec_exp, pickle.dumps([0])])
                         
                     
 
