@@ -1,19 +1,16 @@
 #!/bin/bash
 source run_common.sh
 
-
 #tmux select-pane -t 1
 #tmux send-keys C-c ENTER
 #sleep 0.5
 #tmux send-keys C-c ENTER
 #tmux send-keys ENTER
 ## Kill camera
-pkill -f ids
-sleep 3
-
+#pkill -f ids
+#sleep 3
 
 tmux kill-ser
-
 
 if [ "$1" = "kill" ]; then
     echo "kill run_onboard"
@@ -65,7 +62,8 @@ tmux new-window
 new_6_win
 
 run 0 hw hw_gate.py
-run 1 hw idsGst_proxy.py
+#run 1 hw idsGst_proxy.py
+run 1 hw camIds.py
 run 2 hw vnav.py
 #run 3 hw sonar.py
 run 4 utils recorder.py
