@@ -10,3 +10,4 @@ scripts/pingviewer-x86_64.AppImage
 /records/*
 /people/
 /mono_crash*
+*.mp4
