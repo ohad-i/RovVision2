@@ -165,18 +165,22 @@ def mainHwGate():
              ser.write(msgBuf)
              ser.flush() 
     
+    minMotFps = 999999
+    maxMotFps = -1
+    
     while True:
-        socks = zmq.select(subs_socks, [], [], 0.005)[0]
+        time.sleep(0.0001)
+        socks = zmq.select(subs_socks, [], [], 0.001)[0]
         for sock in socks:
             ret=sock.recv_multipart()
             topic,data=ret[0],pickle.loads(ret[1])
-            if topic==zmq_topics.topic_lights:
+            if topic == zmq_topics.topic_lights:
                 pwm = int((data) - 2)*200
                 print('got lights command',data, pwm)
                 msgBuf = struct.pack(serialLedsMsgPack, marker, OP_LEDS, max(-400, min(400, pwm)) )
                 ser.write(msgBuf)
                 ser.flush()
-            if topic==zmq_topics.topic_focus:
+            if topic == zmq_topics.topic_focus:
                 pwm = int(data)
                 print('got focus command', pwm)
                 msgBuf = struct.pack(serialCamServoMsgPack, marker, OP_CAMSERVO, pwm )
@@ -186,7 +190,7 @@ def mainHwGate():
                 ser.flush()
      
     
-            elif ret[0]==zmq_topics.topic_thrusters_comand:
+            if topic == zmq_topics.topic_thrusters_comand:
                 _, current_command = pickle.loads(ret[1])
                 c = current_command
                 if rov_type == 4:
@@ -198,8 +202,12 @@ def mainHwGate():
                     m[3]=c[7] #!!!c[5]!!!#-c[4]
                     m[4]=c[1]  #c[2]
                     m[5]=-c[0] #-c[3]
+                    m[6]=-c[3]  #c[1]
+                    m[7]=c[2] #-c[0]
+                    '''
                     m[6]=c[2]  #c[1]
                     m[7]=-c[3] #-c[0]
+                    '''
                     '''
                     m[0]=c[5]
                     m[1]=c[4]
@@ -220,16 +228,17 @@ def mainHwGate():
                 ser.write(msgBuf)
                 ser.flush()
     
-        ret = select([ser],[],[],0.005)[0]
+        ret = select([ser],[],[],0.001)[0]
         if len(ret) > 0:
             chck = ser.read(1)
             if ord(chck) == 0xac:
                chck = ser.read(1)
                if ord(chck) == 0xad:
-                   espData = ser.read(6)
+                   espData = ser.read(8)
                    baro_m = espData[:2] #ser.read(2)
                    temp_c = espData[2:4] #eser.read(2)
-                   voltage = espData[4:] #ser.read(2)
+                   voltage = espData[4:6] #ser.read(2)
+                   motorFps = espData[6:] #ser.read(2)
                    #print('--1->', baro_m)
                    #print('--2->', temp_c)
 
@@ -237,6 +246,12 @@ def mainHwGate():
                    bar_D = struct.unpack('h',baro_m)[0]/200
                    temp_D = struct.unpack('h',temp_c)[0]/200
                    volt_D = struct.unpack('h',voltage)[0]/200
+                   motFps = struct.unpack('h',motorFps)[0]/200
+                   if motFps > maxMotFps:
+                       maxMotFps = motFps
+                   elif motFps < minMotFps:
+                       minMotFps = motFps
+                         
                    #current_D = struct.unpack('h',current)[0]/200
                    #print('baro --3->', bar_D)
                    #print('temp --4->', temp_D)
@@ -251,6 +266,9 @@ def mainHwGate():
                        print('baro --3->', bar_D)
                        print('temp --4->', temp_D)
                        print('voltage --5->', volt_D)
+                       print('motor fps --6-> min %0.2f max %0.2f '%(minMotFps, maxMotFps) )
+                       minMotFps = 9999999
+                       maxMotFps = -1
                        #print('current --6->', current_D)
                        espMsgCnt = 0.0
                        espDataTic = time.time()

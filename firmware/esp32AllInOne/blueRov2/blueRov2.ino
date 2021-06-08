@@ -11,6 +11,7 @@
 
 #define DEBUG 1
 #define DEBUG_SER_PORT Serial
+
 //#define DBG_MSG
 #ifdef DBG_MSG
 #define WRITE_DEBUG_MSGLN(msg) { if(DEBUG) DEBUG_SER_PORT.println(msg); }
@@ -142,8 +143,8 @@ union upMsgOld{
   } msgOld;
 
 union upMsg{
-    byte b[6];
-    uint16_t value[3];    
+    byte b[8];
+    uint16_t value[4];    
   } msg;
 
 
@@ -156,10 +157,14 @@ union motVals_
 float voltage = 0.0;
 uint16_t voltage_u16 = 0;
 
+float motFPS = 0.0;
+int motCnt = 0;
+uint32_t motFpsTic = millis();
+
 void loop() {
   
 
-  if( (millis() - tic) >= 190)
+  if( (millis() - tic) >= 195)
   {
      tic = millis(); //XTHAL_GET_CCOUNT();;
 
@@ -168,10 +173,13 @@ void loop() {
 
      DepthSensor.read();
      float depth_m = DepthSensor.depth();
+     WRITE_DEBUG_MSG("cuurent depth: ");     
+     WRITE_DEBUG_MSGLN(depth_m);
      float temp_c = DepthSensor.temperature();
      
      uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
      uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
+     uint16_t motorFPS_u16 = (uint16_t)min(max(round(motFPS*200), 0.0), 65536.0);
      if(depth_m <= 0)
      {
           depth_u16 = (uint16_t)(0.01*200);
@@ -179,6 +187,7 @@ void loop() {
      msg.value[0] = depth_u16;     
      msg.value[1] = tempC_u16;
      msg.value[2] = voltage_u16;
+     msg.value[3] = motorFPS_u16;
      
      //WRITE_DEBUG_MSGLN(tic);
      //WRITE_DEBUG_MSG(" ");
@@ -203,7 +212,7 @@ void loop() {
      synMsg.b[0] = 0xac;
      synMsg.b[1] = 0xad;
      MAIN_SER_PORT.write(synMsg.b, 2);
-     MAIN_SER_PORT.write(msg.b, 6);
+     MAIN_SER_PORT.write(msg.b, 8);
      
      /*
      WRITE_DEBUG_MSG(temp_c);
@@ -230,16 +239,16 @@ void loop() {
   if(MAIN_SER_PORT.available()>1)
   {
     char bla = MAIN_SER_PORT.read();
-    Serial.println(bla,HEX);
+    //Serial.println(bla,HEX);
   
     if((bla ) == SERIAL_MSG_START_B)
     {
-      WRITE_DEBUG_MSGLN("got msg");
+      //WRITE_DEBUG_MSGLN("got msg");
 
       opCode = MAIN_SER_PORT.read();
       if(opCode == OP_MOTORS)
       {
-        WRITE_DEBUG_MSG("got motors cmd - ");
+        //WRITE_DEBUG_MSG("got motors cmd - ");
         while(!(MAIN_SER_PORT.available() >= 16))
         {
           
@@ -249,12 +258,13 @@ void loop() {
         {
           short val = motVals.vals[iMot];
           int pwm = map(val, -400, 400, 1100, 1900);
-          WRITE_DEBUG_MSG(pwm);
-          WRITE_DEBUG_MSG(" , ");
+          //WRITE_DEBUG_MSG(pwm);
+          //WRITE_DEBUG_MSG(" , ");
           motors[iMot].write(pwm);
         }
-        WRITE_DEBUG_MSGLN("-------");
-    
+        //WRITE_DEBUG_MSGLN("-------");
+        motCnt += 1;
+        
       }
       if(opCode == OP_LEDS)
       {
@@ -275,13 +285,22 @@ void loop() {
             {
               
             }
-          WRITE_DEBUG_MSG("got cam servo cmd - ");
+          //WRITE_DEBUG_MSG("got cam servo cmd - ");
           focusStep = readShortFromSerial();
-          WRITE_DEBUG_MSGLN(focusStep);
-          WRITE_DEBUG_MSGLN("-------");
+          //WRITE_DEBUG_MSGLN(focusStep);
+          //WRITE_DEBUG_MSGLN("-------");
           
           camServo.write(focusStep);
       }
     }
+  }
+  
+  if ( (millis() - motFpsTic) >= 5000)
+  {
+    motFPS = motCnt/((millis() - motFpsTic)/1000);
+    motCnt = 0;
+    motFpsTic = millis(); 
+    WRITE_DEBUG_MSG(" motor fps: ");
+    WRITE_DEBUG_MSGLN(motFPS);
   }
 }
