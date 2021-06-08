@@ -219,7 +219,7 @@ class rovDataHandler(Thread):
                     elif self.rawVideo and zmq_topics.topic_stereo_camera == topic:
                         
                         self.curFrameId, imShape, ts = pickle.loads(ret[1])
-                        print('<><>', self.curFrameId, imShape, ts)
+                        #print('<><>', self.curFrameId, imShape, ts)
                         imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
                         images = [imRaw]
     
