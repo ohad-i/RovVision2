@@ -194,10 +194,11 @@ def main():
                 cv2.imshow('l',imgls)
                 cv2.imshow('r',imgrs)
                 cv2.waitKey(1)
+            simExp = -1
             if mono:
-                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([ frame_cnt, (imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time() , False]),imgl.tobytes(), b''])
+                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([ frame_cnt, (imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simExp , False]),imgl.tobytes(), b''])
             else:
-                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,(imgl.shape[0]*2,imgl.shape[1]*2, 3 )]),imgl.tobytes(), b'' , imgr.tobytes(), b'' ] )
+                zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,(imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simExp , False]),imgl.tobytes(), b'' , imgr.tobytes(), b'' ] )
             time.sleep(0.001) 
             zmq_pub.send_multipart([zmq_topics.topic_stereo_camera_ts,pickle.dumps((frame_cnt,time.time()))]) #for sync
                 
