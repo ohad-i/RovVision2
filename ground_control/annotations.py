@@ -152,9 +152,9 @@ def draw_mono(img,message_dict,fmt_cnt_l):
                 ,(sy(140),sx(15)), font, 0.5,(255,0,255),1,cv2.LINE_AA)
         if ss['record']:
             cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(255,0,0),1,cv2.LINE_AA)
-        if ss['autoGain'] == 1:
+        if 'autoGain' in ss and ss['autoGain'] == 1:
             cv2.putText(img,'AGC',(sy(10),sx(35)), font, 0.5,(255,0,0),1,cv2.LINE_AA)
-        if ss['autoExp'] == 1:
+        if 'autoExp' in ss and ss['autoExp'] == 1:
             cv2.putText(img,'Auto Exp On',(sy(10),sx(55)), font, 0.5,(255,0,0),1,cv2.LINE_AA)
     if zmq_topics.topic_tracker in message_dict:
         rng  = message_dict[zmq_topics.topic_tracker].get('range_f',-1.0)
@@ -163,7 +163,7 @@ def draw_mono(img,message_dict,fmt_cnt_l):
     
     if zmq_topics.topic_tracker_result in message_dict:
         trckRes  = message_dict[zmq_topics.topic_tracker_result][1]
-        cv2.circle(img, (trckRes[0], trckRes[1]), 10, (255,0,255), 2)
+        cv2.circle(img, (int(trckRes[0]), int(trckRes[1]) ), 10, (255,0,255), 2)
 
     if zmq_topics.topic_volt in message_dict:
         v=message_dict[zmq_topics.topic_volt]['V']
