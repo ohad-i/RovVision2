@@ -862,7 +862,7 @@ class rovViewerWindow(Frame):
                         
                     topic = zmq_topics.topic_depth_hold_pid
                     rtData['depth'] = data['depth']
-                if zmq_topics.topic_volt in telemtry.keys():
+                if zmq_topics.topic_volt in telemtry:
                     data = telemtry[zmq_topics.topic_volt]
                     fg = 'black'
                     if data['V'] < 3.2*4:
@@ -1006,14 +1006,14 @@ class rovViewerWindow(Frame):
             pitchData = None
             yawData = None
             depthData = None
-            if zmq_topics.topic_att_hold_roll_pid in telemtry.keys():
+            if zmq_topics.topic_att_hold_roll_pid in telemtry:
                 rollData = telemtry[zmq_topics.topic_att_hold_roll_pid]
                 topic = zmq_topics.topic_att_hold_roll_pid
                 if topic not in self.plotMsgs:
                         self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(rollData)
                 
-            if zmq_topics.topic_att_hold_pitch_pid in telemtry.keys():
+            if zmq_topics.topic_att_hold_pitch_pid in telemtry:
                 pitchData = telemtry[zmq_topics.topic_att_hold_pitch_pid]
                 
                 topic = zmq_topics.topic_att_hold_pitch_pid
@@ -1021,7 +1021,7 @@ class rovViewerWindow(Frame):
                         self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(pitchData)
                 
-            if zmq_topics.topic_att_hold_yaw_pid in telemtry.keys():
+            if zmq_topics.topic_att_hold_yaw_pid in telemtry:
                 yawData = telemtry[zmq_topics.topic_att_hold_yaw_pid]
                 
                 topic = zmq_topics.topic_att_hold_yaw_pid
@@ -1029,7 +1029,7 @@ class rovViewerWindow(Frame):
                         self.plotMsgs[topic] = CycArr(self.plotHistory)
                 self.plotMsgs[topic].add(yawData)
                     
-            if zmq_topics.topic_depth_hold_pid in telemtry.keys():
+            if zmq_topics.topic_depth_hold_pid in telemtry:
                 depthData = telemtry[zmq_topics.topic_depth_hold_pid]
                 
                 topic = zmq_topics.topic_depth_hold_pid
@@ -1051,7 +1051,7 @@ class rovViewerWindow(Frame):
             if (self.checkYawControl.get() == 0) and (yawData is not None):
                 self.plotData(zmq_topics.topic_att_hold_yaw_pid, 'Yaw control')
                 
-            if (self.checkThrusters.get() == 0) and ('thrusters' in self.plotMsgs.keys()):
+            if (self.checkThrusters.get() == 0) and ('thrusters' in self.plotMsgs):
                 self.plotData('thrusters', 'Thrusters')
                 
             if ( (self.checkYawControl.get() == 1) and 
@@ -1059,7 +1059,7 @@ class rovViewerWindow(Frame):
                     (self.checkPitchControl.get() == 1) and 
                     (self.checkDepthControl.get() == 1) and 
                     (self.checkThrusters.get() == 1) and 
-                    'rtData' in self.plotMsgs.keys() ):
+                    'rtData' in self.plotMsgs ):
                     self.plotData('rtData', 'real time')
                     self.restPIDVals()
                 
