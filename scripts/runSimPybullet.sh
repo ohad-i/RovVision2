@@ -8,9 +8,6 @@ source run_common.sh
 #tmux send-keys C-c ENTER
 #tmux send-keys ENTER
 ## Kill camera
-pkill -f ids
-sleep 3
-
 
 tmux kill-sess
 
