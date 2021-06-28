@@ -19,7 +19,9 @@ class tracker:
         self.trackerInit = False
         self.trackPnt = None
         
-        self.Preds = 16
+        self.Preds = 9
+        self.grids = { 1:range(0,1), 4:range(-1,1), 9:range(-1,2), 16:range(-2,2), 25:range(-2,3), 49:range(-3,4) }
+        self.searchRadius = 10
         
         self.lk_params = {} #dict(winSize = (15,15),
                             #  maxLevel = 4,
@@ -45,7 +47,14 @@ class tracker:
     def init(self, name = '<tracker>', winSize = 40, maxLevel = 5, criteriaCount = 50, criteriaEPS =  0.01):
         
         self.name = name
-        self.lk_params = dict(winSize = (winSize, winSize),
+        if self.Preds == 1:
+            self.lk_params = dict(winSize = (winSize, winSize),
+                          maxLevel = maxLevel,
+                          criteria = (cv2.TERM_CRITERIA_COUNT | 
+                                      cv2.TERM_CRITERIA_EPS, 
+                                      criteriaCount, criteriaEPS) )
+        else:
+            self.lk_params = dict(winSize = (winSize, winSize),
                           maxLevel = maxLevel,
                           criteria = (cv2.TERM_CRITERIA_COUNT | 
                                       cv2.TERM_CRITERIA_EPS | 
@@ -60,12 +69,11 @@ class tracker:
             self.trackPnt = trackPnt
             self.trackPntAr = [trackPnt]* self.Preds # list [x, y]
             self.offsetVec = []
-            self.searchRadius = 10
-            for i in range(-2,2):
-                for j in range(-2,2):
+            for i in self.grids[self.Preds]: #range(-2,3):
+                for j in self.grids[self.Preds]: #range(-2,3):
                     self.offsetVec.append(np.array([i,j])*self.searchRadius)
             
-            
+            #print('-->', self.offsetVec) 
             self.prevFrame = None
             self.trackerInit = True
             
@@ -106,9 +114,13 @@ class tracker:
                 if self.prevFrame is not None:
                     
                     with self.signal:
-                        guess = self.offsetVec + np.array(self.trackPntAr)
                         p0 = np.float32(self.trackPntAr).reshape(-1,1,2)
-                        p1 = np.float32(guess).reshape(-1,1,2)
+                        if self.Preds == 1:
+                            p1 = None 
+                        else:
+                            guess = self.offsetVec + np.array(self.trackPntAr)
+                            #print('-->', guess)
+                            p1 = np.float32(guess).reshape(-1,1,2)
                         
                         #print '1', self.prevFrame.shape
                         #print '2', image.shape
@@ -159,7 +171,7 @@ if __name__=='__main__':
     trck.init()
     trackPnt = None
     trackerInit = False
-
+    im = None
 
     def startTrack(event,x,y,flags,param):
         global trackPnt, trackerInit
@@ -167,6 +179,7 @@ if __name__=='__main__':
             print('start tracker: ', x, y)
             trackPnt = [x, y]
             trck.initTracker(trackPnt)
+            trckRes = trck.track(im)
             trackerInit = True
         if event == cv2.EVENT_MBUTTONDOWN:
             print('stop tracker')
@@ -176,37 +189,69 @@ if __name__=='__main__':
     cv2.namedWindow(winName, 0)
     cv2.setMouseCallback(winName, startTrack)
     
-    fileName = r'outLowRes.avi'
+    fileName = r'jellyFish_realTracker.avi'
+    #fileName = r'yy.avi'
+    #fileName = r'outLowRes.avi'
+    #fileName = r'oriSamples/vid_l.mp4'
     cap = cv2.VideoCapture(fileName)
     ret, im = cap.read()
     wait = 0 #200 # ms, 0->infinite
     
+    writer = None
 
     cnt = 0.0
+    frameId = 0
     tic = time.time()
-    while ret:
-        cnt += 1
-        if time.time() - tic >= 5:
-            fps = cnt/(time.time()-tic)
-            print('cur fps: %0.2f, wait=%d ms'%(fps, wait))
-            cnt = 0.0
-            tic = time.time()
+    mmAvi = None
+    try:
+        while ret:
+            frameId += 1 
+            cnt += 1
+            if time.time() - tic >= 5:
+                fps = cnt/(time.time()-tic)
+                print('cur fps: %0.2f, wait=%d ms'%(fps, wait))
+                cnt = 0.0
+                tic = time.time()
 
-        if trackerInit:
-            trckRes = trck.track(im)
-            if trckRes is not None:
-                #print('track res: ', trckRes)
-                cv2.circle(im, (trckRes[0], trckRes[1]), 10, (0,0,255), -1)
+            if trackerInit:
+                trckRes = trck.track(im)
+                if trckRes is not None:
+                    #print('track res: ', trckRes)
+                    cv2.circle(im, (trckRes[0], trckRes[1]), 10, (0,0,255), 1)
+            
+            if writer is None:
+                fourcc = cv2.VideoWriter_fourcc(*'RGBA')
+                writer = cv2.VideoWriter('trackRes.avi', fourcc, 10, (im.shape[1], im.shape[0]), True)
+            else:
+                writer.write(im)
+        
+            cv2.imshow(winName, im)
+            key = cv2.waitKey(wait)
+            if key&0xff == 27 or key&0xff == ord('q'):
+                break
+            if key&0xff == ord('+'):
+                wait = max(10, wait-10)
+            if key&0xff == ord('-'):
+                wait = wait+10
+            if key&0xff == ord(' '):
+                wait = 0
+                cv2.waitKey(wait)
+            if key&0xff == ord('a'):
+                print('add frame to edited avi... %d'%frameId)
+                if mmAvi is None:
+                    fourcc = cv2.VideoWriter_fourcc(*'RGBA')
+                    mmAvi = cv2.VideoWriter('mm.avi', fourcc, 25, (im.shape[1], im.shape[0]), True)
+                mmAvi.write(im)
+                wait = 0
+                cv2.waitKey(wait)
 
-        cv2.imshow(winName, im)
-        key = cv2.waitKey(wait)
-        if key&0xff == 27 or key&0xff == ord('q'):
-            break
-        if key&0xff == ord('+'):
-            wait = max(10, wait-10)
-        if key&0xff == ord('-'):
-            wait = wait+10
-        if key&0xff == ord(' '):
-            cv2.waitKey(0)
-
-        ret, im = cap.read()
+            ret, im = cap.read()
+    except:
+        import traceback
+        traceback.print_exc()
+    finally:
+        if writer is not None:
+            writer.release()
+        if mmAvi is not None:
+            mmAvi.release()
+        print('done...')
