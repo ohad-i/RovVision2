@@ -11,6 +11,7 @@ import sys
 import time
 import pickle
 import cv2
+import os
 
 sys.path.append('..')
 sys.path.append('../utils')
@@ -48,7 +49,8 @@ if __name__=='__main__':
     autoFocusPublisher.send_multipart( [zmq_topics.topic_autoFocus, data])
     
     #jumps = [50, 10, 5]
-    jumps = [200, 50, 5]
+    #jumps = [200, 50, 5] ## optimize for fast focus
+    jumps = [25, 10, 2] 
 
     curIter = 0
     jump = jumps[curIter]
@@ -60,6 +62,14 @@ if __name__=='__main__':
     
     cnt = 1
     lastFm = -1
+
+    doRec = True
+    recName = time.strftime("%Y%m%d_%H%M%S", time.localtime())
+    curPath = os.path.join(r'/home/nanosub/proj/RovVision2/records/focusRecs/', recName)
+    print('--->', curPath)
+    if not os.path.exists(curPath):
+        os.system('mkdir -p %s'%curPath)
+
     while keep_running:
         time.sleep(0.01)
         socks=zmq.select(subs_socks,[],[],0.005)[0]
@@ -75,14 +85,18 @@ if __name__=='__main__':
                 
                 if cnt%6 == 0:
                     if focusValue == curFocus:
-                        frame_cnt,shape,ts, hasHighRes =pickle.loads(ret[1])
-                        
+                        #import ipdb; ipdb.set_trace()
+                        #frame_cnt,shape,ts, exp. hasHighRes =pickle.loads(ret[1])
+                        metaData = pickle.loads(ret[1])
+                        shape = metaData[1]
                         imgl=np.frombuffer(ret[2],'uint8').reshape((shape[0]//2,shape[1]//2, 3)).copy()
+                        if doRec:
+                            cv2.imwrite('%s/%d.tiff'%(curPath,curFocus), imgl)
+
                         if doResize:
                             imgl = cv2.resize(imgl, (sx,sy))
                         #cv2.imshow('aa', imgl)
                         #cv2.waitKey(10)
-                        
                         gray = cv2.cvtColor(imgl, cv2.COLOR_BGR2GRAY)
                         gray = gray[margin:-margin, margin:-margin]
                         fm = cv2.Laplacian(gray, cv2.CV_64F).var()
