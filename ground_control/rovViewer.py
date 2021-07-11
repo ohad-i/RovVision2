@@ -213,8 +213,13 @@ class rovDataHandler(Thread):
                         
                         if zmq_topics.topic_tracker_result == topic:
                             #print('trck data res:', data)
-                            if data[1][0] == -1:
-                                message_dict.pop(zmq_topics.topic_tracker_result)
+                            try:
+                                if data[1][0] < 0:
+                                    message_dict.pop(zmq_topics.topic_tracker_result)
+                            except:
+                                import traceback
+                                traceback.print_exc()
+                                #import ipdb; ipdb.set_trace()
                                 
                     elif self.rawVideo and zmq_topics.topic_stereo_camera == topic:
                         
@@ -257,6 +262,49 @@ focusFarMsg = [0, 0, 0, 0, 0, 0, 1, 0]
 
 attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
 depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+
+class recRunProp(object):
+    def __init__(self,master):
+        top=self.top = Toplevel(master)
+        self.l = Label(top,text="Run record ")
+        self.l.pack()
+        
+        self.saveTiffVar = IntVar()
+        self.saveTiffVar.set(1)
+        
+        self.saveTiff = Checkbutton(top, variable=self.saveTiffVar, onvalue=0, offvalue=1, text="save tiffs")
+        self.saveTiff.pack()
+        
+        
+        self.saveAviVar = IntVar()
+        self.saveAviVar.set(1)
+        
+        self.saveAvi = Checkbutton(top, variable = self.saveAviVar, onvalue=0, offvalue=1, text="save avi")
+        self.saveAvi.pack()
+        
+        self.freeRunVar = IntVar()
+        self.freeRunVar.set(1)
+        
+        self.freeRun = Checkbutton(top, variable = self.freeRunVar, onvalue=0, offvalue=1, text="free run")
+        self.freeRun.pack()
+        
+        self.l = Label(top,text="skip frames")
+        self.l.pack()
+        
+        self.skipFrames = Entry(top)
+        self.skipFramesVar = "-1"
+        self.skipFrames.insert(0, self.skipFramesVar)
+        self.skipFrames.pack()
+        
+        
+        self.b=Button(top,text='Run',command=self.cleanup)
+        self.b.pack()
+        
+    def cleanup(self):
+        self.skipFramesVar = self.skipFrames.get()
+        self.top.destroy()
+
 
 # this class is the base of our GUI
 class rovViewerWindow(Frame):
@@ -1403,12 +1451,20 @@ class rovViewerWindow(Frame):
  
     
     def runRecord(self):
-         recFolder = filedialog.askdirectory(initialdir = "../records", title = "Select record folder")
-         if len(recFolder)> 0:
-             print('Run record: %s'%recFolder)
-             self.ROVHandler.rawVideo = True
-             self.ROVHandler.initImgSource()
-             os.system('cd ../scripts && ./runRec.sh %s && sleep 3'%recFolder)
+        self.w=recRunProp(self.master)
+        self.master.wait_window(self.w.top)
+        
+        
+        recFolder = filedialog.askdirectory(initialdir = "../records", title = "Select record folder")
+        if len(recFolder)> 0:
+            print('Run record: %s'%recFolder)
+            self.ROVHandler.rawVideo = True
+            self.ROVHandler.initImgSource()
+            print("%s %s %s %s"%(self.w.skipFramesVar, self.w.saveAviVar.get(), self.w.saveTiffVar.get(), self.w.freeRunVar.get() ) )
+            os.system('cd ../scripts && ./runRec.sh %s %s %s %s %s && sleep 3'%(recFolder, str(int(self.w.skipFramesVar)), 
+                                                                                            self.w.saveAviVar.get(), 
+                                                                                            self.w.saveTiffVar.get(),
+                                                                                            self.w.freeRunVar.get() ))
          
 
         
