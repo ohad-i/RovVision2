@@ -24,6 +24,11 @@ if useJson:
     roll_pid['P'] = roll_pid['P']*roll_pid['K']
     roll_pid['I'] = roll_pid['I']*roll_pid['K']
     roll_pid['D'] = roll_pid['D']*roll_pid['K']
+    
+    pitch_im_pid = data['config_pid'][0]['pitch_im_pid']
+    pitch_im_pid['P'] = pitch_im_pid['P']*pitch_im_pid['K']
+    pitch_im_pid['I'] = pitch_im_pid['I']*pitch_im_pid['K']
+    pitch_im_pid['D'] = pitch_im_pid['D']*pitch_im_pid['K']
 
 else:
     ds=0.45
@@ -91,16 +96,16 @@ else:
 #if set to true always try to mantain 0 roll
 roll_target_0 = True
 
-sc=0.00
+sc=0.05
 pos_pid_x={
-        'P':2.5 * sc ,
-        'I':0.001 * sc ,
-        'D':5 * sc ,
+        'P':0.2 * sc ,
+        'I':0.01 * sc ,
+        'D':0.5 * sc ,
         'limit':0.6,
         'step_limit':0.05,
         'i_limit':0.01,
         'FF':0,
-        'angle_deg_type':True,
+        'angle_deg_type':False,
         'initial_i':0,
         'func_in_err':None}
 sc=0.0

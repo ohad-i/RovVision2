@@ -81,6 +81,7 @@ async def recv_and_process():
                         else:
                             target_att[1]=pitch
                             pitch_cmd=0
+                            
                         #print('R{:06.3f} P{:06.3f} PT{:06.3f} C{:06.3f}'.format(pitchr,pitch,target_att[1],pitch_cmd))
                         roll_cmd = pid_r(roll,0 if roll_target_0 else target_att[2], 0, 0)
                         #print('RR{:06.3f} R{:06.3f} RT{:06.3f} C{:06.3f}'.format(rollr,roll,target_att[2],roll_cmd))

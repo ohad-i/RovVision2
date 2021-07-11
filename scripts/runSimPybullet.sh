@@ -9,24 +9,29 @@ source run_common.sh
 #tmux send-keys ENTER
 ## Kill camera
 
-tmux kill-sess
+#tmux kill-sess
 
+tmux kill-session -t sim
 
 if [ "$1" = "kill" ]; then
-    echo "kill run_onboard"
+    echo "kill runSimPybullet"
     exit 1 
 fi
 
 if [ ! -v SIM ]
 then
-tmux kill-session -t dronelab
-tmux new-session -d -s dronelab
+#tmux kill-session -t dronelab
+#tmux new-session -d -s dronelab
 PROJECT_PATH=../
 else
 PROJECT_PATH=/home/nanosub/proj/RovVision2/
 #PYTHON=/miniconda/bin/python 
-tmux new-window
+#tmux new-window
+
 fi 
+
+tmux new-session -d -s sim
+
 
 #common for sim and hw
 new_6_win
@@ -66,6 +71,6 @@ run 1 utils recorder.py
 run 2 ground_control "rovViewer.py -s"
 run 3 ground_control joy_rov.py
 #runShell 5 . jtop
-#tmux att
+tmux att
 fi
 

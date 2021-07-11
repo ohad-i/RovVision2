@@ -49,8 +49,11 @@ if __name__=='__main__':
     autoFocusPublisher.send_multipart( [zmq_topics.topic_autoFocus, data])
     
     #jumps = [50, 10, 5]
-    #jumps = [200, 50, 5] ## optimize for fast focus
-    jumps = [25, 10, 2] 
+    doRec = False
+    if doRec:
+        jumps = [25] 
+    else:
+        jumps = [200, 50, 5] ## optimize for fast focus
 
     curIter = 0
     jump = jumps[curIter]
@@ -63,7 +66,6 @@ if __name__=='__main__':
     cnt = 1
     lastFm = -1
 
-    doRec = True
     recName = time.strftime("%Y%m%d_%H%M%S", time.localtime())
     curPath = os.path.join(r'/home/nanosub/proj/RovVision2/records/focusRecs/', recName)
     print('--->', curPath)

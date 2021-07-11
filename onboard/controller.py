@@ -106,16 +106,18 @@ async def recv_and_process():
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
                         print('Toggle depth hold...')
-                        if ('IM_TRACKER_MODE' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
-                            print('failed to toggle to ATT_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
-                        else:
-                            togle_mode('DEPTH_HOLD')
+                        #if ('IM_TRACKER_MODE' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
+                        #    print('failed to toggle to ATT_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
+                        #else:
+                        #    togle_mode('DEPTH_HOLD')
+                        togle_mode('DEPTH_HOLD')
                     if jm.att_hold_event():
                         print('Toggle attitude hold...')
-                        if ('IM_TRACKER_MODE' in system_state['mode']) and ('ATT_HOLD' in system_state['mode']):
-                            print('failed to toggle to ATT_HOLD (needs to stay on ATT_HOLD) while IM_TRACKER_MODE')
-                        else:
-                            togle_mode('ATT_HOLD')
+                        #if ('IM_TRACKER_MODE' in system_state['mode']) and ('ATT_HOLD' in system_state['mode']):
+                        #    print('failed to toggle to ATT_HOLD (needs to stay on ATT_HOLD) while IM_TRACKER_MODE')
+                        #else:
+                        #    togle_mode('ATT_HOLD')
+                        togle_mode('ATT_HOLD')
                     if jm.Rx_hold_event():
                         togle_mode('RX_HOLD')
                     if jm.Ry_hold_event():
@@ -160,18 +162,21 @@ async def recv_and_process():
                 
                 elif topic == zmq_topics.topic_gui_start_stop_track:
                     print('start/stop tracker... ', data)
+                    '''
                     if 'ATT_HOLD' not in system_state['mode']:
                         togle_mode('ATT_HOLD')
                     if 'DEPTH_HOLD' not in system_state['mode']:
                         togle_mode('DEPTH_HOLD')
+                    '''
                     togle_mode('IM_TRACKER_MODE')
                     if 'IM_TRACKER_MODE' in system_state['mode']:
                         pub_sock.send_multipart([zmq_topics.topic_tracker_cmd, pickle.dumps(data)])
                     else:
                         pub_sock.send_multipart([zmq_topics.topic_tracker_cmd, pickle.dumps( {'frameId':-1, 'trackPnt':(-1,-1 ) } )])
+
                 elif topic == zmq_topics.topic_tracker_result:
                     #print('--->', data)
-                    if data[1] is None:
+                    if data[1][0] < 0:
                         if 'IM_TRACKER_MODE' in system_state['mode']:
                             print('Tracker ended...')
                             togle_mode('IM_TRACKER_MODE')

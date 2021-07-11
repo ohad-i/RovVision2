@@ -116,7 +116,9 @@ def vidProc(im, imLowRes, imPub = None):
             curImName = '%08d.tiff'%frameId
             #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
             cv2.imwrite( os.path.join(imgsPath, curImName), im )
-    
+            #curImName = '%08d.jpg'%frameId
+            #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
+            
         if showVideo and 0:
             cv2.namedWindow(winName, 0)
             cv2.imshow(winName, showIm) #im[:200,:])
@@ -321,7 +323,7 @@ if __name__=='__main__':
                     
                 if not highSpeed:
                     time.sleep(nextTicToc)
-                    nextTicToc = 0.9*(nextData[0] - curData[0])
+                    nextTicToc = 0.6*(nextData[0] - curData[0])
                     ### workaround - overcome a problem of serialization of telemetry
                     # next step is calculated by the telemtry time stamp - which can 
                     #recorded not in the right order, the player should be run initially by the recorder ts
