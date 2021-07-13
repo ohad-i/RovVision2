@@ -71,20 +71,22 @@ def load_reg23_from_file(ser):
     part = b'$VNWRG,23,'+line.strip().split(b',',2)[2].split(b'*')[0]+b'*XX'
     write(ser,part)
 
-def write(ser,cmd, timeout=0.5):
+def write(ser,cmd, timeout=0.05):
 
     ret = select([],[ser],[], timeout)
     if len(ret[1]) > 0:
         ser.write(cmd+b'\n')
         ser.flush()
     
-    ret = select([ser],[],[], timeout)
-    ln = 'None'
-    if len(ret[0]) > 0:
-        #while ser.inWaiting():
-        #    ln=ser.readline()
-        ln=ser.readline()
-        print('>',ln)
+    for _ in range(3):
+        ret = select([ser],[],[], timeout)
+        ln = 'None'
+        if len(ret[0]) > 0:
+            
+            #while ser.inWaiting():
+            #    ln=ser.readline()
+            ln=ser.readline() 
+            print('>',ln)
     return ln
 
 
