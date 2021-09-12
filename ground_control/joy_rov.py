@@ -31,6 +31,9 @@ def pub(topic,data):
     pub_sock.send_multipart([topic, data])
     pickle.dump([time.time()-start_time,topic,data],joy_log,-1)
 
+
+axesDeadZone = 0.15
+
 while not done:
     # EVENT PROCESSING STEP
     cnt+=1
@@ -67,8 +70,13 @@ while not done:
             axes_vals.append(axis)
         if axes==6: #add hat to axes to maintain compatibility
             axes_vals+=[float(hat[0]),float(hat[1])]
+        
+        #import ipdb; ipdb.set_trace()
+        for i in range(len(axes_vals)):
+            if abs(axes_vals[i]) < axesDeadZone:
+                axes_vals[i] = 0
 
-        if cnt%10==0:
+        if cnt%5==0:
             print('axes_vals=',','.join(['{:4.3f}'.format(i) for i in axes_vals]))
         #mixng axes
         
