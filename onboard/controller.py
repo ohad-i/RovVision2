@@ -40,8 +40,12 @@ focusResolution = 5
 async def recv_and_process():
     keep_running=True
     thruster_cmd=np.zeros(8)
-    timer10hz  = time.time()+1/10.0
-    timer20hz  = time.time()+1/20.0
+    timer10hz = time.time()+1/10.0
+    timer20hz = time.time()+1/20.0
+    
+    thrustersRate = 50.0
+    thrustersTimerHz = time.time()+1/thrustersRate
+    
     timer0_1hz = time.time()+10
     
     initPwmFocus = 1400
@@ -106,11 +110,10 @@ async def recv_and_process():
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
                         print('Toggle depth hold...')
-                        #if ('IM_TRACKER_MODE' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
-                        #    print('failed to toggle to ATT_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
-                        #else:
-                        #    togle_mode('DEPTH_HOLD')
-                        togle_mode('DEPTH_HOLD')
+                        if ('IM_TRACKER_MODE' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
+                            print('failed to toggle to DEPTH_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
+                        else:
+                            togle_mode('DEPTH_HOLD')
                     if jm.att_hold_event():
                         print('Toggle attitude hold...')
                         #if ('IM_TRACKER_MODE' in system_state['mode']) and ('ATT_HOLD' in system_state['mode']):
@@ -165,9 +168,10 @@ async def recv_and_process():
                     '''
                     if 'ATT_HOLD' not in system_state['mode']:
                         togle_mode('ATT_HOLD')
+                    '''
                     if 'DEPTH_HOLD' not in system_state['mode']:
                         togle_mode('DEPTH_HOLD')
-                    '''
+                    
                     togle_mode('IM_TRACKER_MODE')
                     if 'IM_TRACKER_MODE' in system_state['mode']:
                         pub_sock.send_multipart([zmq_topics.topic_tracker_cmd, pickle.dumps(data)])
@@ -214,11 +218,11 @@ async def recv_and_process():
 
         tic=time.time()
         if tic-timer10hz>0:
-            timer10hz=tic+1/10.0*0.95
+            timer10hz=tic+1/10.0
             system_state['ts']=tic
             pub_sock.send_multipart([zmq_topics.topic_system_state,pickle.dumps(system_state)]) 
-        if tic-timer20hz>0:
-            timer20hz=tic+1/20.0*0.95
+        if tic-thrustersTimerHz > 0:
+            thrustersTimerHz=tic+1/thrustersRate
             if not system_state['arm']:
                 thruster_cmd=np.zeros(8)
             else:

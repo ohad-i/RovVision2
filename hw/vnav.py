@@ -118,6 +118,7 @@ def init_serial(dev=None):
 
     #ser = serial.Serial(dev,115200)
     #write(ser,vn_set_baud, 1)
+    #print('done change baud')
     #return None
     
     ser = serial.Serial(dev, 921600)
@@ -199,10 +200,12 @@ if __name__=='__main__':
     
     if args.setBaud:
         print('changing baud from 115 to 926... may stuck, ctrl+c after a while and do permanently register flush procedure...')
-        
+        dev='/dev/ttyUSB0' 
         vn_set_baud = b'$VNWRG,05,921600*XX' 
         ser = serial.Serial(dev, 115200)
         write(ser, vn_set_baud, 1)
+        print('done...')
+        time.sleep(10)
 
     ser = init_serial(args.dev)
     if args.calib_mag:

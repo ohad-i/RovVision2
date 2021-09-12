@@ -32,7 +32,7 @@ async def recv_and_process():
                 jm.update_axis(data)
                 roll_copensate,pitch_copensate=0,0
                 joy = jm.joy_mix() 
-                if joy['inertial']:
+                if not joy['inertial']: ## default is inertial
                     roll_copensate,pitch_copensate=roll,pitch
               
                 thruster_joy_cmd = mixer.mix(joy['ud'],joy['lr'],joy['fb'],joy['roll'],joy['pitch'],joy['yaw'],pitch_copensate,roll_copensate)

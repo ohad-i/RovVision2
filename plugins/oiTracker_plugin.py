@@ -48,7 +48,8 @@ async def recv_and_process():
     tRoll = 0.0
     tYaw = 0.0
     tX = 0.0
-    
+
+    maxAllowedPitch = 15 # deg
     
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
@@ -88,9 +89,15 @@ async def recv_and_process():
                                 pidR = PID(**roll_pid)
                             
                             tPitch = curPitch+trckResCenteredY
+                            print('-1-> tP: %.2f'%tPitch)
+
+                            tPitch = min(max(tPitch, -maxAllowedPitch), maxAllowedPitch)
+                            print('-2-> tP: %.2f'%tPitch)
+
+
                             tX = centerX - trackRes[0] 
                             
-                            print('--> dx=%f, dp=%f'%(trackRes[0]-centerX, tPitch-curPitch) )
+                            #print('--> dx=%f, dp=%f'%(trackRes[0]-centerX, tPitch-curPitch) )
                             pitchCmd = pidP(curPitch, tPitch, 0, 0)
                             rollCmd  = 0 #pidR(curRoll, tRoll, 0, 0)
                             yawCmd   = pidY(curYaw, tYaw, 0, 0)
@@ -104,7 +111,7 @@ async def recv_and_process():
                             pub_sock.send_multipart([zmq_topics.topic_att_hold_yaw_pid, pickle.dumps(debug_pid,-1)])
                         
                             xCmd = pidX(tX, 0)
-                            print('xCmd: %f tx: %f'%(xCmd, tX), pidX.p, pidX.i, pidX.d)
+                            #print('xCmd: %f tx: %f'%(xCmd, tX), pidX.p, pidX.i, pidX.d)
                             
                             thrusterCmd = np.array(mixer.mix(0, xCmd, 0, rollCmd, pitchCmd, yawCmd, curPitch, curRoll))
                             #print( {'P':pidX.p,'I':pidX.i,'D':pidX.d,'C':xCmd,'T':tX,'N':0, 'TS':ts} )
