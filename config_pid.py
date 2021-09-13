@@ -98,7 +98,7 @@ roll_target_0 = True
 
 sc=0.05
 pos_pid_x={
-        'P':0.1 * sc ,
+        'P':0.01 * sc ,
         'I':0.001 * sc ,
         'D':0.05 * sc ,
         'limit':0.6,

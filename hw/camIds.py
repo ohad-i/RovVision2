@@ -130,7 +130,7 @@ while True:
         
         if topic==zmq_topics.topic_cam_inc_exp:
             curExp = cam.get_exposure()
-            newExp = curExp + 1 
+            newExp = curExp + 0.3 
             print('set exp (inc) to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
             print('--->', newExp)
@@ -138,7 +138,7 @@ while True:
             
         if topic==zmq_topics.topic_cam_dec_exp:
             curExp = cam.get_exposure()
-            newExp = max(1, curExp - 1 )
+            newExp = max(1, curExp - 0.3 )
             print('set exp (dec) to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
             print('--->', newExp)
