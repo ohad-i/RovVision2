@@ -79,7 +79,7 @@ writerLowRes = None
 
 
 def vidProc(im, imLowRes, imPub = None):
-    global curDelay, imgsPath, writer, writerLowRes
+    global curDelay, highSpeed, imgsPath, writer, writerLowRes
     
 
     if im is not None:
@@ -157,10 +157,13 @@ def vidProc(im, imLowRes, imPub = None):
         elif key == ord(' '):
             curDelay = 0
         elif key == ord('+'):
+            highSpeed = True
             curDelay = max(1, curDelay-5 )
         elif key == ord('-'):
+            highSpeed = True
             curDelay = min(1000, curDelay+5 )
         elif key == ord('r'):
+            highSpeed = False
             curDelay = 1
     else:
         pass 

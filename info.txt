@@ -1,7 +1,38 @@
+########################
+# web tutorial: https://ubunlog.com/en/montar-google-drive-localmente/
+
+mount lab drive:
+# connect to lab drive using, enter lab user treibitz.lab@marsci.haifa.ac.il and known password:
+google-drive-ocamlfuse 
+
+# save connection profile:
+cp -a .gdfuse/default .gdfuse/treibitzLab
+
+# create mount point:
+mkdir ~/mygDriveLab/
+
+# mount drive:
+google-drive-ocamlfuse -label treibitzLab ~/mygDriveLab/
+
+# unmount drive:
+fusermount -u ~/mygDriveLab/
+########################
+
+
+#######################
+ROVI authentication:
+
 sub user: nanosub
     pass: subsub
 
+#######################
+
+
+#######################
 
 simulation requirements:
 pybullet
 dill
+
+#######################
+
