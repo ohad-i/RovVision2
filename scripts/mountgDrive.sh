@@ -10,6 +10,8 @@ if [ $# -eq 0 ]
     echo "mount point is: $MOUNT_PNT"
     echo ""
     echo ""
+    echo "To unount any drive: "
+    echo "                         ./mountgDrive.sh Umnt"
     echo ""
     echo "need to set a label, currnt available lables are:"
     ls ~/.gdfuse | sort -n
