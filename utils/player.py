@@ -24,12 +24,13 @@ parser.add_argument('-r', '--recPath', default=None, help=' path to record ')
 parser.add_argument('-s', '--skipFrame', type=int, default=-1, help='start of parsed frame, by frame counter not file index')
 parser.add_argument('-t', '--saveTiff', action='store_true', help='save tiffs files to record folder')
 parser.add_argument('-q', '--showVideo', action='store_false', help='quite run, if -q - parse only, no show')
-parser.add_argument('-f', '--freeRun', action='store_true', help='Not true realtime')
+parser.add_argument('-f', '--freeRun', action='store_true', help='Not true realtime run')
+parser.add_argument('-H', '--highQuality', action='store_true', help='Parse also high quality')
 parser.add_argument('-V', '--saveAvi', action='store_true', help='quite run, if -V - create avi files')
 
 args = parser.parse_args()
 
-
+highQuality = args.highQuality
 recPath = args.recPath
 skipFrame = args.skipFrame 
 saveTiff = args.saveTiff
@@ -211,7 +212,7 @@ if __name__=='__main__':
             
             if os.path.exists(telemPath):
                 telFid = open(telemPath, 'rb')
-            if os.path.exists(vidPath):
+            if os.path.exists(vidPath) and highQuality:
                 vidFid = open(vidPath, 'rb')
             if os.path.exists(vidQPath):
                 vidQFid = open(vidQPath, 'rb')
