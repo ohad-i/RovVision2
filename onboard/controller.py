@@ -27,7 +27,8 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller,
                                    zmq_topics.topic_gui_toggle_auto_exp,
                                    zmq_topics.topic_gui_toggle_auto_gain,
                                    zmq_topics.topic_gui_inc_exp,
-                                   zmq_topics.topic_gui_dec_exp],  zmq_topics.topic_gui_port))
+                                   zmq_topics.topic_gui_dec_exp, 
+                                   zmq_topics.topic_gui_exposureVal],  zmq_topics.topic_gui_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_autoFocus], zmq_topics.topic_autoFocus_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
                                    
@@ -212,6 +213,10 @@ async def recv_and_process():
                 elif topic == zmq_topics.topic_gui_dec_exp:
                     print('got camera dec exp.')
                     camPubSock.send_multipart([zmq_topics.topic_cam_dec_exp, pickle.dumps([0])])
+                
+                elif topic == zmq_topics.topic_gui_exposureVal:
+                    print('got camera exp. value:', data)
+                    camPubSock.send_multipart([zmq_topics.topic_cam_exp_val, pickle.dumps(data)])
                         
                     
 

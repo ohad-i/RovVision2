@@ -20,6 +20,7 @@ topic_cam_toggle_auto_exp  = b'auto_exposureCam'
 topic_cam_toggle_auto_gain = b'auto_gainCam'
 topic_cam_inc_exp          = b'inc_exposureCam'
 topic_cam_dec_exp          = b'dec_exposureCam'
+topic_cam_exp_val          = b'exp_value'
 topic_cam_ctrl_port = 7791
 
 #topic_camera_left=b'topic_camera_left'
@@ -43,6 +44,7 @@ topic_gui_start_stop_track = b'tracker_cmd'
 topic_gui_toggle_auto_exp  = b'auto_exposureCmd'
 topic_gui_inc_exp          = b'inc_exposureCmd'
 topic_gui_dec_exp          = b'dec_exposureCmd'
+topic_gui_exposureVal      = b'exposureValue'
 topic_gui_toggle_auto_gain = b'auto_gainCmd'
 topic_gui_port = 8900
 

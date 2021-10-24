@@ -20,7 +20,8 @@ socket_pub = utils.publisher(zmq_topics.topic_camera_port)
 subSocks = [utils.subscribe([zmq_topics.topic_cam_toggle_auto_exp, 
                              zmq_topics.topic_cam_toggle_auto_gain,
                              zmq_topics.topic_cam_inc_exp,
-                             zmq_topics.topic_cam_dec_exp], zmq_topics.topic_cam_ctrl_port)]
+                             zmq_topics.topic_cam_dec_exp,
+                             zmq_topics.topic_cam_exp_val], zmq_topics.topic_cam_ctrl_port)]
 
 cam = Camera(device_id=0, buffer_count=3)
 #======================================================================
@@ -53,6 +54,8 @@ frameCnt = 0
 
 gainCtl = 0
 expCtl = 1
+desExpVal = 50
+
 camStateFile = '../hw/camSate.pkl'
 
 camState = {}
@@ -75,6 +78,8 @@ if camState['aExp'] == 0 and desExpVal > 0:
             
 camState['aGain'] = gainCtl
 camState['aExp'] = expCtl
+camState['expVal'] = desExpVal
+
 
 '''
 with open(camStateFile, 'wb') as fid:
@@ -85,7 +90,7 @@ cam.set_exposure_auto(expCtl)
 cam.set_gain_auto(gainCtl)
 
 curExp = cam.get_exposure()
-
+expJump = 0.3
 
 while True:
     im0, ts = cam.capture_image() #, 110)
@@ -102,18 +107,18 @@ while True:
         hasHighRes = True
         if frameCnt%4 == 0:
             socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-            pickle.dumps((frameCnt, imShape, ts, curExp, hasHighRes)), QRes.tobytes(),
+            pickle.dumps((frameCnt, imShape, ts, camState, hasHighRes)), QRes.tobytes(),
                                                     imRaw.tobytes()])
         else:
             hasHighRes = False
             socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-                                       pickle.dumps((frameCnt, imShape, ts, curExp, hasHighRes)),
+                                       pickle.dumps((frameCnt, imShape, ts, camState, hasHighRes)),
                                        QRes.tobytes(), b''])
 
         socket_pub.send_multipart( [zmq_topics.topic_stereo_camera_ts,
                                                 pickle.dumps( (frameCnt, ts) )] )
         
-    socks=zmq.select(subSocks,[],[],0.002)[0]
+    socks=zmq.select(subSocks, [], [], 0.002)[0]
     for sock in socks:
         ret=sock.recv_multipart()
         topic,data=ret
@@ -130,7 +135,7 @@ while True:
         
         if topic==zmq_topics.topic_cam_inc_exp:
             curExp = cam.get_exposure()
-            newExp = curExp + 0.3 
+            newExp = curExp + expJump
             print('set exp (inc) to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
             print('--->', newExp)
@@ -138,11 +143,20 @@ while True:
             
         if topic==zmq_topics.topic_cam_dec_exp:
             curExp = cam.get_exposure()
-            newExp = max(1, curExp - 0.3 )
+            newExp = max(1, curExp - expJump )
             print('set exp (dec) to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
             print('--->', newExp)
             camState['expVal'] = newExp
+            
+        if topic == zmq_topics.topic_cam_exp_val:
+            curExp = cam.get_exposure()
+            newExp = pickle.loads(data)
+            print('set exp to: %.2f'%newExp)
+            newExp = cam.set_exposure(newExp)
+            print('--->', newExp)
+            camState['expVal'] = newExp
+            
             
 
         camState['aGain'] = gainCtl
@@ -150,14 +164,13 @@ while True:
         
         with open(camStateFile, 'wb') as fid:
             pickle.dump(camState, fid)
-
-
-
-
+        
+        
+    curExp = cam.get_exposure()
+    camState['expVal'] = curExp
+    
     if(time.time() - tic) > 3:
         fps = cnt/(time.time()-tic)
-        curExp = cam.get_exposure()
-        camState['expVal'] = curExp
         print('current fps: %.2f currnet exp: %0.2f'%(fps, curExp) )
         cnt = 0.0
         tic = time.time()

@@ -308,8 +308,16 @@ if __name__=='__main__':
                             break
     
                         #import ipdb; ipdb.set_trace()
+                        try:
+                            if 'expVal' in metaData[3].keys():
+                                expVal = metaData[3]['expVal']
+                            else:
+                                expVal = -1
+                        except:
+                            expVal = metaData[3].value
+                            
                         videoMsg = [zmq_topics.topic_stereo_camera,
-                                            pickle.dumps((metaData[0], imLowRes.shape, metaData[2])),
+                                            pickle.dumps((metaData[0], imLowRes.shape, expVal, metaData[2])),
                                                 imLowRes.tobytes()] # [topic, (frameId, frameShape, ts) rawFrame]
                         #print('-->', curTopic)
                         topicPubDict[curTopic].send_multipart(videoMsg)

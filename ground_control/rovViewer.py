@@ -123,6 +123,7 @@ class rovDataHandler(Thread):
         
         self.image = None 
         self.curFrameId = -1
+        self.curExposure = -1
         
         self.pubData = True
         self.socket_pub = None
@@ -184,7 +185,7 @@ class rovDataHandler(Thread):
             if not self.rawVideo:
                 if len(select([self.imgSock],[],[],0.003)[0]) > 0:
                     data, addr = self.imgSock.recvfrom(1024*64)
-                    self.curFrameId, encIm = pickle.loads(data)
+                    self.curFrameId, self.curExposure, encIm = pickle.loads(data)
                     img = cv2.imdecode(encIm, 1)
                     
                     images = [img]
@@ -205,6 +206,7 @@ class rovDataHandler(Thread):
                         data = pickle.loads(ret[1])
                         message_dict[topic] = data
                         self.telemtry = message_dict.copy()
+                        
                         #if topic == zmq_topics.topic_system_state:
                         #    import ipdb; ipdb.set_trace()
                         
@@ -223,7 +225,7 @@ class rovDataHandler(Thread):
                                 
                     elif self.rawVideo and zmq_topics.topic_stereo_camera == topic:
                         
-                        self.curFrameId, imShape, ts = pickle.loads(ret[1])
+                        self.curFrameId, imShape, self.curExposure, ts = pickle.loads(ret[1])
                         #print('<><>', self.curFrameId, imShape, ts)
                         imRaw = np.frombuffer(ret[-1], dtype='uint8').reshape(imShape)
                         images = [imRaw]
@@ -380,7 +382,8 @@ class rovViewerWindow(Frame):
         self.runPlotsFlag = True
         
         # create widgets
-        self.focusVal = -1 
+        self.focusVal = -1
+        self.exposureVal = -1
         
         self.make_widgets()
         self.bind_widgets_events()
@@ -658,11 +661,26 @@ class rovViewerWindow(Frame):
             val = min(max(int(chars.strip()),850),2250)
             self.myStyle['focusCmd_textbox'].delete(0, END)
             self.myStyle['focusCmd_textbox'].insert(0,str(val))
-            print('new focus PWM %d'%val)
+            print('new focus PWM: %d'%val)
             data = pickle.dumps(val, protocol=3)
             self.focusVal = -1 # update gui to updated focus value from messages
             self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_focus_controller, data])
             ## send focus command
+        except:
+            print('failed to load value')
+            
+    def updateExposure(self, event):
+        chars = event.widget.get()
+        try:
+            #pass
+            val = min(max(float(chars.strip()),0),100)
+            self.myStyle['exposureCMD_textbox'].delete(0, END)
+            self.myStyle['exposureCMD_textbox'].insert(0,str(val))
+            print('new exposure: %f'%val)
+            data = pickle.dumps(val, protocol=3)
+            #self.exposureVal = -1 # update gui to updated focus value from messages
+            self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_exposureVal, data])
+            # send focus command
         except:
             print('failed to load value')
 
@@ -928,7 +946,7 @@ class rovViewerWindow(Frame):
                         self.focusVal = data['focus']
                         self.myStyle["focusCmd_textbox"].delete(0, END)
                         self.myStyle["focusCmd_textbox"].insert(END, "{}".format(data['focus']) )
-                
+                    
                 if zmq_topics.topic_motors_output in telemKeys:
                     data = telemtry[zmq_topics.topic_motors_output]
                     #print('---> motors: ', data['motors'])
@@ -968,7 +986,10 @@ class rovViewerWindow(Frame):
                         self.plotMsgs['rtData'] = CycArr(self.plotHistory)
                     self.plotMsgs['rtData'].add(rtData)
                 
-            
+            if self.ROVHandler.curExposure != self.exposureVal:
+                self.exposureVal = self.ROVHandler.curExposure
+                self.myStyle["exposureCMD_textbox"].delete(0, END)
+                self.myStyle["exposureCMD_textbox"].insert(END, "%0.2f"%self.exposureVal) # {:.2f}".format(self.exposureVal) )
 
                 
         except:
@@ -1310,9 +1331,13 @@ class rovViewerWindow(Frame):
         self.create_label_pair(name="rtRoll", display_text="Roll:", n_col=rtDataCol, n_row=rtDataRow)
         self.create_text_box(name="focusCmd", label_text="focusPWM:", display_text="0", n_col=cmd1Col, n_row=rtDataRow, textbox_width=9)
         self.myStyle['focusCmd_textbox'].bind("<Return>", self.updateFocus)
-        #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
         rtDataRow += 1
+        
         self.create_label_pair(name="rtBattery", display_text="BATT:", n_col=rtDataCol, n_row=rtDataRow)
+        self.create_text_box(name="exposureCMD", label_text="exposure:", display_text="0", n_col=cmd1Col, n_row=rtDataRow, textbox_width=9)
+        self.myStyle['exposureCMD_textbox'].bind("<Return>", self.updateExposure)
+        #self.myStyle['focusCmd_textbox'].configure(state=DISABLED)
+      
         rtDataRow += 1
         self.create_label_pair(name="rtDisk", display_text="Disk:", n_col=rtDataCol, n_row=rtDataRow)
 
@@ -1320,7 +1345,7 @@ class rovViewerWindow(Frame):
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         self.myStyle["showDepth"].configure(command=self.depthSelect)
-        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow, self.checkThrusters, anchor='w')
+        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow+1, self.checkThrusters, anchor='w')
         self.myStyle["showmotors"].configure(command=self.threustersSelect)
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
@@ -1333,7 +1358,7 @@ class rovViewerWindow(Frame):
         self.myStyle["showYaw"].configure(command=self.yawSelect)
         pidRow += 1
 
-        modesRow = 6
+        modesRow = 7
         modesCol =3
         #self.create_checkbox_button("depthHold", "Depth hold", commandCol, row_index, self.checkDepthHold, anchor='w')
         #self.myStyle["depthHold"].configure(command=self.cmdDepthHold)
