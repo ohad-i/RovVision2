@@ -74,7 +74,7 @@ async def recv_and_process():
                 elif len(encIm) >= maxImSize:
                     jpgQuality = max(30, jpgQuality-2)
                     doSend = False
-                    
+                #import ipdb; ipdb.set_trace() 
                 msg = pickle.dumps([frame_cnt, camState['expVal'], encIm])
                 if doSend:
                     sentImgCnt += 1
