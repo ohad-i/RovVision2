@@ -1,6 +1,10 @@
 import numpy as np
 from numpy import cos,sin,tan
 
+import sys
+sys.path.append('../')
+from config import initPitch
+
 
 #output dcm from dynamic sim file
 #Matrix([
@@ -42,10 +46,12 @@ def from_ang_rates_to_euler_rates(yaw,pitch,roll,rates):
 def zero_cmd():
     return [0]*8
 
-def mix(up_down,left_right,fwd_back,roll,pitch,yaw,pitch_copensate=0.0,roll_copensate=0.0):
+def mix(up_down,left_right,fwd_back,roll,pitch,yaw, pitch_copensate=0.0, roll_copensate=0.0):
     """
     mix all comands to thrusters
     """
+    pitch_copensate = initPitch + pitch_copensate # camera init angle
+    
     #roll_copensate=0 #for now
     dcm=todcm(0,np.deg2rad(pitch_copensate),np.deg2rad(roll_copensate))
     v=np.array([[fwd_back,left_right,up_down]]).T
