@@ -7,7 +7,7 @@
 from tkinter import *
 from tkinter import filedialog
 
-from idlelib.ToolTip import *
+#from idlelib.ToolTip import *
 
 #from tkinter.tix import *
 from PIL import Image, ImageTk
@@ -783,7 +783,7 @@ class rovViewerWindow(Frame):
             tip = ToolTip(widget, toolTip)
             #import ipdb; ipdb.set_trace()
         except:
-            print('bla...')
+            print('No tooltip available...')
 
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
