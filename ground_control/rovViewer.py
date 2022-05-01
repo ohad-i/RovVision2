@@ -7,6 +7,8 @@
 from tkinter import *
 from tkinter import filedialog
 
+from idlelib.ToolTip import *
+
 #from tkinter.tix import *
 from PIL import Image, ImageTk
 import io
@@ -699,7 +701,7 @@ class rovViewerWindow(Frame):
             print('failed to load value')
         
 
-    def create_button(self, name, display_text, n_col, n_row, callback):
+    def create_button(self, name, display_text, n_col, n_row, callback, tooltip=""):
         button_name = "{}_button".format(name)
         _btn = Button(self.parent, text=display_text, command=callback, width=13,
                       activebackground=self.myStyle['activeButtonBg'])
@@ -709,6 +711,8 @@ class rovViewerWindow(Frame):
 
         #print('-->', name, n_col, n_row)
         self.myStyle[button_name].place(x=self.initX+(n_col-1)*self.colWidth, y=self.initY+(n_row-1)*self.rowHeight)
+        if len(tooltip) > 0:
+            self.addTooltip(self.myStyle[button_name], tooltip) 
 
 
     def grabImageEvent(self, event):
@@ -757,7 +761,7 @@ class rovViewerWindow(Frame):
             self.image = rawImg.copy()
             img = Image.fromarray(rawImg)
             self.img = ImageTk.PhotoImage(img)
-            
+            #import ipdb; ipdb.set_trace() 
             self.myStyle['disp_image'].configure(image=self.img)
             self.myStyle['disp_image'].image = self.img
             
@@ -773,7 +777,14 @@ class rovViewerWindow(Frame):
 
         self.parent.after(10, self.update_image)
 
-    
+    def addTooltip(self, widget, toolTip):
+        try: 
+            #tip = ListboxToolTip(widget, ["Hello", "world"])
+            tip = ToolTip(widget, toolTip)
+            #import ipdb; ipdb.set_trace()
+        except:
+            print('bla...')
+
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
         self.img = Image.open(path)
@@ -784,7 +795,9 @@ class rovViewerWindow(Frame):
         lbl.grid(row=row, column=col, columnspan=width, rowspan=height, pady=5, padx=5, sticky="nw") #, sticky="nsew")
         self.myStyle[name] = lbl
         self.myStyle[name].place(x=15,y=35)
-
+        
+        self.addTooltip(self.myStyle[name], " Left click -> start/stop track \n Middle click -> auto focus \n Right click -> snap shot")
+        
         self.update_image()
 
 
@@ -1373,7 +1386,7 @@ class rovViewerWindow(Frame):
         btnCol = 5
         self.create_button("runRemote", "run ROV", btnCol, row_btn_idx, self.runRemote)
         row_btn_idx += 1
-        self.create_button("arm", "ARM/DISARM", btnCol, row_btn_idx, self.cmdArm)
+        self.create_button("arm", "ARM/DISARM", btnCol, row_btn_idx, self.cmdArm, tooltip="Arming motors to action...")
         row_btn_idx += 1
         self.create_button("record", "Record", btnCol, row_btn_idx, self.cmdRecord)
         row_btn_idx += 1        
@@ -1463,10 +1476,10 @@ class rovViewerWindow(Frame):
         self.canvas = FigureCanvasTkAgg(self.figure1, master=self.parent)
         # here: plot suff to your fig
 
-        frame = Frame(self.parent)
+        self.frame = Frame(self.parent)
         #frame.grid(row=0, column=9)
-        toolbar = NavigationToolbar2Tk(self.canvas, frame)
-        frame.place(x=1000,y=1)
+        toolbar = NavigationToolbar2Tk(self.canvas, self.frame)
+        self.frame.place(x=1000,y=1)
         #self.canvas.get_tk_widget().grid(column=9, row=1, rowspan=1, columnspan=8)
         self.canvas.get_tk_widget().grid(rowspan=1, columnspan=8)
         self.canvas.get_tk_widget().place(x=1000,y=45)
