@@ -6,7 +6,7 @@ import struct
 import optparse
 
 parser = optparse.OptionParser("esp32Test")
-parser.add_option("--port", default='/dev/ttyUSB0', help='tty port')
+parser.add_option("--port", default='/dev/ttyUSB1', help='tty port, default: /dev/ttyUSB1')
 parser.add_option("--motorTest", default=False, action='store_true', help='test motors')
 parser.add_option("--motorId", default="1", help='motor to run 1-8')
 parser.add_option("--motorSpeed", default="0", help='1100 to 1900')
@@ -52,31 +52,44 @@ if opts.camServo:
 
 
 
+try:
+    if msgBuf is not None:
+        ser.write(msgBuf)
+        ser.flush()
+        if opts.motorTest:
+            time.sleep(0.5)
+            motorsVals = [0]*8
+            #motorsVals[int(opts.motorId)-1] = max(-400, min(400, pwm ))
+            print(motorsVals)
+            msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals )
+            print("perform motor test on motor %d to speed %d"%(int(opts.motorId), int(opts.motorSpeed)))
+            ser.write(msgBuf)
+            ser.flush()
+        time.sleep(1)
 
-if msgBuf is not None:
-    ser.write(msgBuf)
-    ser.flush()
-    time.sleep(1)
+    else:
+        motorsVals = [0]*8
+        for i in range(0,8,2):
+            motorsVals[i] = 50
+            motorsVals[i+1] = -50
+            print(motorsVals)
+            msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals ) 
+            ser.write(msgBuf)
+            ser.flush()
+            time.sleep(0.2) 
+            motorsVals = [0]*8
 
-else:
-    motorsVals = [0]*8
-    for i in range(0,8,2):
-        motorsVals[i] = 50
-        motorsVals[i+1] = -50
+        motorsVals = [0]*8
         print(motorsVals)
-        msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals ) 
+        msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals )
         ser.write(msgBuf)
         ser.flush()
         time.sleep(0.2) 
-        motorsVals = [0]*8
-
+except:
+    print("test error - turn motors off...")
     motorsVals = [0]*8
     print(motorsVals)
     msgBuf = struct.pack(serialMotorsMsgPack, 145, opMotors, *motorsVals )
     ser.write(msgBuf)
     ser.flush()
-    time.sleep(0.2) 
-
-
-
-
+    time.sleep(0.2)
