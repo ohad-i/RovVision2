@@ -71,7 +71,7 @@ if os.path.exists(camStateFile):
             desExpVal = camState['expVal']
 
 
-if camState['aExp'] == 0 and desExpVal > 0:
+if ('aExp' not in camState.keys() or camState['aExp'] == 0) and desExpVal > 0:
     newExp = cam.set_exposure(desExpVal)
     print('init exp value: ', newExp)
             
