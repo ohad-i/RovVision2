@@ -278,7 +278,7 @@ class checkListForm(object):
         top=self.top = Toplevel(master)
         top.attributes('-topmost', True)
         top.title("ROV Check List")
-        top.geometry('770x375')
+        top.geometry('780x385')
         
         path = "frame-numberings.jpg"
         self.img = Image.open(path)
@@ -304,7 +304,7 @@ class checkListForm(object):
         
         curRow += 1
         
-        self.l = Label(top,text="Auto exposure test")
+        self.l = Label(top,text="Set auto exposure")
         self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
         
         self.checkVar = IntVar()
@@ -312,6 +312,11 @@ class checkListForm(object):
         
         self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="auto exposure OK")
         self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+        
+        self.l = Label(top,text="Set exposure to manual")
+        self.l.grid(column=1, row=curRow, columnspan=2, sticky='w')  #.place(x=1, y=1)
         
         curRow += 1
         
@@ -1661,7 +1666,10 @@ class rovViewerWindow(Frame):
     
     def runCheckList(self):
         self.w = checkListForm(self.master)
+        
+        self.myStyle["runCheckList_button"]['state']=DISABLED
         self.master.wait_window(self.w.top)
+        self.myStyle["runCheckList_button"]['state']=NORMAL
         
         
     def fetchRecords(self):
