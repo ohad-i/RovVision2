@@ -157,7 +157,7 @@ async def recvUdpSendZmq():
                 pubsDict[topic].send_multipart( udpMsg['payload'] )
             except:
                 import traceback; traceback.print_exc()
-                import ipdb; ipdb.set_trace()
+                #import ipdb; ipdb.set_trace()
                 
             
         await asyncio.sleep(0.001)
