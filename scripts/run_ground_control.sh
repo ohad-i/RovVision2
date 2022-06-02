@@ -21,7 +21,8 @@ tmux new-window
 fi 
 
 new_4_win
-runShell 0 scripts ./ssh_route.sh
+#runShell 0 scripts ./ssh_route.sh
+run 0 utils "udpGate.py -g"
 sleep 1
 runLoop 1 ground_control joy_rov.py
 #run 2 ground_control "viewer.py --pub_data --udp"

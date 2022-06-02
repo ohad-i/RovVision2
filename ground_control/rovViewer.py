@@ -197,10 +197,11 @@ class rovDataHandler(Thread):
             while True:
                 
                 time.sleep(0.0001)
-                socks = zmq.select(self.subs_socks,[],[],0.005)[0]
+                socks = zmq.select(self.subs_socks,[],[],0.001)[0]
                 if len(socks)==0: #flush msg buffer
                     break
                 for sock in socks:
+
                     ret = sock.recv_multipart()
                     topic = ret[0]
                     if zmq_topics.topic_stereo_camera != topic:
