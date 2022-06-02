@@ -269,9 +269,159 @@ attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
 depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 
+
+class checkListForm(object):
+    def __init__(self,master):
+        
+        #TODO: kill hw_gate.py on ROV
+        
+        top=self.top = Toplevel(master)
+        top.attributes('-topmost', True)
+        top.title("ROV Check List")
+        top.geometry('770x375')
+        
+        path = "frame-numberings.jpg"
+        self.img = Image.open(path)
+        width = 400
+        height = 350
+        self.img = ImageTk.PhotoImage(self.img.resize((width, height), Image.Dither.NONE))
+        
+        lbl = Label(top, image=self.img, width=width, height=height, borderwidth=2,
+                    highlightbackground="white")
+        lbl.image = self.img
+        lbl.place(x=358,y=15)
+        
+        curRow = 1
+        self.l = Label(top,text="CAUTION! - motors are running during test")
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        curRow += 1
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Is live image?")
+        self.Check.grid(column=1, row=curRow, sticky='w')
+        
+        curRow += 1
+        
+        self.l = Label(top,text="Auto exposure test")
+        self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="auto exposure OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+        
+        self.l = Label(top,text="Set exposure to 0")
+        self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Dark image OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+        
+        self.l = Label(top,text="Set exposure to 99")
+        self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Bright image OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        
+        curRow += 1
+        
+        self.motorsTest=Button(top, text='motor Test', command=lambda motId=-1: self.runMotorTest(motId) )
+        self.motorsTest.grid(column=1, row=curRow, sticky='w')
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="motors OK")
+        self.Check.grid(column=2, row=curRow, sticky='w')
+        
+        curRow +=1
+        colIxd = 1
+        for motIdx in range(0,8):
+            if motIdx%2 == 0:
+                curRow += 1
+                colIxd = 1
+        
+            self.tmpBtn = Button(top, text='M-%d'%(motIdx+1), command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId) )
+            self.tmpBtn.grid(column=colIxd, row=curRow, sticky='w')
+            colIxd += 1
+            
+            self.checkVar = IntVar()
+            self.checkVar.set(1)
+            
+            self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="M%d-OK"%(motIdx+1) )
+            self.Check.grid(column=colIxd, row=curRow, sticky='w')
+            colIxd += 1
+            
+        
+        curRow +=1
+        self.servoTest=Button(top, text='Focus test', command=self.runFocusTest)
+        self.servoTest.grid(column=1, row=curRow, sticky='w')
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Servo OK")
+        self.Check.grid(column=2, row=curRow, sticky='w')
+        
+        
+        curRow +=1
+        self.ledsTest = Button(top, text='Leds test', command=self.runLedsTest)
+        self.ledsTest.grid(column=1, row=curRow, sticky='w')
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Servo OK")
+        self.Check.grid(column=2, row=curRow, sticky='w')
+        
+        
+        
+        curRow +=2
+        self.doneBtn=Button(top,text='Done',command=self.cleanup)
+        self.doneBtn.grid(column=1, row=curRow, sticky='w')
+        
+        
+    def runMotorTest(self, motId):
+        #TODO: call esp test function on ROV
+        if motId == -1:
+            print('all motors test...')
+        else:
+            print('Motor %d test...'%motId)
+            
+        os.system('echo Motor test...')
+    
+    def runFocusTest(self):
+        #TODO: call esp test function on ROV
+        os.system('echo Focus test...')
+        
+    def runLedsTest(self):
+        #TODO: call esp test function on ROV
+        os.system('echo Leds test...')
+        
+    def cleanup(self):
+        #TODO: restart hw_gate.py on ROV
+        self.top.destroy()
+
+
+
+
 class recRunProp(object):
     def __init__(self,master):
         top=self.top = Toplevel(master)
+        
         self.l = Label(top,text="Run record ")
         self.l.pack()
         
@@ -789,7 +939,8 @@ class rovViewerWindow(Frame):
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
         self.img = Image.open(path)
-        self.img = ImageTk.PhotoImage(self.img.resize((char_width, char_height), Image.NONE))
+        
+        self.img = ImageTk.PhotoImage(self.img.resize((char_width, char_height), Image.Dither.NONE))
         lbl = Label(self.parent, image=self.img, width=char_width, height=char_height, borderwidth=2,
                     highlightbackground="white")
         lbl.image = self.img
@@ -1404,7 +1555,9 @@ class rovViewerWindow(Frame):
         self.create_button("rebootRemote", "reboot ROV", btnCol, row_btn_idx, self.rebootRemote)
         
         btnCol += 2
-        row_btn_idx = 7
+        row_btn_idx = 6
+        self.create_button("runCheckList", "Check List", btnCol, row_btn_idx, self.runCheckList)
+        row_btn_idx += 1
         self.create_button("runRecords", "Run record", btnCol, row_btn_idx, self.runRecord)
         row_btn_idx += 1
         self.create_button("getRecords", "Fetch Recs", btnCol, row_btn_idx, self.fetchRecords)
@@ -1505,7 +1658,11 @@ class rovViewerWindow(Frame):
                                                                                             self.w.saveTiffVar.get(),
                                                                                             self.w.freeRunVar.get() ))
          
-
+    
+    def runCheckList(self):
+        self.w = checkListForm(self.master)
+        self.master.wait_window(self.w.top)
+        
         
     def fetchRecords(self):
         os.system('cd ../scripts && ./recSync.sh && sleep 3')
