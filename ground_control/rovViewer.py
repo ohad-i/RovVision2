@@ -284,7 +284,10 @@ class checkListForm(object):
         self.img = Image.open(path)
         width = 400
         height = 350
-        self.img = ImageTk.PhotoImage(self.img.resize((width, height), Image.Dither.NONE))
+        try: # new PIL version
+            self.img = ImageTk.PhotoImage(self.img.resize((width, height), Image.Dither.NONE))
+        except:
+            self.img = ImageTk.PhotoImage(self.img.resize((width, height), Image.NONE))
         
         lbl = Label(top, image=self.img, width=width, height=height, borderwidth=2,
                     highlightbackground="white")
@@ -389,7 +392,7 @@ class checkListForm(object):
         self.checkVar = IntVar()
         self.checkVar.set(1)
         
-        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Servo OK")
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Leds OK")
         self.Check.grid(column=2, row=curRow, sticky='w')
         
         
@@ -944,8 +947,11 @@ class rovViewerWindow(Frame):
     def make_image(self, name, col, row, width, height, char_width, char_height):
         path = "rov.jpg"
         self.img = Image.open(path)
-        
-        self.img = ImageTk.PhotoImage(self.img.resize((char_width, char_height), Image.Dither.NONE))
+        try: # new PIL version
+            self.img = ImageTk.PhotoImage(self.img.resize((char_width, char_height), Image.Dither.NONE))
+        except:
+            self.img = ImageTk.PhotoImage(self.img.resize((char_width, char_height), Image.NONE))
+
         lbl = Label(self.parent, image=self.img, width=char_width, height=char_height, borderwidth=2,
                     highlightbackground="white")
         lbl.image = self.img
