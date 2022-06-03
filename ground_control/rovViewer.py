@@ -278,7 +278,7 @@ class checkListForm(object):
         top=self.top = Toplevel(master)
         top.attributes('-topmost', True)
         top.title("ROV Check List")
-        top.geometry('780x385')
+        top.geometry('780x495')
         
         path = "frame-numberings.jpg"
         self.img = Image.open(path)
@@ -343,8 +343,35 @@ class checkListForm(object):
         self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Bright image OK")
         self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
         
+        curRow += 1
+        
+        self.l = Label(top,text="IMU test - pitch: down/up\n\troll: right/left:")
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        
         
         curRow += 1
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="IMU OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+
+        
+        self.l = Label(top,text="IMU test - check mag. 90-90:")
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        
+        
+        curRow += 1
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Mag. OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+
         
         self.motorsTest=Button(top, text='motor Test', command=lambda motId=-1: self.runMotorTest(motId) )
         self.motorsTest.grid(column=1, row=curRow, sticky='w')
