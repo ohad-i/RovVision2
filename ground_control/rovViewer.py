@@ -98,6 +98,9 @@ class CycArr():
 
 
 from threading import Thread
+
+rovGuiCommandPublisher = utils.publisher(zmq_topics.topic_gui_port)
+
 class rovDataHandler(Thread):
     def __init__(self, rovViewer):
         super().__init__()
@@ -274,8 +277,13 @@ class checkListForm(object):
     def __init__(self,master):
         
         #TODO: kill hw_gate.py on ROV
+        self.pub_sock = utils.publisher(zmq_topics.topic_check_thrusters_comand_port)
+        self.rovGuiCommandPublisher = rovGuiCommandPublisher
         
         top=self.top = Toplevel(master)
+        
+        top.protocol("WM_DELETE_WINDOW", self.cleanup)
+        
         top.attributes('-topmost', True)
         top.title("ROV Check List")
         #top.geometry('880x700')
@@ -429,7 +437,7 @@ class checkListForm(object):
             self.Check.grid(column=colIxd, row=curRow, sticky='w')
             colIxd += 1
         '''  
-        self.mototValsues = []
+        self.mototValues = []
         for motIdx in range(0,8):
              if motIdx%4 == 0:
                  curRow += 2
@@ -446,7 +454,7 @@ class checkListForm(object):
                                       command = self.runMotorTest )
                                       #command=lambda curMotId=motIdx+1, B=0: self.runMotorTest(B, curMotId))
              tmpBtn.set(1500)
-             self.mototValsues.append(current_value)
+             self.mototValues.append(current_value)
 
              tmpBtn.grid(column=colIxd, row=curRow, sticky='w')
              #colIxd += 1
@@ -499,29 +507,83 @@ class checkListForm(object):
         print("calculate height: %d"%(curRow*rowHeight))
         top.geometry('880x%d'%(curRow*rowHeight) )
         
+        self.motorsTestSent = False
+        self.motorsTestSentTic = time.time()
+        
+        self.startFocusTest = False
+        self.focusVal = 850
+        self.focusSendTic = time.time()
+        
+        self.main()
+        
         
     def runMotorTest(self, val):
         #TODO: call esp test function on ROV
         
         pwms = []
-        for X in self.mototValsues: 
+        for X in self.mototValues: 
             pwms.append( int( X.get() ) )
 
-        print('-->', pwms)
+        #print('-->', pwms)
         if any((True for x in pwms if x != 1500)):
-            print('set motors to Values for 2 seconds and than stop motors...')        
-        os.system('echo Motor test...')
+            tic = time.time()
+            pwms = (1500-np.array(pwms))/800
+            print('-->', pwms)
+            pwms = np.clip(pwms,-1,1)
+            #print('-->', pwms)
+            self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
+            self.motorsTestSent = True
+            self.motorsTestSentTic = time.time()
     
+    def sendFocusVal(self, val):
+        print('new focus PWM: %d'%val)
+        data = pickle.dumps(val, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_focus_controller, data])
+        self.focusSendTic = time.time()
+
+            
     def runFocusTest(self):
-        #TODO: call esp test function on ROV
-        os.system('echo Focus test...')
+        
+        ## send focus command
+        self.startFocusTest = not self.startFocusTest
+        if self.startFocusTest:
+            self.focusVal = 850
+           
         
     def runLedsTest(self):
         #TODO: call esp test function on ROV
-        os.system('echo Leds test...')
+        print("TBD: Leds test...")
+    
+    def main(self):
+        
+        if self.motorsTestSent and (time.time() - self.motorsTestSentTic) > 5: 
+            pwms = [1500]*8
+            print('-stop motors->', pwms)
+            tic = time.time()
+            pwms = (1500-np.array(pwms))/800
+            print('-->', pwms)
+            pwms = np.clip(pwms,-1,1)
+            print('-->', pwms)
+            self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
+            self.motorsTestSent = False
+            self.motorsTestSentTic = time.time()
+        
+            for X in self.mototValues:
+                X.set(1500)
+                
+        if self.startFocusTest and (time.time() - self.focusSendTic) > 0.5:
+            self.sendFocusVal(self.focusVal)
+            self.focusVal += 100
+            if self.focusVal >= 2250:
+                self.startFocusTest = False
+                
+            
+                
+        self.top.after(25, self.main)
         
     def cleanup(self):
-        #TODO: restart hw_gate.py on ROV
+        print("clean form...")
+        self.pub_sock.close()
         self.top.destroy()
 
 
@@ -653,7 +715,7 @@ class rovViewerWindow(Frame):
         self.set_style()
         
         self.updateGuiData()
-        self.rovGuiCommandPublisher = utils.publisher(zmq_topics.topic_gui_port)
+        self.rovGuiCommandPublisher = rovGuiCommandPublisher #utils.publisher(zmq_topics.topic_gui_port)
         self.armClicked = False
         self.recClicked = False
         self.attMessage = {'dDepth':0.0, 'dPitch': 0.0, 'dYaw':0.0}

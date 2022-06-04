@@ -6,11 +6,16 @@ topic_thrusters_comand=b'thruster_cmd'
 #opration modes
 topic_system_state=b'system_state'
 
-topic_controller_port=topic_thrusters_comand_port=7788
+topic_controller_port = topic_thrusters_comand_port=7788
 thrusters_sink_port = 7787
 topic_lights=b'topic_lights'
 topic_focus=b'topic_set_focus_state'
 topic_tracker_cmd=b'topic_tracker_start_stop_cmd'
+
+
+
+topic_check_thrusters_comand=b'thruster_check_cmd'
+topic_check_thrusters_comand_port=9005
 
 topic_autoFocus_port = 7790
 topic_autoFocus = b'autoFocus'
