@@ -325,17 +325,6 @@ class checkListForm(object):
         
         curRow += 1
         
-        self.l = Label(top,text="Set auto exposure")
-        self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
-        
-        self.checkVar = IntVar()
-        self.checkVar.set(1)
-        
-        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="auto exposure OK")
-        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
-        
-        curRow += 1
-        
         self.l = Label(top,text="Set exposure to manual")
         self.l.grid(column=1, row=curRow, columnspan=2, sticky='w')  #.place(x=1, y=1)
         
@@ -363,13 +352,24 @@ class checkListForm(object):
         
         curRow += 1
         
+        self.l = Label(top,text="Set auto exposure")
+        self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
+        
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="auto exposure OK")
+        self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
+        
+        curRow += 1
+        
         self.l = Label(top,text="Inertial Test")
         self.l.configure(font=("Helvetica", headreFontSize, "bold"))
         self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
         
         curRow += 1
         
-        self.l = Label(top,text="IMU test - pitch: down/up\n\troll: right/left:")
+        self.l = Label(top,text="IMU test - pitch: nose down/up\n\troll: tilt right/left:")
         self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
         
         
@@ -382,8 +382,7 @@ class checkListForm(object):
         
         curRow += 1
 
-        
-        self.l = Label(top,text="IMU test - check mag. 90-90:")
+        self.l = Label(top,text="IMU test - check mag. 90-90 (yawing):")
         self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
         
         
@@ -395,8 +394,8 @@ class checkListForm(object):
         self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
         
         curRow += 1
-        top.grid_rowconfigure(curRow, minsize=rowHeight)
-        curRow += 1
+        #top.grid_rowconfigure(curRow, minsize=rowHeight)
+        #curRow += 1
         
         self.l = Label(top,text="Motors Test")
         self.l.configure(font=("Helvetica", headreFontSize, "bold"))
@@ -467,8 +466,8 @@ class checkListForm(object):
              colIxd += 1
         
         curRow += 1
-        top.grid_rowconfigure(curRow, minsize=rowHeight)
-        curRow += 1
+        #top.grid_rowconfigure(curRow, minsize=rowHeight)
+        #curRow += 1
         
         self.l = Label(top,text="Peripherals Test")
         
@@ -504,8 +503,8 @@ class checkListForm(object):
         self.doneBtn.grid(column=1, row=curRow, sticky='w')
         
         
-        print("calculate height: %d"%(curRow*rowHeight))
-        top.geometry('880x%d'%(curRow*rowHeight) )
+        #print("calculate form height: %d"%(curRow*rowHeight))
+        top.geometry('860x%d'%(curRow*rowHeight) )
         
         self.motorsTestSent = False
         self.motorsTestSentTic = time.time()
