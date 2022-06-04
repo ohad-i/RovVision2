@@ -278,12 +278,13 @@ class checkListForm(object):
         top=self.top = Toplevel(master)
         top.attributes('-topmost', True)
         top.title("ROV Check List")
-        top.geometry('780x495')
+        #top.geometry('880x700')
         
         path = "frame-numberings.jpg"
         self.img = Image.open(path)
         width = 400
         height = 350
+        rowHeight = 29
         try: # new PIL version
             self.img = ImageTk.PhotoImage(self.img.resize((width, height), Image.Dither.NONE))
         except:
@@ -292,11 +293,20 @@ class checkListForm(object):
         lbl = Label(top, image=self.img, width=width, height=height, borderwidth=2,
                     highlightbackground="white")
         lbl.image = self.img
-        lbl.place(x=358,y=15)
+        lbl.place(x=430,y=250)
         
         curRow = 1
         self.l = Label(top,text="CAUTION! - motors are running during test")
         self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        curRow += 1
+        
+        headreFontSize = 11
+        
+        
+        self.l = Label(top,text="Camera Test")
+        self.l.configure(font=("Helvetica", headreFontSize, "bold"))
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        
         curRow += 1
         
         self.checkVar = IntVar()
@@ -345,6 +355,12 @@ class checkListForm(object):
         
         curRow += 1
         
+        self.l = Label(top,text="Inertial Test")
+        self.l.configure(font=("Helvetica", headreFontSize, "bold"))
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        
+        curRow += 1
+        
         self.l = Label(top,text="IMU test - pitch: down/up\n\troll: right/left:")
         self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
         
@@ -371,8 +387,16 @@ class checkListForm(object):
         self.Check.grid(column=2, columnspan=2, row=curRow, sticky='w')
         
         curRow += 1
-
+        top.grid_rowconfigure(curRow, minsize=rowHeight)
+        curRow += 1
         
+        self.l = Label(top,text="Motors Test")
+        self.l.configure(font=("Helvetica", headreFontSize, "bold"))
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        
+        curRow += 1
+
+        '''
         self.motorsTest=Button(top, text='motor Test', command=lambda motId=-1: self.runMotorTest(motId) )
         self.motorsTest.grid(column=1, row=curRow, sticky='w')
         
@@ -384,12 +408,17 @@ class checkListForm(object):
         
         curRow +=1
         colIxd = 1
+        
+        
         for motIdx in range(0,8):
             if motIdx%2 == 0:
                 curRow += 1
                 colIxd = 1
         
-            self.tmpBtn = Button(top, text='M-%d'%(motIdx+1), command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId) )
+            #self.tmpBtn = Button(top, text='M-%d'%(motIdx+1), command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId) )
+            self.tmpBtn = Scale(top, from_=1400, to=1600, tickinterval=10, orient=HORIZONTAL, showvalue=False) #, command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId))
+            self.tmpBtn.set(1500)
+            self.tmpBtn.coords(value=None)
             self.tmpBtn.grid(column=colIxd, row=curRow, sticky='w')
             colIxd += 1
             
@@ -399,9 +428,46 @@ class checkListForm(object):
             self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="M%d-OK"%(motIdx+1) )
             self.Check.grid(column=colIxd, row=curRow, sticky='w')
             colIxd += 1
-            
+        '''  
+        self.mototValsues = []
+        for motIdx in range(0,8):
+             if motIdx%4 == 0:
+                 curRow += 2
+                 colIxd = 1
+             current_value = DoubleVar()
+             #self.tmpBtn = Button(top, text='M-%d'%(motIdx+1), command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId) )
+             tmpBtn = Scale(top, from_=1400, 
+                                      to=1600, 
+                                      orient=VERTICAL, 
+                                      label="M-%d"%(motIdx+1), 
+                                      showvalue=True, 
+                                      resolution=5,
+                                      variable=current_value,
+                                      command = self.runMotorTest )
+                                      #command=lambda curMotId=motIdx+1, B=0: self.runMotorTest(B, curMotId))
+             tmpBtn.set(1500)
+             self.mototValsues.append(current_value)
+
+             tmpBtn.grid(column=colIxd, row=curRow, sticky='w')
+             #colIxd += 1
+             
+             self.checkVar = IntVar()
+             self.checkVar.set(1)
+             
+             self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="M%d-OK"%(motIdx+1) )
+             self.Check.grid(column=colIxd, row=curRow+1, sticky='w')
+             colIxd += 1
         
-        curRow +=1
+        curRow += 1
+        top.grid_rowconfigure(curRow, minsize=rowHeight)
+        curRow += 1
+        
+        self.l = Label(top,text="Peripherals Test")
+        
+        self.l.configure(font=("Helvetica", headreFontSize, "bold"))
+        self.l.grid(column=1, row=curRow, columnspan=4, sticky='w')  #.place(x=1, y=1)
+        curRow += 1
+        
         self.servoTest=Button(top, text='Focus test', command=self.runFocusTest)
         self.servoTest.grid(column=1, row=curRow, sticky='w')
         
@@ -422,20 +488,28 @@ class checkListForm(object):
         self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Leds OK")
         self.Check.grid(column=2, row=curRow, sticky='w')
         
+        curRow +=1
+        top.grid_rowconfigure(curRow, minsize=rowHeight//2)
+        curRow += 1
         
-        
-        curRow +=2
         self.doneBtn=Button(top,text='Done',command=self.cleanup)
         self.doneBtn.grid(column=1, row=curRow, sticky='w')
         
         
-    def runMotorTest(self, motId):
+        print("calculate height: %d"%(curRow*rowHeight))
+        top.geometry('880x%d'%(curRow*rowHeight) )
+        
+        
+    def runMotorTest(self, val):
         #TODO: call esp test function on ROV
-        if motId == -1:
-            print('all motors test...')
-        else:
-            print('Motor %d test...'%motId)
-            
+        
+        pwms = []
+        for X in self.mototValsues: 
+            pwms.append( int( X.get() ) )
+
+        print('-->', pwms)
+        if any((True for x in pwms if x != 1500)):
+            print('set motors to Values for 2 seconds and than stop motors...')        
         os.system('echo Motor test...')
     
     def runFocusTest(self):
