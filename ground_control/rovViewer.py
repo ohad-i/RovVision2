@@ -560,13 +560,11 @@ class checkListForm(object):
             print('-stop motors->', pwms)
             tic = time.time()
             pwms = (1500-np.array(pwms))/800
-            print('-->', pwms)
             pwms = np.clip(pwms,-1,1)
-            print('-->', pwms)
             self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
             self.motorsTestSent = False
             self.motorsTestSentTic = time.time()
-        
+            # update GUI 
             for X in self.mototValues:
                 X.set(1500)
                 
