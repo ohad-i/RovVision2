@@ -466,8 +466,8 @@ class checkListForm(object):
              colIxd += 1
         
         curRow += 1
-        #top.grid_rowconfigure(curRow, minsize=rowHeight)
-        #curRow += 1
+        top.grid_rowconfigure(curRow, minsize=rowHeight)
+        curRow += 1
         
         self.l = Label(top,text="Peripherals Test")
         
@@ -581,6 +581,20 @@ class checkListForm(object):
         self.top.after(25, self.main)
         
     def cleanup(self):
+        try:
+            import tkcap
+            cap = tkcap.CAP(self.top)     # master is an instance of tkinter.Tk
+
+            picturePath = os.path.join(os.getenv("HOME"), "Pictures/checkList")
+            if not os.path.exists(picturePath):
+                os.system('mkdir -p %s'%picturePath)
+            imgName = time.strftime("CL_%Y%m%d_%H%M%S.png", time.localtime())
+            imgPath = os.path.join(picturePath, imgName)
+            #region = cap.get_region()
+            cap.capture(imgPath)       # Capture and Save the screenshot of the tkiner window
+
+        except:
+            print('To record the check list - please install the following pkgs: \npip install tkcap \nsudo apt-get install scrot')
         print("clean form...")
         self.pub_sock.close()
         self.top.destroy()
