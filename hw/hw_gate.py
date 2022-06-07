@@ -243,32 +243,11 @@ def mainHwGate():
                 
             if topic == zmq_topics.topic_check_thrusters_comand:
                 _, current_command = pickle.loads(ret[1])
-                c = current_command
-                if rov_type == 4:
-                    m = [0]*8
-    
-                    m[0]=c[5] # c[6]
-                    m[1]=c[4] #c[7]
-                    m[2]=c[6] #-c[5]
-                    m[3]=c[7] #!!!c[5]!!!#-c[4]
-                    m[4]=c[1]  #c[2]
-                    m[5]=-c[0] #-c[3]
-                    m[6]=-c[3]  #c[1]
-                    m[7]=c[2] #-c[0]
-                    '''
-                    m[6]=c[2]  #c[1]
-                    m[7]=-c[3] #-c[0]
-                    '''
-                    '''
-                    m[0]=c[5]
-                    m[1]=c[4]
-                    m[2]=-c[6]
-                    m[3]=-c[7]
-                    m[4]=-c[1]
-                    m[5]=-c[0]
-                    m[6]=-c[2]
-                    m[7]=-c[3]
-                    '''
+                m = current_command
+                tmp = m[6]
+                m[6] = m[7]
+                m[7] = tmp
+                
                 motorsPwm = setCmdToPWM(m)
 
                 if any(motorsPwm): 
