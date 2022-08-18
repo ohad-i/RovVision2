@@ -330,7 +330,7 @@ class checkListForm(object):
         
         curRow += 1
         
-        self.l = Label(top,text="Set exposure to 0")
+        self.l = Label(top,text="Set exposure to 1")
         self.l.grid(column=1, row=curRow, columnspan=1, sticky='w')  #.place(x=1, y=1)
         
         self.checkVar = IntVar()
@@ -443,8 +443,8 @@ class checkListForm(object):
                  colIxd = 1
              current_value = DoubleVar()
              #self.tmpBtn = Button(top, text='M-%d'%(motIdx+1), command=lambda curMotId=motIdx+1: self.runMotorTest(curMotId) )
-             tmpBtn = Scale(top, from_=1400, 
-                                      to=1600, 
+             tmpBtn = Scale(top, from_=1350, 
+                                      to=1650, 
                                       orient=VERTICAL, 
                                       label="M-%d"%(motIdx+1), 
                                       showvalue=True, 
@@ -575,7 +575,7 @@ class checkListForm(object):
             self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
             self.motorsTestSent = False
             self.motorsTestSentTic = time.time()
-        
+            # update GUI 
             for X in self.mototValues:
                 X.set(1500)
                 
