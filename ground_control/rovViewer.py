@@ -496,6 +496,15 @@ class checkListForm(object):
         self.Check.grid(column=2, row=curRow, sticky='w')
         
         curRow +=1
+       
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Check disk space")
+        self.Check.grid(column=1, row=curRow, sticky='w')
+        
+        curRow +=1
+        
         top.grid_rowconfigure(curRow, minsize=rowHeight//2)
         curRow += 1
         
@@ -555,14 +564,14 @@ class checkListForm(object):
     
     def main(self):
         
-        if self.motorsTestSent and (time.time() - self.motorsTestSentTic) > 5: 
+        if self.motorsTestSent and (time.time() - self.motorsTestSentTic) > 3: 
             pwms = [1500]*8
             print('-stop motors->', pwms)
             tic = time.time()
             pwms = (1500-np.array(pwms))/800
-            print('-->', pwms)
+            #print('-->', pwms)
             pwms = np.clip(pwms,-1,1)
-            print('-->', pwms)
+            #print('-->', pwms)
             self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
             self.motorsTestSent = False
             self.motorsTestSentTic = time.time()
