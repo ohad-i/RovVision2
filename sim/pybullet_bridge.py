@@ -110,7 +110,7 @@ def resize(img,factor):
 def main():
     cnt=0
     frame_cnt=0
-    frame_ratio=3 # for 6 sim cycles 1 video frame
+    frame_ratio=1 #3 # for 6 sim cycles 1 video frame
     resize_fact=0.5
     mono=True
     imgl = None
@@ -122,6 +122,10 @@ def main():
         boxId = getrov()
     
     simCamState = {'expVal':-1, 'aGain':False, 'aExp':False}
+    
+    fpsCnt = 0
+    fpsTic = time.time()
+    
 
     while keep_running:
         tic_cycle = time.time()
@@ -184,7 +188,13 @@ def main():
                     viewMatrix=VM,
                     projectionMatrix=PM,renderer = pb.ER_BULLET_HARDWARE_OPENGL)
                 imgr=resize(rgbImg[:,:,:3],1/resize_fact) #todo...
-                        
+                
+            fpsCnt += 1
+            if time.time() - fpsTic >= 3:
+                simFps = fpsCnt/(time.time() - fpsTic)
+                print('simFPS: %0.2f'%simFps)
+                fpsTic = time.time()
+                fpsCnt = 0
 
             if cvshow:
                 #if 'depth' in topic:
@@ -196,11 +206,12 @@ def main():
                 cv2.imshow('l',imgls)
                 cv2.imshow('r',imgrs)
                 cv2.waitKey(1)
-
+            
             if mono:
                 zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([ frame_cnt, (imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simCamState, False]),imgl.tobytes(), b''])
             else:
                 zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,(imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simCamState , False]),imgl.tobytes(), b'' , imgr.tobytes(), b'' ] )
+            
             time.sleep(0.001) 
             zmq_pub.send_multipart([zmq_topics.topic_stereo_camera_ts,pickle.dumps((frame_cnt,time.time()))]) #for sync
                 
