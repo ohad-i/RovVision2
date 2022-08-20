@@ -1984,4 +1984,6 @@ if __name__=='__main__':
         traceback.print_exc()
     finally:
         guiInstance.quit()
+        if args.sim:
+            os.system('tmux kill-session -t sim')
         
