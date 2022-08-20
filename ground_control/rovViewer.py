@@ -1893,8 +1893,9 @@ class rovViewerWindow(Frame):
         dkey = None
         for key in self.controllerChbx:
             if self.controllerChbx[key].get() == 0:
-                dkey = key
-                print(key)
+                if key != 'thrusters':
+                    dkey = key
+                    print(key)
         
         if dkey is not None:
             with open("../config_pid.json") as fid:
@@ -1909,9 +1910,16 @@ class rovViewerWindow(Frame):
                 with open("../config_pid.json", 'w') as fid:
                     json.dump(data, fid, indent=4)
                 
-                self.cmdDepthHold()
-                self.cmdAttHold()
-                os.system("cd ../scripts && ./updateRemotePIDs.sh")
+                
+                print('--update PID-->', dkey)
+                msg = {'pluginUpdate':dkey, 'data':data}
+                msg = pickle.dumps(msg, protocol=3)
+                self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_update_pids, msg])
+                
+                #self.cmdDepthHold()
+                #self.cmdAttHold()
+                #os.system("cd ../scripts && ./updateRemotePIDs.sh")
+                
             except:
                 import traceback
                 traceback.print_exc()

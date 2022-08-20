@@ -51,6 +51,9 @@ topic_gui_inc_exp          = b'inc_exposureCmd'
 topic_gui_dec_exp          = b'dec_exposureCmd'
 topic_gui_exposureVal      = b'exposureValue'
 topic_gui_toggle_auto_gain = b'auto_gainCmd'
+
+topic_gui_update_pids      = b'updatePIDS'
+
 topic_gui_port = 8900
 
 topic_motors_output = b'motors_output'
