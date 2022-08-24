@@ -11,3 +11,5 @@ scripts/pingviewer-x86_64.AppImage
 /people/
 /mono_crash*
 *.mp4
+/installs/pyueye-3.50-3.70/*
+/installs/uEye_Linux_350_64Bit/*
