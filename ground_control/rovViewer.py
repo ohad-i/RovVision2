@@ -496,6 +496,15 @@ class checkListForm(object):
         self.Check.grid(column=2, row=curRow, sticky='w')
         
         curRow +=1
+       
+        self.checkVar = IntVar()
+        self.checkVar.set(1)
+        
+        self.Check = Checkbutton(top, variable=self.checkVar, onvalue=0, offvalue=1, text="Check disk space")
+        self.Check.grid(column=1, row=curRow, sticky='w')
+        
+        curRow +=1
+        
         top.grid_rowconfigure(curRow, minsize=rowHeight//2)
         curRow += 1
         
@@ -555,12 +564,14 @@ class checkListForm(object):
     
     def main(self):
         
-        if self.motorsTestSent and (time.time() - self.motorsTestSentTic) > 5: 
+        if self.motorsTestSent and (time.time() - self.motorsTestSentTic) > 3: 
             pwms = [1500]*8
             print('-stop motors->', pwms)
             tic = time.time()
             pwms = (1500-np.array(pwms))/800
+            #print('-->', pwms)
             pwms = np.clip(pwms,-1,1)
+            #print('-->', pwms)
             self.pub_sock.send_multipart([zmq_topics.topic_check_thrusters_comand, pickle.dumps((tic,list(pwms)))])
             self.motorsTestSent = False
             self.motorsTestSentTic = time.time()
@@ -1882,8 +1893,9 @@ class rovViewerWindow(Frame):
         dkey = None
         for key in self.controllerChbx:
             if self.controllerChbx[key].get() == 0:
-                dkey = key
-                print(key)
+                if key != 'thrusters':
+                    dkey = key
+                    print(key)
         
         if dkey is not None:
             with open("../config_pid.json") as fid:
@@ -1898,9 +1910,16 @@ class rovViewerWindow(Frame):
                 with open("../config_pid.json", 'w') as fid:
                     json.dump(data, fid, indent=4)
                 
-                self.cmdDepthHold()
-                self.cmdAttHold()
-                os.system("cd ../scripts && ./updateRemotePIDs.sh")
+                
+                print('--update PID-->', dkey)
+                msg = {'pluginUpdate':dkey, 'data':data}
+                msg = pickle.dumps(msg, protocol=3)
+                self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_update_pids, msg])
+                
+                #self.cmdDepthHold()
+                #self.cmdAttHold()
+                #os.system("cd ../scripts && ./updateRemotePIDs.sh")
+                
             except:
                 import traceback
                 traceback.print_exc()
@@ -1965,4 +1984,6 @@ if __name__=='__main__':
         traceback.print_exc()
     finally:
         guiInstance.quit()
+        if args.sim:
+            os.system('tmux kill-session -t sim')
         

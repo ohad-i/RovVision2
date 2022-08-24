@@ -16,13 +16,21 @@ from joy_mix import Joy_map
 from config_pid import yaw_pid,pitch_pid,roll_pid,roll_target_0
 from pid import PID
 
+import os
+import commonPlugins
+
 #def rates_in_body_frame(yaw,pitch,roll,rot_rates):
 #    dcm=mixer.todcm(yaw,pitch,roll)
 #    v=np.array(rot_rates).reshape(3,1)
 #    rx,ry,rz=(dcm.T @ v).flatten()
 #    return rx,ry,rz
 
+
+    
+    
 async def recv_and_process():
+    global yaw_pid,pitch_pid,roll_pid,roll_target_0
+    
     keep_running=True
     target_att=np.zeros(3)
     pid_y,pid_p,pid_r=[None]*3
@@ -31,6 +39,8 @@ async def recv_and_process():
     jm=Joy_map()
     joy=None
     doGuiCmd = False
+    
+    tmpPIDS = "/tmp/tmpAttConfigPid.json"
 
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
@@ -46,7 +56,14 @@ async def recv_and_process():
                 if data['dPitch'] is not None:
                     target_att[1] = data['dPitch']
                 
-                
+            
+            if os.path.exists(tmpPIDS):
+                yaw_pid, pitch_pid, roll_pid, _ = commonPlugins.reloadPIDs(tmpPIDS)
+                os.remove(tmpPIDS)
+                pid_y = None
+                pid_p = None
+                pid_r = None
+                print('Update pids and reset plugin...')
             
             if topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
@@ -61,7 +78,7 @@ async def recv_and_process():
                     rates = [x/np.pi*180 for x in data['rates']]
 
                 joy = jm.joy_mix()
-
+                
                 if 'ATT_HOLD' in system_state['mode']:# and ans is not None:
                     if pid_y is None:
                         pid_y=PID(**yaw_pid)
@@ -103,7 +120,8 @@ async def recv_and_process():
                     if pid_y is not None:
                         pid_y.reset(),pid_r.reset(),pid_y.reset()
                     target_att=[yaw,pitch,roll]
-                    thrusters_source.send_pyobj(['att',time.time(),mixer.zero_cmd()])
+                    # TODO:  is it necessary to send it over and over...
+                    thrusters_source.send_pyobj(['att', time.time(), mixer.zero_cmd()])
 
 
             if topic==zmq_topics.topic_axes:

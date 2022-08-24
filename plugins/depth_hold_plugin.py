@@ -16,7 +16,12 @@ from config_pid import depth_pid
 from pid import PID
 from filters import ab_filt
 
+import os
+import commonPlugins
+
 async def recv_and_process():
+    global depth_pid
+    
     keep_running=True
     pitch,roll=0,0
     target_depth=0
@@ -25,12 +30,20 @@ async def recv_and_process():
     rate=0
     system_state={'mode':[]}
     jm=Joy_map()
+    
+    tmpPIDS = "/tmp/tmpDepthConfigPid.json"
 
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
         for sock in socks:
             ret=sock.recv_multipart()
             topic,data=ret[0],pickle.loads(ret[1])
+            
+            if os.path.exists(tmpPIDS):
+                _, _, _, depth_pid = commonPlugins.reloadPIDs(tmpPIDS)
+                os.remove(tmpPIDS)
+                pid = None
+                print('Update pids and reset plugin...')
 
             if topic==zmq_topics.topic_depth:
                 new_depth_ts, depth=data['ts'],data['depth']

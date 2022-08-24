@@ -13,6 +13,9 @@ import zmq_wrapper as utils
 import zmq_topics
 from joy_mix import Joy_map
 
+import json
+
+
 pub_sock = utils.publisher(zmq_topics.topic_controller_port)
 camPubSock = utils.publisher(zmq_topics.topic_cam_ctrl_port)
 
@@ -28,7 +31,8 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_gui_controller,
                                    zmq_topics.topic_gui_toggle_auto_gain,
                                    zmq_topics.topic_gui_inc_exp,
                                    zmq_topics.topic_gui_dec_exp, 
-                                   zmq_topics.topic_gui_exposureVal],  zmq_topics.topic_gui_port))
+                                   zmq_topics.topic_gui_exposureVal,
+                                   zmq_topics.topic_gui_update_pids],  zmq_topics.topic_gui_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_autoFocus], zmq_topics.topic_autoFocus_port))
 subs_socks.append(utils.subscribe([zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
                                    
@@ -93,8 +97,10 @@ async def recv_and_process():
         else:
             s['mode'].append(m)
 
+
     def test_togle(b):
         return new_joy_buttons[b]==1 and joy_buttons[b]==0
+
     
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.002)[0]
@@ -217,6 +223,18 @@ async def recv_and_process():
                 elif topic == zmq_topics.topic_gui_exposureVal:
                     print('got camera exp. value:', data)
                     camPubSock.send_multipart([zmq_topics.topic_cam_exp_val, pickle.dumps(data)])
+                
+                elif topic == zmq_topics.topic_gui_update_pids:
+                    print('update PIDs... %s'%data['pluginUpdate'] )
+                    if data['pluginUpdate'] == 'depth':
+                        jsonFileName = "/tmp/tmpDepthConfigPid.json"
+                    elif data['pluginUpdate'] == 'yaw' or data['pluginUpdate'] == 'roll' or data['pluginUpdate'] == 'pitch':
+                        jsonFileName = "/tmp/tmpAttConfigPid.json"
+                    with open(jsonFileName, 'w') as fid:
+                        json.dump(data['data'], fid, indent=4)
+                    
+                
+                
                         
                     
 

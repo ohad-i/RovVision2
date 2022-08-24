@@ -107,7 +107,6 @@ class tracker:
         
         flag = self.trackerInit
         #import ipdb; ipdb.set_trace() 
-        
         if flag or (self.trackPnt is not None):
             if inImg is not None:
                 image = np.copy(inImg)
@@ -173,13 +172,15 @@ if __name__=='__main__':
     trackerInit = False
     im = None
 
+    imTt = None
+
     def startTrack(event,x,y,flags,param):
         global trackPnt, trackerInit
         if event == cv2.EVENT_LBUTTONDOWN:
             print('start tracker: ', x, y)
             trackPnt = [x, y]
             trck.initTracker(trackPnt)
-            trckRes = trck.track(im)
+            trckRes = trck.track(imTt[:,:,1])
             trackerInit = True
         if event == cv2.EVENT_MBUTTONDOWN:
             print('stop tracker')
@@ -189,12 +190,13 @@ if __name__=='__main__':
     cv2.namedWindow(winName, 0)
     cv2.setMouseCallback(winName, startTrack)
     
-    fileName = r'jellyFish_realTracker.avi'
-    #fileName = r'yy.avi'
+    #fileName = r'jellyFish_realTracker.avi'
+    fileName = r'yy.avi'
     #fileName = r'outLowRes.avi'
     #fileName = r'oriSamples/vid_l.mp4'
     cap = cv2.VideoCapture(fileName)
     ret, im = cap.read()
+    imTt = cv2.cvtColor(im, cv2.COLOR_RGB2YUV)
     wait = 0 #200 # ms, 0->infinite
     
     writer = None
@@ -214,16 +216,17 @@ if __name__=='__main__':
                 tic = time.time()
 
             if trackerInit:
-                trckRes = trck.track(im)
+                trckRes = trck.track(imTt[:,:,1])
                 if trckRes is not None:
                     #print('track res: ', trckRes)
-                    cv2.circle(im, (trckRes[0], trckRes[1]), 10, (0,0,255), 1)
-            
+                    cv2.circle(im, (int(trckRes[0]), int(trckRes[1]) ), 10, (0,0,255), 1)
+            ''' 
             if writer is None:
                 fourcc = cv2.VideoWriter_fourcc(*'RGBA')
                 writer = cv2.VideoWriter('trackRes.avi', fourcc, 10, (im.shape[1], im.shape[0]), True)
             else:
                 writer.write(im)
+            '''
         
             cv2.imshow(winName, im)
             key = cv2.waitKey(wait)
@@ -246,6 +249,16 @@ if __name__=='__main__':
                 cv2.waitKey(wait)
 
             ret, im = cap.read()
+            #im = cv2.cvtColor(im, cv2.COLOR_RGB2GRAY)
+            imTt = cv2.cvtColor(im, cv2.COLOR_RGB2YUV)
+            #im = im-np.mean(im)
+            '''
+            cv2.imshow('0', imTt[:,:,0])
+            cv2.imshow('1', imTt[:,:,1])
+            cv2.imshow('2', imTt[:,:,2])
+            '''
+            #import ipdb; ipdb.set_trace()
+            #im = (im+np.min(im)).astype('uint8')
     except:
         import traceback
         traceback.print_exc()
