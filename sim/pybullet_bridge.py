@@ -26,8 +26,8 @@ pub_depth = utils.publisher(zmq_topics.topic_depth_port)
 pub_sonar = utils.publisher(zmq_topics.topic_sonar_port)
 pub_motors = utils.publisher(zmq_topics.topic_motors_output_port)
 
-cvshow=0
-#cvshow=False
+#cvshow=True
+cvshow=False
 test=1
 
 dill.settings['recurse'] = True
@@ -110,7 +110,7 @@ def resize(img,factor):
 def main():
     cnt=0
     frame_cnt=0
-    frame_ratio=1 #3 # for 6 sim cycles 1 video frame
+    frame_ratio=3 # for 6 sim cycles 1 video frame
     resize_fact=0.5
     mono=True
     imgl = None
@@ -202,9 +202,9 @@ def main():
                 #else:
                 #cv2.imshow(topic,cv2.resize(cv2.resize(img,(1920/2,1080/2)),(512,512)))
                 imgls = imgl[::2,::2]
-                imgrs = imgr[::2,::2]
+                #imgrs = imgr[::2,::2]
                 cv2.imshow('l',imgls)
-                cv2.imshow('r',imgrs)
+                #cv2.imshow('r',imgrs)
                 cv2.waitKey(1)
             
             if mono:
@@ -216,24 +216,26 @@ def main():
             zmq_pub.send_multipart([zmq_topics.topic_stereo_camera_ts,pickle.dumps((frame_cnt,time.time()))]) #for sync
                 
             #get depth image
-            depthImg=depthImg[::4,::4]
-            min_range=depthImg.min() 
-            #import pdb;pdb.set_trace()
-
-            img_show=(depthImg/10.0).clip(0,255).astype('uint8')
-            depthImg[depthImg>5000]=np.nan
-            max_range=np.nanmax(depthImg)
-            #print('sonar::',min_range,max_range)
-            pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps([min_range,max_range])])
-
-            if cvshow:
-                cv2.imshow('depth',img_show)
-                cv2.waitKey(1)
+            if 0:
+                depthImg=depthImg[::4,::4]
+                min_range=depthImg.min() 
+                #import pdb;pdb.set_trace()
+    
+                img_show=(depthImg/10.0).clip(0,255).astype('uint8')
+                depthImg[depthImg>5000]=np.nan
+                max_range=np.nanmax(depthImg)
+                #print('sonar::',min_range,max_range)
+                pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps([min_range,max_range])])
+    
+                if cvshow:
+                    cv2.imshow('depth',img_show)
+                    cv2.waitKey(1)
             frame_cnt+=1
 
             #print('====',px,py,pz,roll,pitch,yaw)
             #pb.resetBasePositionAndOrientation(boxId,(px,py,pz),pb.getQuaternionFromEuler((roll,pitch,yaw)))
             if render==pb.GUI:
+                print('ttt', time.time())
                 pb.resetBasePositionAndOrientation(boxId,(py,px,-pz),pb.getQuaternionFromEuler((roll,-pitch,-yaw+np.radians(0))))
             ### test
             tic=time.time()
