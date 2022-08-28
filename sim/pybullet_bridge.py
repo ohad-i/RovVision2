@@ -26,8 +26,8 @@ pub_depth = utils.publisher(zmq_topics.topic_depth_port)
 pub_sonar = utils.publisher(zmq_topics.topic_sonar_port)
 pub_motors = utils.publisher(zmq_topics.topic_motors_output_port)
 
-cvshow=0
-#cvshow=False
+#cvshow=True
+cvshow=False
 test=1
 
 dill.settings['recurse'] = True
@@ -122,6 +122,10 @@ def main():
         boxId = getrov()
     
     simCamState = {'expVal':-1, 'aGain':False, 'aExp':False}
+    
+    fpsCnt = 0
+    fpsTic = time.time()
+    
 
     while keep_running:
         tic_cycle = time.time()
@@ -184,7 +188,13 @@ def main():
                     viewMatrix=VM,
                     projectionMatrix=PM,renderer = pb.ER_BULLET_HARDWARE_OPENGL)
                 imgr=resize(rgbImg[:,:,:3],1/resize_fact) #todo...
-                        
+                
+            fpsCnt += 1
+            if time.time() - fpsTic >= 3:
+                simFps = fpsCnt/(time.time() - fpsTic)
+                print('simFPS: %0.2f'%simFps)
+                fpsTic = time.time()
+                fpsCnt = 0
 
             if cvshow:
                 #if 'depth' in topic:
@@ -192,37 +202,40 @@ def main():
                 #else:
                 #cv2.imshow(topic,cv2.resize(cv2.resize(img,(1920/2,1080/2)),(512,512)))
                 imgls = imgl[::2,::2]
-                imgrs = imgr[::2,::2]
+                #imgrs = imgr[::2,::2]
                 cv2.imshow('l',imgls)
-                cv2.imshow('r',imgrs)
+                #cv2.imshow('r',imgrs)
                 cv2.waitKey(1)
-
+            
             if mono:
                 zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([ frame_cnt, (imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simCamState, False]),imgl.tobytes(), b''])
             else:
                 zmq_pub.send_multipart([zmq_topics.topic_stereo_camera,pickle.dumps([frame_cnt,(imgl.shape[0]*2,imgl.shape[1]*2, 3 ), time.time(), simCamState , False]),imgl.tobytes(), b'' , imgr.tobytes(), b'' ] )
+            
             time.sleep(0.001) 
             zmq_pub.send_multipart([zmq_topics.topic_stereo_camera_ts,pickle.dumps((frame_cnt,time.time()))]) #for sync
                 
             #get depth image
-            depthImg=depthImg[::4,::4]
-            min_range=depthImg.min() 
-            #import pdb;pdb.set_trace()
-
-            img_show=(depthImg/10.0).clip(0,255).astype('uint8')
-            depthImg[depthImg>5000]=np.nan
-            max_range=np.nanmax(depthImg)
-            #print('sonar::',min_range,max_range)
-            pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps([min_range,max_range])])
-
-            if cvshow:
-                cv2.imshow('depth',img_show)
-                cv2.waitKey(1)
+            if 0:
+                depthImg=depthImg[::4,::4]
+                min_range=depthImg.min() 
+                #import pdb;pdb.set_trace()
+    
+                img_show=(depthImg/10.0).clip(0,255).astype('uint8')
+                depthImg[depthImg>5000]=np.nan
+                max_range=np.nanmax(depthImg)
+                #print('sonar::',min_range,max_range)
+                pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps([min_range,max_range])])
+    
+                if cvshow:
+                    cv2.imshow('depth',img_show)
+                    cv2.waitKey(1)
             frame_cnt+=1
 
             #print('====',px,py,pz,roll,pitch,yaw)
             #pb.resetBasePositionAndOrientation(boxId,(px,py,pz),pb.getQuaternionFromEuler((roll,pitch,yaw)))
             if render==pb.GUI:
+                print('ttt', time.time())
                 pb.resetBasePositionAndOrientation(boxId,(py,px,-pz),pb.getQuaternionFromEuler((roll,-pitch,-yaw+np.radians(0))))
             ### test
             tic=time.time()
