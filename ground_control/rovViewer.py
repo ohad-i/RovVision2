@@ -51,6 +51,7 @@ parser.add_argument('-r', '--rawVideo', action='store_true', help='Recieve raw v
 parser.add_argument('-s', '--sim', action='store_true', help='Simulation')
 args = parser.parse_args()
 
+
 '''
 tm = time.gmtime()
 filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
@@ -61,6 +62,7 @@ log_file = open(filename, "a")
 
 if args.sim:
     rovType = -1
+    isSim = True 
 else:
     rovType = int(os.environ.get('ROV_TYPE','1'))
 
@@ -1906,9 +1908,10 @@ class rovViewerWindow(Frame):
                 data['config_pid'][0][dkey+'_pid']['P'] = float(self.myStyle["Kp_textbox"].get())
                 data['config_pid'][0][dkey+'_pid']['I'] = float(self.myStyle["Ki_textbox"].get())
                 data['config_pid'][0][dkey+'_pid']['D'] = float(self.myStyle["Kd_textbox"].get())
-                
-                with open("../config_pid.json", 'w') as fid:
-                    json.dump(data, fid, indent=4)
+               
+                if not isSim:
+                    with open("../config_pid.json", 'w') as fid:
+                        json.dump(data, fid, indent=4)
                 
                 
                 print('--update PID-->', dkey)
