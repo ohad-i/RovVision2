@@ -216,6 +216,7 @@ def main():
                 current_command=[i*1.3 for i in current_command]
                 
                 motorsPwm = [e * 400 for e in current_command]
+                #print('--->', motorsPwm)
 
                 pub_motors.send_multipart( [zmq_topics.topic_motors_output, pickle.dumps( {'ts':time.time(), 'motors':motorsPwm} )])
 

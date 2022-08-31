@@ -869,51 +869,30 @@ class rovViewerWindow(Frame):
         ## double click -> "<Double-1>"
         #self.myStyle['disp_image'].bind("<Button-2>", self.image_right_clicked)
         #self.myStyle['disp_image'].bind("<Button-3>", self.image_right_clicked)
-
-        self.parent.bind("<Left>", self.left_click_func)
+        
+        '''
+        self.parent.bind("<Left>",  self.left_click_func)
         self.parent.bind("<Right>", self.right_click_func)
-        self.parent.bind("<Up>", self.up_click_func)
-        self.parent.bind("<Down>", self.down_click_func)
+        self.parent.bind("<Up>",    self.up_click_func)
+        self.parent.bind("<Down>",  self.down_click_func)
         self.parent.bind("<Prior>", self.page_up_click_func)
-        self.parent.bind("<Next>", self.page_down_click_func)
+        self.parent.bind("<Next>",  self.page_down_click_func)
         self.parent.bind("<Key-7>", self.turn_left_click_func)
         self.parent.bind("<Key-9>", self.turn_right_click_func)
+        '''
 
-        self.parent.bind("<Key-a>", self.left_click_func)
-        self.parent.bind("<Key-d>", self.right_click_func)
-        self.parent.bind("<Key-w>", self.up_click_func)
-        self.parent.bind("<Key-s>", self.down_click_func)
-        self.parent.bind("<Key-r>", self.page_up_click_func)
-        self.parent.bind("<Key-f>", self.page_down_click_func)
-        self.parent.bind("<Key-q>", self.turn_left_click_func)
-        self.parent.bind("<Key-e>", self.turn_right_click_func)
+        self.parent.bind("<Key-a>", self.goLeft)
+        self.parent.bind("<Key-d>", self.goRight)
+        self.parent.bind("<Key-w>", self.goForward)
+        self.parent.bind("<Key-s>", self.neutralCmd)
+        self.parent.bind("<Key-x>", self.goBackwards)
+        self.parent.bind("<Key-e>", self.yawRight)
+        self.parent.bind("<Key-q>", self.yawLeft)
+        self.parent.bind("<Key-c>", self.goDeeper)
+        self.parent.bind("<Key-z>", self.goUpper)
         
-        self.parent.bind("<F11>", self.fullVideoScreenEvent)
+        self.parent.bind("<F11>",   self.fullVideoScreenEvent)
 
-        
-    def page_up_click_func(self, event):
-        self.go_up()
-
-    def page_down_click_func(self, event):
-        self.go_down()
-
-    def turn_left_click_func(self, event):
-        self.turn_left()
-
-    def turn_right_click_func(self, event):
-        self.turn_right()
-
-    def left_click_func(self, event):
-        print('left')
-
-    def right_click_func(self, event):
-        self.go_right()
-
-    def up_click_func(self, event):
-        self.go_forwards()
-
-    def down_click_func(self, event):
-        self.go_backwards()
 
     def updatePIds(self, pids):
         self.myStyle["K_textbox"].delete(0, END)
@@ -1193,31 +1172,43 @@ class rovViewerWindow(Frame):
     def autoGain(self):
         print('auto gain command')
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_toggle_auto_gain, pickle.dumps(b'', protocol=3) ])
-        
-
-    def turn_right(self):
+    
+    def goLeft(self):
+        #TODO: send left movement command
         pass
 
-    def turn_left(self):
+    def goRight(self):
+        #TODO: send right movement command
         pass
-
-    def go_up(self):
+    
+    def goForward(self):
+        #TODO: send forward movement command
         pass
-
-    def go_down(self):
+    
+    def neutralCmd(self):
+        #TODO: send no movement command (sticks at middle)
         pass
-
-    def go_left(self):
+    
+    def goBackwards(self):
+        #TODO: send backwards movement command
         pass
-
-    def go_right(self):
+    
+    def yawRight(self):
+        #TODO: send yaw-right movement command
         pass
-
-    def go_forwards(self):
+    
+    def yawLeft(self):
+        #TODO: send yaw-left movement command
         pass
-
-    def go_backwards(self):
+    
+    def goDeeper(self):
+        #TODO: send deeper movement command
         pass
+    
+    def goUpper(self):
+        #TODO: send upper movement command
+        pass
+    
 
     def led_off(self):
         pass
@@ -1776,7 +1767,7 @@ class rovViewerWindow(Frame):
         self.create_text_box(name="Kd", label_text="kD:", display_text="", n_col=btnCol , n_row=row_btn_idx, textbox_width=9)
         
         
-        if 0:
+        if 0: ###
             ### show manual controls
             control_start_col = 6#12
             manualControlOffsetRow = 3
