@@ -1095,7 +1095,11 @@ class rovViewerWindow(Frame):
             
     def setAutoFocus(self, event):
         print('run auto focus')
-        data = pickle.dumps('run auto focus...', protocol=3)
+        x = event.x
+        y = event.y
+        print('--->', x,y)
+
+        data = pickle.dumps(['run auto focus...',{'pixel':[x,y]} ], protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_autoFocus, data])
         
         

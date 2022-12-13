@@ -168,7 +168,9 @@ async def recv_and_process():
                     print('focus set to value ',system_state['focus'])
                 
                 elif topic == zmq_topics.topic_gui_autoFocus:
-                    os.system('../scripts/runAutofocus.sh')
+                    print('start auto focus...', data)
+                    x,y = data[1]['pixel']
+                    os.system('../scripts/runAutofocus.sh %d %d'%(x,y) )
                 
                 elif topic == zmq_topics.topic_gui_start_stop_track:
                     print('start/stop tracker... ', data)

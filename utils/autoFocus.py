@@ -32,6 +32,13 @@ autoFocusPublisher = zmq_wrapper.publisher(zmq_topics.topic_autoFocus_port)
 
 
 if __name__=='__main__':
+
+    winSize = 200
+    x = int(sys.argv[1])
+    y = int(sys.argv[2])
+    print('xx', x, 'yy', y)
+    winOrig = [max(0, x-winSize//2), max(0, y-winSize//2)]
+    useMargin = False
     
     doResize = False
     sx,sy=config.cam_res_rgbx,config.cam_res_rgby
@@ -100,7 +107,14 @@ if __name__=='__main__':
                         #cv2.imshow('aa', imgl)
                         #cv2.waitKey(10)
                         gray = cv2.cvtColor(imgl, cv2.COLOR_BGR2GRAY)
-                        gray = gray[margin:-margin, margin:-margin]
+                        if useMargin:
+                            gray = gray[margin:-margin, margin:-margin]
+                        else:
+                            imShape = gray.shape
+                            #import ipdb; ipdb.set_trace()
+                            gray = gray[winOrig[1]:min(imShape[1], winOrig[1]+winSize), winOrig[0]:min(imShape[0], winOrig[0]+winSize)]
+                            cv2.imshow('aa', gray); cv2.waitKey(5)
+
                         fm = cv2.Laplacian(gray, cv2.CV_64F).var()
                         
                         if fm > maxFocusSate['maxFm']:
