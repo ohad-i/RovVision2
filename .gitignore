@@ -13,3 +13,5 @@ scripts/pingviewer-x86_64.AppImage
 *.mp4
 /installs/pyueye-3.50-3.70/*
 /installs/uEye_Linux_350_64Bit/*
+/hw/oculus/*fips*
+/hw/oculus/libg3logger
