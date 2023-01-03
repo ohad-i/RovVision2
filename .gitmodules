@@ -1,0 +1,3 @@
+[submodule "hw/oculus/liboculus"]
+	path = hw/oculus/liboculus
+	url = https://github.com/ohad-i/liboculus
