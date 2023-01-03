@@ -7,7 +7,7 @@ if __name__=='__main__':
     rov_type = int(os.environ.get('ROV_TYPE','1'))
     for dev in ['/dev/ttyUSB%d'%i for i in [0,1,2,3]]:
         cmd = 'udevadm info '+dev
-        line=os.popen(cmd).readline()
+        line=os.popen(cmd).read()
         
         if rov_type==1:
             if '1-7' in line:
@@ -47,9 +47,9 @@ if __name__=='__main__':
             if '1-5.1' in line:
                 dmap['PERI_USB']=dev
             '''
-            if '1-2.1' in line:
+            if 'FTDI_USB-RS232_Cable_FTWV7X4Y' in line:
                 dmap['VNAV_USB']=dev
-            if '1-2.4' in line:
+            if 'FTDI_FT232R_USB_UART_AI0484HC' in line:
                 dmap['ESC_USB']=dev #esp32
 
 
