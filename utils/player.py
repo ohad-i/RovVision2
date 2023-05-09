@@ -13,8 +13,8 @@ import zmq_topics
 import pickle
 import zmq_wrapper as utils
 
-import recorder 
-topicsList = recorder.topicsList
+#import recorder 
+#topicsList = recorder.topicsList
 
 
 usageDescription = 'usage while playing: \n\t(-) press space to run frame by frame \n\t(-) press r ro run naturally, ~10Hz \n\t(-) press +/- to increase/decrease playing speed'
@@ -115,6 +115,7 @@ def vidProc(im, imLowRes, imPub = None):
 
         if saveTiff:
             curImName = '%08d.tiff'%frameId
+            print(curImName)
             #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
             cv2.imwrite( os.path.join(imgsPath, curImName), im )
             #curImName = '%08d.jpg'%frameId
@@ -148,6 +149,18 @@ def vidProc(im, imLowRes, imPub = None):
             
         if showVideo:
             cv2.imshow(winNameLowRes, showImLow) #im[:200,:])
+        if imgsPath is None:
+            imgsPath = os.path.join(recPath, 'imgs')
+            if not os.path.exists(imgsPath):
+                os.system('mkdir -p %s'%imgsPath)
+
+        if saveTiff:
+            curImName = 'lr_%08d.tiff'%frameId
+            print(curImName)
+            #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
+            cv2.imwrite( os.path.join(imgsPath, curImName), imLowRes )
+            #curImName = '%08d.jpg'%frameId
+            #cv2.imwrite( os.path.join(imgsPath, curImName), im,  [cv2.IMWRITE_JPEG_QUALITY, 100] )
 
             
 
@@ -173,6 +186,29 @@ def vidProc(im, imLowRes, imPub = None):
     return True
 
 
+
+pubList = []
+topicPubDict = {}
+revTopicPubDict = {}
+
+def getPublisher(topic):
+    global pubList, topicPubDict, revTopicPubDict
+    tPort = zmq_topics.topic2portDict[topic]
+
+    # create publishers
+    if topic not in topicPubDict.keys():
+        if tPort in pubList:
+            print('reuse publisher port: %d %s'%(tPort, topic) )  
+            topicPubDict[topic] = topicPubDict[revTopicPubDict[tPort]]
+        else:
+            tPort = zmq_topics.topic2portDict[topic]
+            print('creats publisher on port: %d %s'%(tPort , topic) )
+            topicPubDict[topic] = utils.publisher(tPort)
+            revTopicPubDict[tPort] = topic
+            pubList.append(tPort)
+    return topicPubDict[topic]
+    
+
 '''
 cv2.namedWindow('low', 0)
 cv2.namedWindow('high', 0)
@@ -180,26 +216,45 @@ cv2.namedWindow('high', 0)
 if __name__=='__main__':
     
     try:
-        pubList = []
-        topicPubDict = {}
-        revTopicPubDict = {}
-        for topic in topicsList:
-            if topic[1] in pubList: # port already exist
-                print('reuse publisher port: %d %s'%(topic[1], topic[0]) )  
-                topicPubDict[topic[0]] = topicPubDict[revTopicPubDict[topic[1]]]
-            else:
-                print('creats publisher on port: %d %s'%(topic[1], topic[0]) )
-                topicPubDict[topic[0]] = utils.publisher(topic[1])
-                revTopicPubDict[topic[1]] = topic[0]
-                pubList.append(topic[1])
         
         fpsTic = time.time()
         fpsCnt = 0.0
         
         if recPath is not None:
-            vidPath = os.path.join(recPath, 'video.bin')
-            vidQPath = os.path.join(recPath, 'videoQ.bin')
-            telemPath = os.path.join(recPath, 'telem.pkl')
+            vidPath         = os.path.join(recPath, 'video.bin')
+            vidQPath        = os.path.join(recPath, 'videoQ.bin')
+            telemPath       = os.path.join(recPath, 'telem.pkl')
+            syncTelemPath   = os.path.join(recPath, 'syncedTelem.pkl')
+
+            if not os.path.exists(syncTelemPath):
+                if os.path.exists(telemPath):
+                    telFid = open(telemPath, 'rb')
+                
+                curData = pickle.load(telFid)
+                data = pickle.loads(curData[1][1])
+                try:
+                    if isinstance(data, dict):
+                        if 'ts' in data.keys():
+                            curTs = data['ts']
+                        while True:
+                            curData = pickle.load(telFid)
+                            data = pickle.loads(curData[1][1])
+                            if isinstance(data, dict):
+                                if 'ts' in data.keys():
+                                    nextTs = data['ts']
+                                if nextTs < curTs:
+                                    print('need resync...')
+                                    #import ipdb; ipdb.set_trace()
+                                else:
+                                    print('ok')
+                                curTs = nextTs
+                except:
+                    import traceback; traceback.print_exc()
+                    import ipdb; ipdb.set_trace()
+
+
+
+
             imgCnt = 0
             imRaw = None
             highResEndFlag = False
@@ -245,8 +300,7 @@ if __name__=='__main__':
             nextData = pickle.load(telFid)
             nextTicToc = 0.9*(nextData[0] - curData[0]) 
 
-            #import ipdb; ipdb.set_trace()
-            
+            # main loop 
             while True:
                 
                 time.sleep(0.0001)
@@ -261,6 +315,8 @@ if __name__=='__main__':
                     
 
                 curTopic = data[1][0]
+                curPublisher = getPublisher(curTopic)
+                
                 if curTopic == zmq_topics.topic_stereo_camera:
                     fpsCnt+=1
                     if time.time() - fpsTic >= 5:
@@ -320,16 +376,13 @@ if __name__=='__main__':
                                             pickle.dumps((metaData[0], imLowRes.shape, expVal, metaData[2])),
                                                 imLowRes.tobytes()] # [topic, (frameId, frameShape, ts) rawFrame]
                         #print('-->', curTopic)
-                        topicPubDict[curTopic].send_multipart(videoMsg)
+                        curPublisher.send_multipart(videoMsg)
                         
                 else:
                     #recTs = data[0]
                     telData = pickle.loads(data[1][1])
-                    topicPubDict[curTopic].send_multipart([curTopic, pickle.dumps(telData)] )
+                    curPublisher.send_multipart([curTopic, pickle.dumps(telData)] )
                     
-                    #pass
-                    #topicPubDict[curTopic].send_multipart(data[1])
-            
                 curData = nextData
                 nextData = pickle.load(telFid)
                     
@@ -343,6 +396,7 @@ if __name__=='__main__':
                     if nextTicToc<0:
                         nextTicToc = 0
                         print('--err--> next sleep err: %.5f'%(nextData[0]-curData[0] ) )
+                    
                     ###############################################################
                       
     except:

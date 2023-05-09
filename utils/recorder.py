@@ -32,7 +32,8 @@ topicsList = [ [zmq_topics.topic_thrusters_comand,   zmq_topics.topic_thrusters_
                [zmq_topics.topic_att_hold_pitch_pid, zmq_topics.topic_att_hold_port],
                [zmq_topics.topic_att_hold_yaw_pid,   zmq_topics.topic_att_hold_port],
                [zmq_topics.topic_depth_hold_pid,     zmq_topics.topic_depth_hold_port],
-               [zmq_topics.topic_motors_output,      zmq_topics.topic_motors_output_port]
+               [zmq_topics.topic_motors_output,      zmq_topics.topic_motors_output_port],
+               [zmq_topics.topic_sonar,              zmq_topics.topic_sonar_port],
         ]
 
 subs_socks=[]

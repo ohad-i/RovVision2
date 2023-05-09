@@ -104,11 +104,11 @@ async def recv_and_process():
 
                             ts=time.time()
                             debug_pid = {'P':pidR.p,'I':pidR.i,'D':pidR.d,'C':rollCmd,'T':tRoll,'N':curRoll, 'R':rates[0], 'TS':ts}
-                            pub_sock.send_multipart([zmq_topics.topic_att_hold_roll_pid, pickle.dumps(debug_pid,-1)])
+                            pub_sock.send_multipart([zmq_topics.topic_imHoldPos_roll_pid, pickle.dumps(debug_pid,-1)])
                             debug_pid = {'P':pidP.p,'I':pidP.i,'D':pidP.d,'C':pitchCmd,'T':tPitch,'N':curPitch, 'R':rates[1],'TS':ts}
-                            pub_sock.send_multipart([zmq_topics.topic_att_hold_pitch_pid, pickle.dumps(debug_pid,-1)])
+                            pub_sock.send_multipart([zmq_topics.topic_imHoldPos_pitch_pid, pickle.dumps(debug_pid,-1)])
                             debug_pid = {'P':pidY.p,'I':pidY.i,'D':pidY.d,'C':yawCmd,'T':tYaw,'N':curYaw, 'R':rates[2], 'TS':ts}
-                            pub_sock.send_multipart([zmq_topics.topic_att_hold_yaw_pid, pickle.dumps(debug_pid,-1)])
+                            pub_sock.send_multipart([zmq_topics.topic_imHoldPos_yaw_pid, pickle.dumps(debug_pid,-1)])
                         
                             xCmd = pidX(tX, 0)
                             #print('xCmd: %f tx: %f'%(xCmd, tX), pidX.p, pidX.i, pidX.d)

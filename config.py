@@ -43,7 +43,7 @@ thruster_limit=0.5
 
 viewer_blacks=(50,100)
 
-initPitch = 30 #deg
+initPitch = 0 #deg
 
 if __name__=='__main__':
     #for bash scripts to get state
