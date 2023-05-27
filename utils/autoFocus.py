@@ -113,7 +113,7 @@ if __name__=='__main__':
                             imShape = gray.shape
                             #import ipdb; ipdb.set_trace()
                             gray = gray[winOrig[1]:min(imShape[1], winOrig[1]+winSize), winOrig[0]:min(imShape[0], winOrig[0]+winSize)]
-                            cv2.imshow('aa', gray); cv2.waitKey(5)
+                            #cv2.imshow('aa', gray); cv2.waitKey(5)
 
                         fm = cv2.Laplacian(gray, cv2.CV_64F).var()
                         

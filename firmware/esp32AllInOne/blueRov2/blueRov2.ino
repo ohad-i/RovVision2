@@ -1,15 +1,13 @@
-
 #include <ESP32_Servo.h>
 #include <Wire.h>
 #include "MS5837.h"
 
-#include "xtensa/core-macros.h"
+//#include "xtensa/core-macros.h"
 
 
 //#define DSHOT_TIMEOUT_C 20000
 #define SERIAL_MSG_START_B 0b10010001
 
-#define DEBUG 1
 #define DEBUG_SER_PORT Serial
 
 //#define DBG_MSG
@@ -25,9 +23,9 @@
 
 
 #define OP_MOTORS 0x01
+
 #define OP_LEDS 0x02
 #define OP_CAMSERVO 0x03
-
 
 #define MAX_WAIT_FOR_MSG 30 
 
@@ -169,7 +167,7 @@ void loop() {
      tic = millis(); //XTHAL_GET_CCOUNT();;
 
      voltage = analogRead(voltagePin)*0.01063; //0.010604;
-     voltage_u16 = (uint16_t)min(max(round(voltage*200), 0.0), 65536.0);
+     voltage_u16 = (uint16_t)min(max(round(voltage*200), (float)0.0), (float)65536.0);
 
      DepthSensor.read();
      float depth_m = DepthSensor.depth();
@@ -177,9 +175,9 @@ void loop() {
      WRITE_DEBUG_MSGLN(depth_m);
      float temp_c = DepthSensor.temperature();
      
-     uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), 0.0), 65536.0);
-     uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), 0.0), 65536.0);
-     uint16_t motorFPS_u16 = (uint16_t)min(max(round(motFPS*200), 0.0), 65536.0);
+     uint16_t depth_u16 = (uint16_t)min(max(round(depth_m*200), (float)0.0), (float)65536.0);
+     uint16_t tempC_u16 = (uint16_t)min(max(round(temp_c*200), (float)0.0), (float)65536.0);
+     uint16_t motorFPS_u16 = (uint16_t)min(max(round(motFPS*200), (float)0.0), (float)65536.0);
      if(depth_m <= 0)
      {
           depth_u16 = (uint16_t)(0.01*200);

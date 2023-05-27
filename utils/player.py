@@ -250,7 +250,7 @@ if __name__=='__main__':
                                 curTs = nextTs
                 except:
                     import traceback; traceback.print_exc()
-                    import ipdb; ipdb.set_trace()
+                    #import ipdb; ipdb.set_trace()
 
 
 
