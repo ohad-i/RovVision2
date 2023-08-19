@@ -4,7 +4,8 @@
 
 #include <esp_task_wdt.h>
 
-#define SERIAL_MSG_START_B 0b10010001
+#define SERIAL_MSG_START_B 0x91 
+// 0x91 -> 0b10010001 -> 145
 
 #define DEBUG_SER_PORT Serial
 
@@ -105,19 +106,29 @@ union generalMsg_
 int focusIdx = 8;
 int ledsIdx = 9;
 
-float voltage = 0.0;
-uint16_t voltage_u16 = 0;
-
 float motFPS = 0.0;
 float sensFPS = 0.0;
 int motCnt = 0;
-uint32_t motFpsTic = millis();
+
 
 bool deepSensInit = false;
 
 
 TaskHandle_t Task1;
 TaskHandle_t Task2;
+
+void motorsFailSafe(){
+
+    WRITE_CRITICAL_MSGLN("failsafe motors - ");
+    for(int i = 0; i<motorsNum; i++)
+    {
+      WRITE_CRITICAL_MSG("motor - ");
+      WRITE_CRITICAL_MSGLN(motorsPin[i]);
+      motors[i].write(1500);
+      delay_ms(10);
+    }
+
+}
 
 
 void sensorsHandler_LRT( void * parameter) {
@@ -129,16 +140,20 @@ void sensorsHandler_LRT( void * parameter) {
   synMsg.b[0] = 0xac;
   synMsg.b[1] = 0xad;
 
-  float depth_m = 0;
-  float temp_c = 0;
-  uint16_t tempC_u16 = 9999;
-  uint16_t depth_u16 = 9999;
-  uint16_t motorFPS_u16 = 9999;
+  float voltage = 0.0;
+  uint16_t voltage_u16 = 0;
+  float depth_m = 99;
+  float temp_c = 99;
+  uint16_t tempC_u16 = 99;
+  uint16_t depth_u16 = 99;
+  uint16_t motorFPS_u16 = 99;
 
   float loopFPS = 0;
   int sensCnt = 0;
   int loopCnt = 0;
   uint32_t sensFpsTic = millis();
+
+  esp_task_wdt_init(30, false); //disable esp HW watchdog
   
   for(;;) 
   {
@@ -166,6 +181,8 @@ void sensorsHandler_LRT( void * parameter) {
       }
       else
       {
+        depth_u16 = (uint16_t)min(max(round(depth_m*200), (float)0.0), (float)65536.0);
+        tempC_u16 = (uint16_t)min(max(round(temp_c*200), (float)0.0), (float)65536.0);
         //WRITE_CRITICAL_MSG(millis() );
         //WRITE_CRITICAL_MSGLN(" no deepth sensor...");
       }
@@ -189,8 +206,8 @@ void sensorsHandler_LRT( void * parameter) {
       {
         sensFPS = sensCnt/((millis() - sensFpsTic)/1000);
         loopFPS = loopCnt/((millis() - sensFpsTic)/1000);
-        WRITE_DEBUG_MSG(" sensors fps: ");
-        WRITE_DEBUG_MSGLN(sensFPS);
+        WRITE_CRITICAL_MSG(" sensors fps: ");
+        WRITE_CRITICAL_MSGLN(sensFPS);
         
         WRITE_CRITICAL_MSG( millis() );
         WRITE_CRITICAL_MSG(" ");
@@ -217,13 +234,28 @@ void commandHandler_RT( void * parameter) {
   short ii = 0;
 
   int loopCnt = 0;
+  uint32_t motFpsTic = millis();
+  uint32_t lastMsgTic = millis();
 
   //esp_task_wdt_init(30, false); //disable esp HW watchdog
 
   WRITE_CRITICAL_MSGLN("starting rt thread...");
+  bool sentFailSafe = false;
+
+  esp_task_wdt_init(30, false); //disable esp HW watchdog
 
   for(;;) {
     loopCnt++;
+
+    if( (millis()-lastMsgTic) > 1000 )
+    {
+      if(!sentFailSafe)
+      {
+        motorsFailSafe();
+        sentFailSafe = true;
+      }
+
+    }
     if(MAIN_SER_PORT.available()>1)
     {
       char bla = MAIN_SER_PORT.read();
@@ -233,6 +265,8 @@ void commandHandler_RT( void * parameter) {
         opCode = MAIN_SER_PORT.read();
         if(opCode == OP_GENERAL_CMD)
         {
+          lastMsgTic = millis();
+          sentFailSafe = false;
           //WRITE_DEBUG_MSG("got motors cmd - ");
           while(!(MAIN_SER_PORT.available() >= 20))
           {
@@ -243,14 +277,15 @@ void commandHandler_RT( void * parameter) {
           {
             short val = generalMsg.vals[iMot];
             int pwm = map(val, -400, 400, 1100, 1900);
-            //WRITE_DEBUG_MSG(pwm);
-            //WRITE_DEBUG_MSG(" , ");
+            WRITE_DEBUG_MSG(pwm);
+            WRITE_DEBUG_MSG(" , ");
             motors[iMot].write(pwm);
           }
+          WRITE_DEBUG_MSGLN(" --- ");
           motCnt += 1;
           if(generalMsg.vals[focusIdx] > 0)
           {
-            pwm = map(generalMsg.vals[focusIdx], -400, 400, 1100, 1900);
+            pwm = map(generalMsg.vals[focusIdx]-700, -700, 700, 800, 2200);
             WRITE_DEBUG_MSG("recieved focus PWM -> ")
             WRITE_DEBUG_MSGLN(pwm);
             WRITE_DEBUG_MSGLN("-------");
@@ -258,7 +293,7 @@ void commandHandler_RT( void * parameter) {
           }
           if(generalMsg.vals[ledsIdx] > 0)
           {
-            pwm = map(generalMsg.vals[ledsIdx], -400, 400, 1100, 1900);
+            pwm = map(generalMsg.vals[ledsIdx]-400, -400, 400, 1100, 1900);
             WRITE_DEBUG_MSG("recieved led PWM -> ")
             WRITE_DEBUG_MSGLN(pwm);
             WRITE_DEBUG_MSGLN("-------");
@@ -269,6 +304,8 @@ void commandHandler_RT( void * parameter) {
         { 
           if(opCode == OP_MOTORS)
           {
+            lastMsgTic = millis();
+            sentFailSafe = false;
             //WRITE_DEBUG_MSG("got motors cmd - ");
             while(!(MAIN_SER_PORT.available() >= 16))
             {
@@ -320,8 +357,8 @@ void commandHandler_RT( void * parameter) {
     {
       motFPS = motCnt/((millis() - motFpsTic)/1000);
       loopFPS = loopCnt/((millis() - motFpsTic)/1000);
-      WRITE_DEBUG_MSG(" motor fps: ");
-      WRITE_DEBUG_MSGLN(motFPS);
+      WRITE_CRITICAL_MSG(" motor fps: ");
+      WRITE_CRITICAL_MSGLN(motFPS);
       
       WRITE_CRITICAL_MSG( millis() );
       WRITE_CRITICAL_MSG(" ");
@@ -358,17 +395,17 @@ void setup() {
       motors[i].attach(motorsPin[i], 1100, 1900);
       delay_ms(10);
       motors[i].write(1500);
-      delay_ms(100);
+      delay_ms(10);
     }
     // Init Leds pwm output
     leds.attach(ledsPort, 1100, 1900);
     leds.write(1100);
-    delay_ms(100);
+    delay_ms(10);
 
 
     camServo.attach(camServoPin, 750, 2200);
     camServo.write(1500);
-    delay_ms(100);
+    delay_ms(10);
 
     /*
     for(int k = 800; k<2500; k+=10)
