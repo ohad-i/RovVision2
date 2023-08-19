@@ -1,0 +1,8 @@
+opencv-contrib-python
+zmq
+pygame
+pybullet
+pillow
+matplotlib
+scipy
+dill
