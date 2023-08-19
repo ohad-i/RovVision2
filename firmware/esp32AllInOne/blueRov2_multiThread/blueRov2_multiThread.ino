@@ -283,7 +283,7 @@ void commandHandler_RT( void * parameter) {
           }
           WRITE_DEBUG_MSGLN(" --- ");
           motCnt += 1;
-          if(generalMsg.vals[focusIdx] > 0)
+          if(generalMsg.vals[focusIdx] >= 0)
           {
             pwm = map(generalMsg.vals[focusIdx]-700, -700, 700, 800, 2200);
             WRITE_DEBUG_MSG("recieved focus PWM -> ")
@@ -291,7 +291,7 @@ void commandHandler_RT( void * parameter) {
             WRITE_DEBUG_MSGLN("-------");
             camServo.write(pwm);
           }
-          if(generalMsg.vals[ledsIdx] > 0)
+          if(generalMsg.vals[ledsIdx] >= 0)
           {
             pwm = map(generalMsg.vals[ledsIdx]-400, -400, 400, 1100, 1900);
             WRITE_DEBUG_MSG("recieved led PWM -> ")
