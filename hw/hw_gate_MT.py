@@ -32,15 +32,19 @@ subs_socks.append(utils.subscribe([zmq_topics.topic_thrusters_comand],zmq_topics
 subs_socks.append(utils.subscribe([zmq_topics.topic_check_thrusters_comand],zmq_topics.topic_check_thrusters_comand_port))
 
 if not args.emulator:
-    ser = serial.Serial(detect_usb.devmap['ESC_USB'], 115200)
+    if detect_usb.devmap is None:
+        ser = serial.Serial('/dev/ttyUSB1', 115200)
+    else:
+        ser = serial.Serial(detect_usb.devmap['ESC_USB'], 115200)
+
 else:
     ser = serial.Serial('/dev/ttyUSB0', 115200)
 
 rov_type = int(os.environ.get('ROV_TYPE','1'))
 if rov_type == 4:
-    pub_depth = utils.publisher(zmq_topics.topic_depth_port)
-    pub_volt = utils.publisher(zmq_topics.topic_volt_port)
-    pub_motors = utils.publisher(zmq_topics.topic_motors_output_port)
+    pub_depth   = utils.publisher(zmq_topics.topic_depth_port)
+    pub_volt    = utils.publisher(zmq_topics.topic_volt_port)
+    pub_motors  = utils.publisher(zmq_topics.topic_motors_output_port)
     
     subs_socks.append(
                 utils.subscribe([zmq_topics.topic_lights],
@@ -140,29 +144,32 @@ async def sendEspByHz():
     genSent = 0
     sentTic = time.time()
 
-    generalMsg[ledIdx] = -1 # 0->800 
-    generalMsg[focusIdx] = -1 # 0->800
+    generalMsg[ledIdx]      = -1 # 0 -> 800 
+    generalMsg[focusIdx]    = -1 # 0 -> 1400
     
-    hz = 100.0 
+    hz = 100.0
     waitVal = 1/hz
+
     while True:
         await asyncio.sleep(waitVal)
         wTic = time.time()
+
         #print('--->', generalMsg) 
-        msgBuf = struct.pack(serialGenMsgPack, syncWord, opGeneral, *generalMsg )
+
+        msgBuf = struct.pack(serialGenMsgPack, syncWord, OP_GENERAL, *generalMsg )
 
         ser.write(msgBuf)
         ser.flush()
 
-        generalMsg[ledIdx] = -1 # 0->800 
-        generalMsg[focusIdx] = -1 # 0->800
+        generalMsg[ledIdx]      = -1 # 0 -> 800 
+        generalMsg[focusIdx]    = -1 # 0 -> 1400
 
 
         if time.time() - sentTic >= 3:
-           mps = genSent/(time.time() - sentTic)
-           print('general command sent MSP: %0.2f, waitVal: %0.5f'%(mps, waitVal) )
-           genSent = 0.0
-           sentTic = time.time()
+            mps = genSent/(time.time() - sentTic)
+            print('general command sent MSP: %0.2f, waitVal: %0.5f'%(mps, waitVal) )
+            genSent = 0.0
+            sentTic = time.time()
         
 
         # op-time compensation 
@@ -239,7 +246,7 @@ async def zmqListener():
                     '''
 
                 motorsPwm = setCmdToPWM(m)
-                generalMsg[:9] = motorsPwm
+                generalMsg[:8] = motorsPwm
                 #print('---from controller.py--->',current_command)
                 #print('---to esp32 --->',motorsPwm)
                 
@@ -255,13 +262,13 @@ async def zmqListener():
                 m[7] = tmp
                 
                 motorsPwm = setCmdToPWM(m)
-
+                
                 if any(motorsPwm): 
                     ignoreController = True
                 else:
                     ignoreController = False
 
-                generalMsg[:9] = motorsPwm
+                generalMsg[:8] = motorsPwm
 
                 print('---motors check cmd to esp32 --->',motorsPwm)
                 
@@ -282,14 +289,8 @@ if __name__=="__main__":
 
     loop = asyncio.get_event_loop()
     result = loop.run_until_complete(main())
-
-
-
-
-
-                
-                
-    
+         
+    '''    
         ret = select([ser],[],[],0.001)[0]
         if len(ret) > 0:
             chck = ser.read(1)
@@ -334,3 +335,4 @@ if __name__=="__main__":
                        #print('current --6->', current_D)
                        espMsgCnt = 0.0
                        espDataTic = time.time()
+    '''

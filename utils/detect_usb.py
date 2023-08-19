@@ -62,5 +62,7 @@ if __name__=='__main__':
 else:
     if not os.path.isfile('/tmp/devusbmap.pkl'):
         print('Error cannot find /tmp/devusbmap.pkl please run detect_usb.py')
-    devmap = pickle.load(open('/tmp/devusbmap.pkl','rb'))
+        devmap = None
+    else:
+        devmap = pickle.load(open('/tmp/devusbmap.pkl','rb'))
 
