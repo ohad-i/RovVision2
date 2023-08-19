@@ -85,6 +85,10 @@ async def readSerialData():
     espMsgCnt = 0
     minMotFps = 9999999
     maxMotFps = -1
+    
+    bar_D = -1
+    volt_D= -1
+    temp_D = -1
     while True:
         ret = select([ser],[],[],0.001)[0]
         if len(ret) > 0:
