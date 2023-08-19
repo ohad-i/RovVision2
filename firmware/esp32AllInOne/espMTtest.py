@@ -51,7 +51,8 @@ async def send_serial_command_50hz():
     generalMsg[ledIdx] = -1 # 0->800 
     generalMsg[focusIdx] = -1 # 0->800
     
-    waitVal = 1/50
+    hz = 100.0 
+    waitVal = 1/hz
     while True:
         await asyncio.sleep(waitVal)
         wTic = time.time()
@@ -74,7 +75,7 @@ async def send_serial_command_50hz():
 
         # op-time compensation 
         dt = time.time() - wTic
-        waitVal = (1/50)-1.2*(dt)
+        waitVal = (1/hz)-1.2*(dt)
         genSent += 1
 
 

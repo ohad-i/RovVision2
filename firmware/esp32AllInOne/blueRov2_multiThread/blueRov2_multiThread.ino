@@ -416,21 +416,34 @@ void setup() {
       
     }*/
     
-    /*
+    
     // Init deapth sensor, I2c (0x76 address)
-    while (!DepthSensor.init()) 
+    if(!DepthSensor.init())
     {
-    WRITE_DEBUG_MSGLN("Init failed!");
-    WRITE_DEBUG_MSGLN("Are SDA/SCL connected correctly?");
-    WRITE_DEBUG_MSGLN("Blue Robotics Bar30: White=SDA, Green=SCL");
-    WRITE_DEBUG_MSGLN("\n\n\n");
-    delay(1000);
-    }
-    DepthSensor.setModel(MS5837::MS5837_30BA);
-    DepthSensor.setFluidDensity(1029); // kg/m^3 (997 for freshwater, 1029 for seawater)
 
-    deepSensInit = true;
-    */
+      for(int j = 0; j< 10; j++)  
+      {
+        WRITE_CRITICAL_MSGLN("Init failed!");
+        WRITE_CRITICAL_MSGLN("Are SDA/SCL connected correctly?");
+        WRITE_CRITICAL_MSGLN("Blue Robotics Bar30: White=SDA, Green=SCL");
+        WRITE_CRITICAL_MSGLN(j);
+        WRITE_CRITICAL_MSGLN("");
+        delay(300);
+        if(DepthSensor.init() )
+        {
+          break;
+        }
+      }
+    }
+
+    if( DepthSensor.init() )
+    {
+      DepthSensor.setModel(MS5837::MS5837_30BA);
+      DepthSensor.setFluidDensity(1029); // kg/m^3 (997 for freshwater, 1029 for seawater)
+      deepSensInit = true;
+    }
+    WRITE_CRITICAL_MSGLN("222");
+    
     WRITE_DEBUG_MSGLN("done init.");    
     tic = millis(); //XTHAL_GET_CCOUNT();
     
