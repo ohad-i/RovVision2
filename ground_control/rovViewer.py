@@ -521,7 +521,7 @@ class checkListForm(object):
         self.motorsTestSentTic = time.time()
         
         self.startFocusTest = False
-        self.focusVal = 850
+        self.focusVal = 800
         self.focusSendTic = time.time()
         
         self.main()
@@ -557,7 +557,7 @@ class checkListForm(object):
         ## send focus command
         self.startFocusTest = not self.startFocusTest
         if self.startFocusTest:
-            self.focusVal = 850
+            self.focusVal = 800
            
         
     def runLedsTest(self):
@@ -1006,7 +1006,7 @@ class rovViewerWindow(Frame):
     def updateFocus(self, event):
         chars = event.widget.get()
         try:
-            val = min(max(int(chars.strip()),850),2250)
+            val = min(max(int(chars.strip()),800),2200)
             self.myStyle['focusCmd_textbox'].delete(0, END)
             self.myStyle['focusCmd_textbox'].insert(0,str(val))
             print('new focus PWM: %d'%val)

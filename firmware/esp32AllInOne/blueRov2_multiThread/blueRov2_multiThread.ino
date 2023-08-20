@@ -160,7 +160,7 @@ void sensorsHandler_LRT( void * parameter) {
       tic = millis();
       sensCnt++; 
       
-      voltage = analogRead(voltagePin)*0.01063; //0.010604;
+      voltage = analogRead(voltagePin)*0.0153737; //63; //0.010604;
       voltage_u16 = (uint16_t)min(max(round(voltage*200), (float)0.0), (float)65536.0);
       
 
@@ -170,10 +170,14 @@ void sensorsHandler_LRT( void * parameter) {
         depth_m = DepthSensor.depth();
         temp_c = DepthSensor.temperature();
 
-        WRITE_DEBUG_MSG("cuurent depth: ");     
-        WRITE_DEBUG_MSGLN(depth_m);
+        WRITE_DEBUG_MSG("cuurent depth: ");
+        WRITE_DEBUG_MSG(depth_m);
+        WRITE_DEBUG_MSG(" cuurent voltage: ");
+        WRITE_DEBUG_MSGLN(voltage);
         
         depth_u16 = (uint16_t)min(max(round(depth_m*200), (float)0.0), (float)65536.0);
+        WRITE_DEBUG_MSG("cuurent depth (16u): ");
+        WRITE_DEBUG_MSGLN(depth_u16);
         tempC_u16 = (uint16_t)min(max(round(temp_c*200), (float)0.0), (float)65536.0);
       }
       else
@@ -185,10 +189,16 @@ void sensorsHandler_LRT( void * parameter) {
       }
       
       motorFPS_u16 = (uint16_t)min(max(round(motFPS*200), (float)0.0), (float)65536.0);
+      /*
       if(depth_m <= 0)
       {
+        WRITE_DEBUG_MSG("reset baro: ");
+        WRITE_DEBUG_MSGLN(depth_m);
+        
             depth_u16 = (uint16_t)(0.01*200);
       }
+      */
+
       upmsg.value[0] = depth_u16;     
       upmsg.value[1] = tempC_u16;
       upmsg.value[2] = voltage_u16;
@@ -210,6 +220,11 @@ void sensorsHandler_LRT( void * parameter) {
         WRITE_CRITICAL_MSG(" ");
         WRITE_CRITICAL_MSG(loopFPS);
         WRITE_CRITICAL_MSGLN(" - sensoers lps");
+
+        WRITE_CRITICAL_MSG("cuurent depth: ");
+        WRITE_CRITICAL_MSG(depth_m);
+        WRITE_CRITICAL_MSG(" cuurent voltage: ");
+        WRITE_CRITICAL_MSGLN(voltage);
         
         sensCnt     = 0;
         sensFpsTic  = millis(); 
@@ -278,9 +293,10 @@ void commandHandler_RT( void * parameter) {
           }
           WRITE_DEBUG_MSGLN(" --- ");
           motCnt += 1;
+          
           if(generalMsg.vals[focusIdx] >= 0)
           {
-            pwm = map(generalMsg.vals[focusIdx]-700, -700, 700, 800, 2200);
+            pwm = map(generalMsg.vals[focusIdx], 800, 2200, 800, 2200);
             WRITE_DEBUG_MSG("recieved focus PWM -> ")
             WRITE_DEBUG_MSGLN(pwm);
             WRITE_DEBUG_MSGLN("-------");

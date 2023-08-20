@@ -170,7 +170,7 @@ async def testProc():
             print("end led test." )
         if opts.camServo:
             for pwm in range(800,2250,50): #700<->220
-                generalMsg[focusIdx] = pwm-800 # 0->800 
+                generalMsg[focusIdx] = pwm # 0->800 
                 print("perform servo test, pwm: %d"%(pwm) )
                 await asyncio.sleep(0.3)
             generalMsg[focusIdx] = 0 # 0->800 

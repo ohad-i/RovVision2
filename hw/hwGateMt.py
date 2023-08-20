@@ -146,6 +146,14 @@ async def sendEspByHz():
 
     generalMsg[ledIdx]      = -1 # 0 -> 800 
     generalMsg[focusIdx]    = -1 # 0 -> 1400
+
+    if os.path.exists('./focusState.bin'):
+         with open('./focusState.bin', 'r') as fid:
+             pwm = int(fid.read(4))
+
+             print('reset focus to:', pwm)
+             generalMsg[focusIdx] = pwm
+
     
     hz = 100.0
     waitVal = 1/hz
@@ -174,7 +182,7 @@ async def sendEspByHz():
 
         # op-time compensation 
         dt = time.time() - wTic
-        waitVal = (1/hz)-1.2*(dt)
+        waitVal = (1/hz)-1.5*(dt)
         genSent += 1
 
 async def zmqListener():
@@ -184,15 +192,7 @@ async def zmqListener():
 
     espDataTic = time.time()
     espMsgCnt = 0.0
-
-    if os.path.exists('./focusState.bin'):
-         with open('./focusState.bin', 'r') as fid:
-             pwm = int(fid.read(4))
-
-             print('reset focus to:', pwm)
-             generalMsg[focusIdx] = pwm
-
-             
+         
     minMotFps = 999999
     maxMotFps = -1
     

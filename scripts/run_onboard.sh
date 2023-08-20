@@ -61,7 +61,8 @@ done
 tmux new-window
 new_6_win
 
-run 0 hw hw_gate.py
+run 0 hw hwGateMt.py
+#run 0 hw hw_gate.py
 #run 1 hw idsGst_proxy.py
 run 1 hw camIds.py
 run 2 hw vnav.py
