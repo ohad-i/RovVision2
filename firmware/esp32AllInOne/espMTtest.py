@@ -8,6 +8,10 @@ import sys
 import asyncio
 
 
+'''
+#example: python espMTtest.py --port=/dev/ttyUSB1 --motorTest --motorId=1 --motorSpeed=1400 --ledTest --camServo
+'''
+
 parser = optparse.OptionParser("esp32Test")
 parser.add_option("--port", default='/dev/ttyUSB1', help='tty port (if noDev -> use auto detect port), default: /dev/ttyUSB1')
 parser.add_option("--motorTest", default=False, action='store_true', help='test motors')

@@ -15,7 +15,7 @@
 #define WRITE_DEBUG_MSG(msg) { DEBUG_SER_PORT.print(msg); }
 #else
 #define WRITE_DEBUG_MSGLN(msg) {}
-#define WRITE_DEBUG_MSG(msg) { }
+#define WRITE_DEBUG_MSG(msg) {}
 #endif
 
 #define WRITE_CRITICAL_MSG(msg) { DEBUG_SER_PORT.print(msg); }
@@ -25,7 +25,6 @@
 
 
 #define OP_MOTORS 0x01
-
 #define OP_LEDS 0x02
 #define OP_CAMSERVO 0x03
 
@@ -153,8 +152,6 @@ void sensorsHandler_LRT( void * parameter) {
   int loopCnt = 0;
   uint32_t sensFpsTic = millis();
 
-  esp_task_wdt_init(30, false); //disable esp HW watchdog
-  
   for(;;) 
   {
     loopCnt++;
@@ -214,9 +211,9 @@ void sensorsHandler_LRT( void * parameter) {
         WRITE_CRITICAL_MSG(loopFPS);
         WRITE_CRITICAL_MSGLN(" - sensoers lps");
         
-        sensCnt = 0;
-        sensFpsTic = millis(); 
-        loopCnt = 0;  
+        sensCnt     = 0;
+        sensFpsTic  = millis(); 
+        loopCnt     = 0;  
       }
     
     }
@@ -236,8 +233,6 @@ void commandHandler_RT( void * parameter) {
   int loopCnt = 0;
   uint32_t motFpsTic = millis();
   uint32_t lastMsgTic = millis();
-
-  //esp_task_wdt_init(30, false); //disable esp HW watchdog
 
   WRITE_CRITICAL_MSGLN("starting rt thread...");
   bool sentFailSafe = false;
@@ -355,7 +350,7 @@ void commandHandler_RT( void * parameter) {
     
     if ( (millis() - motFpsTic) >= 5000)
     {
-      motFPS = motCnt/((millis() - motFpsTic)/1000);
+      motFPS  = motCnt/((millis() - motFpsTic)/1000);
       loopFPS = loopCnt/((millis() - motFpsTic)/1000);
       WRITE_CRITICAL_MSG(" motor fps: ");
       WRITE_CRITICAL_MSGLN(motFPS);
@@ -365,9 +360,9 @@ void commandHandler_RT( void * parameter) {
       WRITE_CRITICAL_MSG(loopFPS);
       WRITE_CRITICAL_MSGLN(" - motors lps");
       
-      motCnt = 0;
+      motCnt    = 0;
       motFpsTic = millis(); 
-      loopCnt = 0;  
+      loopCnt   = 0;  
     }
     
     //optional...
@@ -421,7 +416,7 @@ void setup() {
     if(!DepthSensor.init())
     {
 
-      for(int j = 0; j< 10; j++)  
+      for(int j = 0; j< 1; j++)  
       {
         WRITE_CRITICAL_MSGLN("Init failed!");
         WRITE_CRITICAL_MSGLN("Are SDA/SCL connected correctly?");
@@ -438,11 +433,11 @@ void setup() {
 
     if( DepthSensor.init() )
     {
+      WRITE_CRITICAL_MSGLN("Depth sensor init succeded.");
       DepthSensor.setModel(MS5837::MS5837_30BA);
       DepthSensor.setFluidDensity(1029); // kg/m^3 (997 for freshwater, 1029 for seawater)
       deepSensInit = true;
     }
-    WRITE_CRITICAL_MSGLN("222");
     
     WRITE_DEBUG_MSGLN("done init.");    
     tic = millis(); //XTHAL_GET_CCOUNT();
@@ -467,7 +462,7 @@ void setup() {
       &Task2,    /* Task handle. */
       0);        /* Core where the task should run */ 
 
-    esp_task_wdt_init(30, false); //disable esp HW watchdog
+    //esp_task_wdt_init(30, false); //disable esp HW watchdog
     WRITE_CRITICAL_MSGLN("done init, no debug info...");
 
 }
