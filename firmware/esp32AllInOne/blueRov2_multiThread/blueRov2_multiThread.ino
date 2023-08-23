@@ -159,7 +159,7 @@ void sensorsHandler_LRT( void * parameter) {
     {
       tic = millis();
       sensCnt++; 
-      
+      // the best way is to sent the raw mesurement to pc and calibrate at the pc python code 
       voltage = analogRead(voltagePin)*0.0153737; //63; //0.010604;
       voltage_u16 = (uint16_t)min(max(round(voltage*200), (float)0.0), (float)65536.0);
       
