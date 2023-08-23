@@ -2,6 +2,11 @@ function init_docker_image {
 tmux send-keys "cd $DRONESIMLAB_PATH/dockers/python3_dev && ./run_image.sh" ENTER
 }
 
+function new_2_win {
+tmux split-window -h
+tmux select-pane -t 0
+}
+
 function new_4_win {
 tmux split-window -h
 tmux select-pane -t 0
@@ -55,7 +60,7 @@ tmux select-pane -t $1
 #tmux send-keys "printf '\033]2;%s\033\\' '$3'" ENTER
 tmux send-keys "cd $PROJECT_PATH/$2" ENTER
 tmux send-keys "export ROV_TYPE=$ROV_TYPE" ENTER
-tmux send-keys "./ls; $3" ENTER
+tmux send-keys "$3" ENTER
 
 }
 
