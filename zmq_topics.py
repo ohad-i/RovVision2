@@ -124,7 +124,7 @@ topic_local_route_port=9995
 
 topic_depth_hold_pid=b'topic_depth_control'
 topic_depth_hold_port=9996
-topic2portDict[topic_depth_hold_pid] = topic_depth_hold_pid
+topic2portDict[topic_depth_hold_pid] = topic_depth_hold_port
 
 topic_att_hold_yaw_pid=b'topic_att_yaw_control'
 topic_att_hold_pitch_pid=b'topic_att_pitch_control'
