@@ -41,15 +41,76 @@ subs_socks.append(thruster_sink)
 
 focusResolution = 5
 
+system_state={'ts':         time.time(), 
+              'arm':        False,
+              'mode':       [], 
+              'lights':     0, 
+              'focus':      -1, 
+              'record':     False, 
+              'diskUsage':  -1,
+              'autoGain':   -1,
+              'autoExp':    -1} 
+thruster_cmd = [0]*8
+
+thrusters_dict={}
+
+async def sendSystemStatus():
+    global system_state
+    sendingRate = 1/10.0
+    wait = sendingRate
+    while True:
+        tic = time.time()
+        system_state['ts'] = tic
+        pub_sock.send_multipart([zmq_topics.topic_system_state,pickle.dumps(system_state)])
+        wait = sendingRate - (time.time()-tic)
+        await asyncio.sleep(wait)
+
+async def sendThrstesCmd():
+    global thruster_cmd, system_state, thrusters_dict
+    sendingRate = 1/60.0
+    
+    thrustersCnt = 0
+    thrustersTic = time.time()
+
+    while True:
+        tTic = time.time()
+        if not system_state['arm']:
+            thruster_cmd=np.zeros(8)
+        else:
+            for k in thrusters_dict:
+                thruster_cmd += thrusters_dict[k]
+        pub_sock.send_multipart([zmq_topics.topic_thrusters_comand,pickle.dumps((tTic, list(thruster_cmd)))])
+
+        thrustersCnt += 1
+        thruster_cmd = np.zeros(8)
+
+        if time.time() - thrustersTic >= 10:
+            thrusterFPS = thrustersCnt/(time.time() - thrustersTic)
+            print('sending thrusters rate: %0.2f'%thrusterFPS)
+            thrustersCnt = 0.0
+            thrustersTic = time.time()
+
+        dt = (time.time()-tTic)
+        aawait = sendingRate - dt
+        await asyncio.sleep(aawait)
+
+
+
 
 async def recv_and_process():
+    global system_state, thruster_cmd, thrusters_dict
+
     keep_running=True
+    
     thruster_cmd=np.zeros(8)
     timer10hz = time.time()+1/10.0
     timer20hz = time.time()+1/20.0
     
     thrustersRate = 50.0
     thrustersTimerHz = time.time()+1/thrustersRate
+
+    thrustersCnt = 0
+    thrustersTic = time.time()
     
     timer0_1hz = time.time()+10
     
@@ -86,8 +147,6 @@ async def recv_and_process():
                   'autoGain':gainCtl,
                   'autoExp':expCtl} #lights 0-5
     
-    thrusters_dict={}
-
     jm=Joy_map()
 
     def togle_mode(m):
@@ -235,38 +294,23 @@ async def recv_and_process():
                     with open(jsonFileName, 'w') as fid:
                         json.dump(data['data'], fid, indent=4)
                     
-                
-                
-                        
-                    
-
-
         tic=time.time()
-        if tic-timer10hz>0:
-            timer10hz=tic+1/10.0
-            system_state['ts']=tic
-            pub_sock.send_multipart([zmq_topics.topic_system_state,pickle.dumps(system_state)]) 
-        if tic-thrustersTimerHz > 0:
-            thrustersTimerHz=tic+1/thrustersRate
-            if not system_state['arm']:
-                thruster_cmd=np.zeros(8)
-            else:
-                for k in thrusters_dict:
-                    thruster_cmd += thrusters_dict[k]
-            pub_sock.send_multipart([zmq_topics.topic_thrusters_comand,pickle.dumps((tic,list(thruster_cmd)))])
-            thruster_cmd = np.zeros(8)
+
         if tic-timer0_1hz>0:
             timer0_1hz=tic+10
             system_state['diskUsage'] = int(os.popen('df -h / | tail -n 1').readline().strip().split()[-2][:-1])
 
 
-                #print('botton',ret)
+        #print('botton',ret)
+        
 
         await asyncio.sleep(0.001)
  
 async def main():
     await asyncio.gather(
             recv_and_process(),
+            sendThrstesCmd(),
+            sendSystemStatus(),
             )
 
 if __name__=='__main__':
