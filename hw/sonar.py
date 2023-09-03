@@ -20,12 +20,23 @@ if myPing.initialize() is False:
 
 pub_imu = utils.publisher(zmq_topics.topic_sonar_port)
 cnt=0
+
+mpsCnt = 0.0
+mpsTic = time.time()
+
 while 1:
     time.sleep(0.1)
     data = myPing.get_distance()
     if cnt%10==0:
-        print('sonar ',data)
+        print('sonar, distance',data['distance']/1000)
+
     tosend = pickle.dumps([data['distance'],data['confidence']])
     pub_imu.send_multipart([zmq_topics.topic_sonar,tosend])
     cnt+=1
+    mpsCnt += 1
+    if time.time()-mpsTic>3:
+        mps = mpsCnt/(time.time()-mpsTic)
+        print('---> sonar rate: %.2fHz'%mps)
+        mpsCnt = 0.0
+        mpsTic = time.time()
 #

@@ -113,8 +113,8 @@ def calibrate_mag(ser):
 
 def init_serial(dev=None):
     if dev is None:
-        #import detect_usb
-        dev="/dev/ttyUSB0" #detect_usb.devmap['VNAV_USB']
+        import detect_usb
+        dev=detect_usb.devmap['VNAV_USB']
 
     #ser = serial.Serial(dev,115200)
     #write(ser,vn_set_baud, 1)
