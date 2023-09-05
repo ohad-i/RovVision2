@@ -72,18 +72,26 @@ async def recv_and_process():
                     target_depth=depth
 
 
-            if topic==zmq_topics.topic_axes:
+            elif topic==zmq_topics.topic_axes:
                 jm.update_axis(data)
-                target_depth+=jm.joy_mix()['ud']/250.0
-            if topic==zmq_topics.topic_gui_depthAtt:
-                if data['dDepth'] is not None:
-                    target_depth = data['dDepth'] 
-                    print('set new depth: %.2f'%target_depth)
+                target_depth+=jm.joy_mix()['ud']/10.0
+
+            elif topic==zmq_topics.topic_gui_depthAtt:
+                if 'POSITION' not in system_state['mode']:
+                    if data['dDepth'] is not None:
+                        target_depth = data['dDepth'] 
+                        print('set new depth: %.2f'%target_depth)
+            
+            elif topic == zmq_topics.topic_mission_cmd:
+                if 'MISSION' in system_state['mode']:
+                    if data['dDepth'] is not None:
+                        target_depth = data['dDepth'] 
+                        print('set new depth: %.2f'%target_depth)
                 
-            if topic==zmq_topics.topic_imu:
+            elif topic==zmq_topics.topic_imu:
                 pitch,roll=data['pitch'],data['roll']
 
-            if topic==zmq_topics.topic_system_state:
+            elif topic==zmq_topics.topic_system_state:
                 system_state=data
 
         await asyncio.sleep(0.001)
@@ -96,11 +104,12 @@ async def main():
 if __name__=='__main__':
     ### plugin inputs
     subs_socks=[]
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes],zmq_topics.topic_joy_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_depth],zmq_topics.topic_depth_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],zmq_topics.topic_gui_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes],            zmq_topics.topic_joy_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],             zmq_topics.topic_imu_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_depth],           zmq_topics.topic_depth_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],    zmq_topics.topic_controller_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],    zmq_topics.topic_gui_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_mission_cmd],     zmq_topics.topic_mission_port))
 
     ### plugin outputs
     thrusters_source = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)

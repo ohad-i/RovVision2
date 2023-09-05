@@ -44,9 +44,9 @@ runLoop 3 plugins depth_hold_plugin.py
 runLoop 4 plugins att_hold_plugin.py
 run 5 plugins "ofPlugin.py --runSim"
 
-#tmux new-window
-#new_6_win
-#run 0  plugins pos_hold_plugin.py
+tmux new-window
+new_2_win
+run 0  plugins missionPlugin.py
 #run 1  onboard hw_stats.py
 
 #only hw from here

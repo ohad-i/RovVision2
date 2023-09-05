@@ -32,13 +32,15 @@ fi
 new_6_win
 run 0 onboard controller.py
 #run 1 onboard sensors_gate.py
-run 1 onboard imGate.py 
-sleep 1
+runLoop 1 plugins missionPlugin.py
 runLoop 2 plugins manual_plugin.py
 runLoop 3 plugins depth_hold_plugin.py
 runLoop 4 plugins att_hold_plugin.py
 runLoop 5 plugins ofPlugin.py
 #runLoop 5 plugins oiTracker_plugin.py
+
+new_2_win
+run 1 onboard imGate.py
 
 #tmux new-window
 #new_6_win

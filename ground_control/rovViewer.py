@@ -274,8 +274,8 @@ focusFarMsg = [0, 0, 0, 0, 0, 0, 1, 0]
 
 attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] # 'Y
 depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 'B'
-positionMsg = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]  #'X'
-
+positionMsg  = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0] # 'X'
+missionMsg   = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 'A
 
 
 
@@ -688,7 +688,11 @@ class rovViewerWindow(Frame):
         self.OpencvWinInit = False
         self.image = None
 
-        self.controllerChbx = {'depth':self.checkDepthControl, 'pitch':self.checkPitchControl, 'roll':self.checkRollControl, 'yaw':self.checkYawControl, 'thrusters':self.checkThrusters}
+        self.controllerChbx = {'depth':self.checkDepthControl, 
+                               'pitch':self.checkPitchControl, 
+                               'roll':self.checkRollControl, 
+                               'yaw':self.checkYawControl, 
+                               'thrusters':self.checkThrusters}
 
         
         self.resize_called = True
@@ -1411,6 +1415,12 @@ class rovViewerWindow(Frame):
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
         data = pickle.dumps(neutralHatMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+
+    def cmdMission(self):
+        data = pickle.dumps(missionMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
         
     def cmdIncLights(self):
         data = pickle.dumps(lightUpMsg, protocol=3)
@@ -1713,7 +1723,7 @@ class rovViewerWindow(Frame):
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         self.myStyle["showDepth"].configure(command=self.depthSelect)
-        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow+2, self.checkThrusters, anchor='w')
+        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow+3, self.checkThrusters, anchor='w')
         self.myStyle["showmotors"].configure(command=self.threustersSelect)
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
@@ -1737,6 +1747,8 @@ class rovViewerWindow(Frame):
         self.create_button("attHold", "attitude hold", modesCol, modesRow, self.cmdAttHold)
         modesRow += 1
         self.create_button("position", "position", modesCol, modesRow, self.cmdPosition)
+        modesRow += 1
+        self.create_button("mission", "mission", modesCol, modesRow, self.cmdPosition)
         modesRow += 1
         
         row_btn_idx = 2

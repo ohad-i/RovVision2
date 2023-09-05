@@ -176,25 +176,40 @@ async def recv_and_process():
                     jm.update_buttons(data)
                     if jm.depth_hold_event():
                         print('Toggle depth hold...')
-                        if ('POSITION' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
-                            print('failed to close to DEPTH_HOLD (needs to stay on DEPTH_HOLD) while IM_TRACKER_MODE')
+                        if ('POSITION' in system_state['mode'] or 'MISSION' in system_state['mode']) and ('DEPTH_HOLD' in system_state['mode']):
+                            print('failed to close to DEPTH_HOLD (needs to stay on DEPTH_HOLD) while POSITION or MISSION')
                         else:
                             togle_mode('DEPTH_HOLD')
                     if jm.att_hold_event():
                         print('Toggle attitude hold...')
-                        if ('POSITION' in system_state['mode']) and ('ATT_HOLD' in system_state['mode']):
-                            print('failed to close to ATT_HOLD (needs to stay on ATT_HOLD) while IM_TRACKER_MODE')
+                        if ('POSITION' in system_state['mode'] or 'MISSION' in system_state['mode'] ) and ('ATT_HOLD' in system_state['mode']):
+                            print('failed to close to ATT_HOLD (needs to stay on ATT_HOLD) while POSITION or MISSION')
                         else:
                             togle_mode('ATT_HOLD')
                         #togle_mode('ATT_HOLD')
                     if jm.position_event():
                         print('Toggle positon hold...')
+
+                        if ('MISSION' in system_state['mode']) and ('POSITION' in system_state['mode']):
+                            print('failed to close to POSITION (needs to stay on POSITION) while MISSION')
+                        else:
+                            togle_mode('ATT_HOLD')
+
                         if ('ATT_HOLD' not in system_state['mode']):
                             system_state['mode'].append('ATT_HOLD')
                         if ('DEPTH_HOLD' not in system_state['mode']):
                             system_state['mode'].append('DEPTH_HOLD')
                         togle_mode('POSITION')
-                        
+                    
+                    if jm.mission_event():
+                        print('Toggle mission hold...')
+                        if ('ATT_HOLD' not in system_state['mode']):
+                            system_state['mode'].append('ATT_HOLD')
+                        if ('DEPTH_HOLD' not in system_state['mode']):
+                            system_state['mode'].append('DEPTH_HOLD')
+                        if ('POSITION' not in system_state['mode']):
+                            system_state['mode'].append('POSITION')
+                        togle_mode('MISSION')
 
 
                     if jm.Rx_hold_event():

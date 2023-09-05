@@ -84,6 +84,8 @@ class Joy_map:
     def position_event(self):
         return self.__test_togle(self._blue) and self.__no_shift()
     
+    def mission_event(self):
+        return self.__test_togle(self._green) and self.__no_shift()
 
     def record_event(self):
         return self.__test_togle(self._page)
@@ -96,10 +98,10 @@ class Joy_map:
     
     def Rz_hold_event(self):
         return self.__test_togle(self._blue) and self.__left_shift()
-    
+    '''
     def track_lock_event(self):
         return self.__test_togle(self._green) and self.__left_shift()
-
+    '''
     def inc_lights_event(self):
         if jtype=='xbox':
             axis=self.axis

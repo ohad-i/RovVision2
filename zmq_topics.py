@@ -119,6 +119,9 @@ topic_of_minimal_data = b'ofMinimalData'
 topic_of_port = 9304
 topic2portDict[topic_of_data] = topic_of_port
 
+topic_mission_status = b'mssion_status'
+topic_mission_cmd    = b'mission_cmd'
+topic_mission_port   = 9306
 
 #messages:
 #stop/start recording

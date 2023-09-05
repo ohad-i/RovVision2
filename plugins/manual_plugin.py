@@ -58,7 +58,7 @@ if __name__=='__main__':
     ### plugin inputs
     subs_socks=[]
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
-    subs_socks.append(zmq_wrapper.subscribe(zmq_topics.topic_system_state,     zmq_topics.topic_controller_port) )
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],     zmq_topics.topic_controller_port) )
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
 
     ### plugin outputs

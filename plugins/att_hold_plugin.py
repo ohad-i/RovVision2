@@ -50,14 +50,23 @@ async def recv_and_process():
             
             
             if topic == zmq_topics.topic_gui_depthAtt:
-                print('---> got GUI command: ', data)
-                if data['dYaw'] is not None:
-                    target_att[0] = data['dYaw']
-                if data['dPitch'] is not None:
-                    target_att[1] = data['dPitch']
-                
+                if 'MISSION' not in system_state['mode']:
+                    print('---> got GUI command: ', data)
+                    if data['dYaw'] is not None:
+                        target_att[0] = data['dYaw']
+                    if data['dPitch'] is not None:
+                        target_att[1] = data['dPitch']
+
             
-            if os.path.exists(tmpPIDS):
+            elif topic == zmq_topics.topic_mission_cmd:
+                if 'MISSION' in system_state['mode']:
+                    print('---> got mission command: ', data)
+                    if data['dYaw'] is not None:
+                        target_att[0] = data['dYaw']
+                    if data['dPitch'] is not None:
+                        target_att[1] = data['dPitch']
+            
+            elif os.path.exists(tmpPIDS):
                 yaw_pid, pitch_pid, roll_pid, _ = commonPlugins.reloadPIDs(tmpPIDS)
                 os.remove(tmpPIDS)
                 pid_y = None
@@ -65,7 +74,7 @@ async def recv_and_process():
                 pid_r = None
                 print('Update pids and reset plugin...')
             
-            if topic==zmq_topics.topic_imu:
+            elif topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
                 #print('--1->roll %.2f'%roll)
                 if 0 and 'yawr' in data:
@@ -132,16 +141,15 @@ async def recv_and_process():
                     thrusters_source.send_pyobj(['att', time.time(), mixer.zero_cmd()])
 
 
-            if topic==zmq_topics.topic_axes:
+            elif topic==zmq_topics.topic_axes:
                 jm.update_axis(data)
 
 
-            if topic==zmq_topics.topic_button:
+            elif topic==zmq_topics.topic_button:
                 jm.update_buttons(data)
                 #target_depth+=data[jm.ud]
 
-
-            if topic==zmq_topics.topic_system_state:
+            elif topic==zmq_topics.topic_system_state:
                 system_state=data
 
         await asyncio.sleep(0.001)
@@ -155,10 +163,11 @@ if __name__=='__main__':
     ### plugin inputs
     subs_socks=[]
     #subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes],zmq_topics.topic_joy_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],zmq_topics.topic_controller_port))
-    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],zmq_topics.topic_gui_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button], zmq_topics.topic_joy_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],                          zmq_topics.topic_imu_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state],                 zmq_topics.topic_controller_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_gui_depthAtt],                 zmq_topics.topic_gui_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_mission_cmd],                  zmq_topics.topic_mission_port))
 
     ### plugin outputs
     thrusters_source = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)
