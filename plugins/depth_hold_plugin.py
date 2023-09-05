@@ -65,7 +65,9 @@ async def recv_and_process():
                         thrusters_source.send_pyobj(['depth',time.time(),thruster_cmd])
                 else:
                     if pid is not None:
+                        print('turn off deptch hold')
                         pid.reset()
+                        pid = None
                     thrusters_source.send_pyobj(['depth',time.time(),mixer.zero_cmd()])
                     target_depth=depth
 

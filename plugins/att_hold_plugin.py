@@ -81,8 +81,11 @@ async def recv_and_process():
                 
                 if 'ATT_HOLD' in system_state['mode']:# and ans is not None:
                     if pid_y is None:
+                        print('load yaw PID values: ')
                         pid_y=PID(**yaw_pid)
+                        print('load yaw PID pitch: ')
                         pid_p=PID(**pitch_pid)
+                        print('load yaw PID roll: ')
                         pid_r=PID(**roll_pid)
                     else:
                         #if joy and joy['inertial'] and abs(joy['yaw'])<0.05:
@@ -91,7 +94,7 @@ async def recv_and_process():
                         else:
                             target_att[0]=yaw
                             yaw_cmd=0
-                        print('Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw, target_att[0], yaw_cmd))
+                        #print('Y{:06.3f} YT{:06.3f} C{:06.3f}'.format(yaw, target_att[0], yaw_cmd))
 
                         if joy and abs(joy['pitch'])<0.1:
                             pitch_cmd = pid_p(pitch,target_att[1], 0, 0)
@@ -118,7 +121,12 @@ async def recv_and_process():
                         thrusters_source.send_pyobj(['att',time.time(),thruster_cmd])
                 else:
                     if pid_y is not None:
-                        pid_y.reset(),pid_r.reset(),pid_y.reset()
+                        print('turn off att. hold')
+                        pid_y.reset(),pid_r.reset(),pid_p.reset()
+                        pid_y = None
+                        pid_p = None
+                        pid_r = None
+
                     target_att=[yaw,pitch,roll]
                     # TODO:  is it necessary to send it over and over...
                     thrusters_source.send_pyobj(['att', time.time(), mixer.zero_cmd()])

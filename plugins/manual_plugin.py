@@ -22,6 +22,7 @@ async def recv_and_process():
     jm=Joy_map()
     
     yaw,pitch,roll=0,0,0
+    curMode = 'unkn'
     while keep_running:
         socks=zmq.select(subs_socks,[],[],0.005)[0]
         for sock in socks:
@@ -35,13 +36,16 @@ async def recv_and_process():
                 if not joy['inertial']: ## default is inertial
                     roll_copensate,pitch_copensate=roll,pitch
               
-                thruster_joy_cmd = mixer.mix(joy['ud'],joy['lr'],joy['fb'],joy['roll'],joy['pitch'],joy['yaw'],pitch_copensate,roll_copensate)
+                if curMode != 'POSITION' or curMode != 'MISSION':
+                    thruster_joy_cmd = mixer.mix(joy['ud'],joy['lr'],joy['fb'],joy['roll'],joy['pitch'],joy['yaw'],pitch_copensate,roll_copensate)
 
-                thrusters_source.send_pyobj(['joy',time.time(),thruster_joy_cmd])
+                    thrusters_source.send_pyobj(['joy',time.time(),thruster_joy_cmd])
             if topic==zmq_topics.topic_button:
                 jm.update_buttons(data)
             if topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
+            if topic == zmq_topics.topic_system_state:
+                curMode = data['mode']
 
         await asyncio.sleep(0.001)
  
@@ -54,6 +58,7 @@ if __name__=='__main__':
     ### plugin inputs
     subs_socks=[]
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes,zmq_topics.topic_button],zmq_topics.topic_joy_port))
+    subs_socks.append(zmq_wrapper.subscribe(zmq_topics.topic_system_state,     zmq_topics.topic_controller_port) )
     subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],zmq_topics.topic_imu_port))
 
     ### plugin outputs
