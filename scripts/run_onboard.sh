@@ -37,7 +37,8 @@ sleep 1
 runLoop 2 plugins manual_plugin.py
 runLoop 3 plugins depth_hold_plugin.py
 runLoop 4 plugins att_hold_plugin.py
-runLoop 5 plugins oiTracker_plugin.py
+runLoop 5 plugins ofPlugin.py
+#runLoop 5 plugins oiTracker_plugin.py
 
 #tmux new-window
 #new_6_win
@@ -61,14 +62,14 @@ done
 tmux new-window
 new_6_win
 
-run 0 hw hwGateMt.py
+runLoop 0 hw hwGateMt.py
 #run 0 hw hw_gate.py
 #run 1 hw idsGst_proxy.py
 run 1 hw camIds.py
-run 2 hw vnav.py
-#run 3 hw sonar.py
-run 4 utils recorder.py
-run 5 utils udpGate.py
+runLoop 2 hw vnav.py
+runLoop 3 hw sonar.py
+runLoop 4 utils recorder.py
+runLoop 5 utils udpGate.py
 
 #runShell 5 . jtop
 #tmux att

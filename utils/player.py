@@ -236,19 +236,31 @@ if __name__=='__main__':
                     if isinstance(data, dict):
                         if 'ts' in data.keys():
                             curTs = data['ts']
+                        idx = 0
                         while True:
                             curData = pickle.load(telFid)
                             data = pickle.loads(curData[1][1])
                             if isinstance(data, dict):
                                 if 'ts' in data.keys():
                                     nextTs = data['ts']
+                                else:
+                                    
+                                    #print('err1... sending topic without ts', curData[1][0]) 
+                                    pass
+                                    
                                 if nextTs < curTs:
                                     print('need resync...')
+                                    idx += 1
                                     #import ipdb; ipdb.set_trace()
                                 else:
-                                    print('ok')
+                                    pass #print('ok')
                                 curTs = nextTs
+                            else:
+                                print('err2... senging data not as dict', curData[1][0])
+                                pass
+                                
                 except:
+                    print('--->', idx)
                     import traceback; traceback.print_exc()
                     #import ipdb; ipdb.set_trace()
 

@@ -78,12 +78,10 @@ else:
                    zmq_topics.topic_att_hold_yaw_pid:   { 'port': zmq_topics.topic_att_hold_port,         'rate':0.05, 'lmt': iniTic},
                    zmq_topics.topic_depth_hold_pid:     { 'port': zmq_topics.topic_depth_hold_port,       'rate':0.05, 'lmt': iniTic},
                    zmq_topics.topic_motors_output:      { 'port': zmq_topics.topic_motors_output_port,    'rate':0.05, 'lmt': iniTic},
+                   zmq_topics.topic_sonar:              { 'port': zmq_topics.topic_sonar_port,            'rate':0.05, 'lmt': iniTic},
+                   zmq_topics.topic_of_minimal_data:    { 'port': zmq_topics.topic_of_port,               'rate':0.05, 'lmt': iniTic},
                    }
     udpTelemIpPort = (config.groundIp, int(udpSendPort))
-
-
-
-
 
 subs_socks=[]
 mpsDict = {}
@@ -96,7 +94,7 @@ for topic in topicsDict.keys():
 keep_running=True
 
 udpSendSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
-udpRcvSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
+udpRcvSock  = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
 
 pubsDict = {}
 

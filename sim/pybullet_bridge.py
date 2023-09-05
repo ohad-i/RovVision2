@@ -286,8 +286,11 @@ def main():
             img_show=(depthImg/10.0).clip(0,255).astype('uint8')
             depthImg[depthImg>5000]=np.nan
             max_range=np.nanmax(depthImg)
+
             #print('sonar::',min_range,max_range)
-            pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps([min_range,max_range])])
+            pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps({'ts':time.time(), 
+                                                                           'distance_mm':depthImg[depthImg.shape[0]//2, depthImg.shape[1]//2]*1000, 
+                                                                           'confidence':100} )])
 
             if cvshow:
                 cv2.imshow('depth',img_show)
