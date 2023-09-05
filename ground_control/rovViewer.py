@@ -59,7 +59,7 @@ filename = "logs/gui_{}_{}_{}__{}_{}_{}.log".format(
     tm.tm_hour, tm.tm_min, tm.tm_sec)
 log_file = open(filename, "a")
 '''
-
+isSim = False
 if args.sim:
     rovType = -1
     isSim = True 
@@ -117,6 +117,7 @@ class rovDataHandler(Thread):
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_tracker, zmq_topics.topic_tracker_result], zmq_topics.topic_tracker_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_volt], zmq_topics.topic_volt_port))
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_hw_stats], zmq_topics.topic_hw_stats_port))
+        self.subs_socks.append(utils.subscribe([zmq_topics.topic_of_minimal_data], zmq_topics.topic_of_port))
         
         self.subs_socks.append(utils.subscribe([zmq_topics.topic_motors_output], zmq_topics.topic_motors_output_port))
         
@@ -209,6 +210,7 @@ class rovDataHandler(Thread):
 
                     ret = sock.recv_multipart()
                     topic = ret[0]
+                    
                     if zmq_topics.topic_stereo_camera != topic:
                         topic, data = ret
                         data = pickle.loads(ret[1])
@@ -261,8 +263,8 @@ class rovDataHandler(Thread):
 armDisarmMsg = [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
 
 recordMsg = [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0]
-attHoldMsg = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] 
-depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+#attHoldMsg = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] 
+#depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 lightDownMsg = [0, 0, 0, 0, 0, 0, 0.0, 1.0]
 lightUpMsg = [0, 0, 0, 0, 0, 0, 0.0, -1.0]
@@ -270,8 +272,11 @@ neutralHatMsg = [0, 0, 0, 0, 0, 0, 0.0, 0]
 focusNearMsg = [0, 0, 0, 0, 0, 0, -1, 0]
 focusFarMsg = [0, 0, 0, 0, 0, 0, 1, 0]
 
-attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+attHoldMsg   = [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0] # 'Y
+depthHoldMsg = [0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0] # 'B'
+positionMsg = [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]  #'X'
+
+
 
 
 
@@ -1177,50 +1182,49 @@ class rovViewerWindow(Frame):
         print('auto gain command')
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_toggle_auto_gain, pickle.dumps(b'', protocol=3) ])
     
-    def goLeft(self):
+    def goLeft(self, event):
         #TODO: send left movement command
         pass
 
-    def goRight(self):
+    def goRight(self, event):
         #TODO: send right movement command
         pass
     
-    def goForward(self):
+    def goForward(self, event):
         #TODO: send forward movement command
         pass
     
-    def neutralCmd(self):
+    def neutralCmd(self, event):
         #TODO: send no movement command (sticks at middle)
         pass
     
-    def goBackwards(self):
+    def goBackwards(self, event):
         #TODO: send backwards movement command
         pass
     
-    def yawRight(self):
+    def yawRight(self, event):
         #TODO: send yaw-right movement command
         pass
     
-    def yawLeft(self):
+    def yawLeft(self, event):
         #TODO: send yaw-left movement command
         pass
     
-    def goDeeper(self):
+    def goDeeper(self, event):
         #TODO: send deeper movement command
         pass
     
-    def goUpper(self):
+    def goUpper(self, event):
         #TODO: send upper movement command
         pass
-    
 
-    def led_off(self):
+    def led_off(self, event):
         pass
 
-    def led_low(self):
+    def led_low(self, event):
         pass
 
-    def led_high(self):
+    def led_high(self, event):
         pass
 
     def updateGuiData(self):
@@ -1398,6 +1402,12 @@ class rovViewerWindow(Frame):
 
     def cmdAttHold(self):
         data = pickle.dumps(attHoldMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+        data = pickle.dumps(neutralHatMsg, protocol=3)
+        self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
+
+    def cmdPosition(self):
+        data = pickle.dumps(positionMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
         data = pickle.dumps(neutralHatMsg, protocol=3)
         self.rovGuiCommandPublisher.send_multipart( [zmq_topics.topic_gui_diveModes, data])
@@ -1703,7 +1713,7 @@ class rovViewerWindow(Frame):
         pidCol = 1
         self.create_checkbox_button("showDepth", "depth control", pidCol, pidRow, self.checkDepthControl, anchor='w')
         self.myStyle["showDepth"].configure(command=self.depthSelect)
-        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow+1, self.checkThrusters, anchor='w')
+        self.create_checkbox_button("showmotors", "Trusters", pidCol+2, pidRow+2, self.checkThrusters, anchor='w')
         self.myStyle["showmotors"].configure(command=self.threustersSelect)
         pidRow += 1
         self.create_checkbox_button("showPitch", "pitch control", pidCol, pidRow, self.checkPitchControl, anchor='w')
@@ -1725,6 +1735,8 @@ class rovViewerWindow(Frame):
         #self.create_checkbox_button("attHold", "Attitude hold", commandCol, row_index, self.checkAttHold, anchor='w')
         #self.myStyle["attHold"].configure(command=self.dummy)
         self.create_button("attHold", "attitude hold", modesCol, modesRow, self.cmdAttHold)
+        modesRow += 1
+        self.create_button("position", "position", modesCol, modesRow, self.cmdPosition)
         modesRow += 1
         
         row_btn_idx = 2

@@ -81,6 +81,10 @@ class Joy_map:
     def depth_hold_event(self):
         return self.__test_togle(self._red) and self.__no_shift()
 
+    def position_event(self):
+        return self.__test_togle(self._blue) and self.__no_shift()
+    
+
     def record_event(self):
         return self.__test_togle(self._page)
 

@@ -113,6 +113,13 @@ topic_depth = b'topic_depth'
 topic_depth_port = 9302
 topic2portDict[topic_depth] = topic_depth_port
 
+
+topic_of_data = b'ofData'
+topic_of_minimal_data = b'ofMinimalData'
+topic_of_port = 9304
+topic2portDict[topic_of_data] = topic_of_port
+
+
 #messages:
 #stop/start recording
 

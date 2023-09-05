@@ -134,8 +134,8 @@ def draw_mono(img,message_dict,fmt_cnt_l):
         draw_depth(img,0,0,message_dict[zmq_topics.topic_depth]['depth'],target_depth)
     if zmq_topics.topic_sonar in message_dict:
         sonar_rng = message_dict[zmq_topics.topic_sonar]
-        line=' {:>.2f},{:>.2f} SRng'.format(*sonar_rng)
-        cv2.putText(img,line,(sy(450),sx(560+voff)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
+        line=' {:>.2f}[m], {:>.2f}[confidence] SRng'.format(sonar_rng['distance_mm']/1000, sonar_rng['confidence'])
+        cv2.putText(img,line,(sy(450),sx(560+voff)), font, 0.5,(255,0,0),1,cv2.LINE_AA)
     if zmq_topics.topic_record_state in message_dict:
         if message_dict[zmq_topics.topic_record_state]:
             cv2.putText(img,'REC',(sy(10),sx(15)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
@@ -174,6 +174,19 @@ def draw_mono(img,message_dict,fmt_cnt_l):
     if zmq_topics.topic_hw_stats in message_dict:
         line=hw_stats_tools.get_hw_str(message_dict[zmq_topics.topic_hw_stats][1])
         cv2.putText(img,line,(sy(670+500),sx(580+voff)), font, 0.5,(0,0,255),1,cv2.LINE_AA)
+    
+    if zmq_topics.topic_of_minimal_data in message_dict:
+        data = message_dict[zmq_topics.topic_of_minimal_data]
+        p0 = (int(data['genSetPoint'][0]), int(data['genSetPoint'][1]) )
+        p1 = (int(data['curSetPoint'][0]), int(data['curSetPoint'][1]) )
+        cv2.circle(img, p0, 10, (255,0,255), 2)
+        cv2.circle(img, p1, 10, (255,255,0), 2)
+
+        cv2.arrowedLine(img,
+        p1,
+        p0,(0,0,255),2)
+        
+
 
 from math import cos,sin,pi
 def draw_compass(img,x,y,heading,pitch,roll,rr=50.0):
