@@ -191,7 +191,7 @@ if __name__=='__main__':
     cv2.setMouseCallback(winName, startTrack)
     
     #fileName = r'jellyFish_realTracker.avi'
-    fileName = r'yy.avi'
+    fileName = r'/home/ohadi/proj/RovVision2/records/20230904_095709/outLowRes.avi'
     #fileName = r'outLowRes.avi'
     #fileName = r'oriSamples/vid_l.mp4'
     cap = cv2.VideoCapture(fileName)
