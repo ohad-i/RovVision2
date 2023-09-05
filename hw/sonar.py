@@ -25,13 +25,14 @@ mpsCnt = 0.0
 mpsTic = time.time()
 
 while 1:
-    time.sleep(0.1)
-    data = myPing.get_distance()
-    if cnt%10==0:
-        print('sonar, distance',data['distance']/1000)
-
-    tosend = pickle.dumps([data['distance'],data['confidence']])
-    pub_imu.send_multipart([zmq_topics.topic_sonar,tosend])
+    time.sleep(0.0001)
+    #data = myPing.get_distance()
+    data = myPing.get_distance_simple()
+    ts = time.time()
+    if cnt%30==0:
+        print(ts, 'sonar, distance',data['distance']/1000)
+    tosend = pickle.dumps({'ts':ts, 'distance_mm':data['distance'], 'confidence':data['confidence']} )
+    pub_imu.send_multipart([zmq_topics.topic_sonar, tosend])
     cnt+=1
     mpsCnt += 1
     if time.time()-mpsTic>3:

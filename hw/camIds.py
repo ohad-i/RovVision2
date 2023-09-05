@@ -64,6 +64,7 @@ if os.path.exists(camStateFile):
     with open(camStateFile, 'rb') as fid:
         camState = pickle.load(fid)
         if 'aGain' in camState.keys():
+            print('init gain value: ', camState['aGain'])
             gainCtl = camState['aGain']
         if 'aExp' in camState.keys():
             expCtl = camState['aExp']
@@ -126,7 +127,11 @@ while True:
         if topic==zmq_topics.topic_cam_toggle_auto_exp:
             expCtl = pickle.loads(data)
             print('set auto exp. to: %d'%expCtl)
+            print('-set gainCtl to 0-->', newExp, ) 
+            gainCtl = 0 
+            cam.set_gain_auto(gainCtl)
             cam.set_exposure_auto(expCtl)
+
         
         if topic==zmq_topics.topic_cam_toggle_auto_gain:
             gainCtl = pickle.loads(data)
@@ -137,8 +142,11 @@ while True:
             curExp = cam.get_exposure()
             newExp = curExp + expJump
             print('set exp (inc) to: %.2f'%newExp)
+
             newExp = cam.set_exposure(newExp)
-            print('--->', newExp)
+            print('-set gainCtl to 0-->', newExp, ) 
+            gainCtl = 0 
+            cam.set_gain_auto(gainCtl)
             camState['expVal'] = newExp
             
         if topic==zmq_topics.topic_cam_dec_exp:
@@ -146,7 +154,9 @@ while True:
             newExp = max(1, curExp - expJump )
             print('set exp (dec) to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
-            print('--->', newExp)
+            gainCtl = 0
+            print('-set gainCtl to 0-->', newExp)
+            cam.set_gain_auto(gainCtl)
             camState['expVal'] = newExp
             
         if topic == zmq_topics.topic_cam_exp_val:
@@ -154,7 +164,9 @@ while True:
             newExp = pickle.loads(data)
             print('set exp to: %.2f'%newExp)
             newExp = cam.set_exposure(newExp)
-            print('--->', newExp)
+            gainCtl = 0
+            print('-set gainCtl to 0-->', newExp)
+            cam.set_gain_auto(gainCtl)
             camState['expVal'] = newExp
             
             
