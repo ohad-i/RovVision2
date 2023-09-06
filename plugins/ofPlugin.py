@@ -75,7 +75,7 @@ class ofTracker:
 
         self.name       = ''
 
-        self.useGftt = False
+        self.useGftt = True
         self.gfttMask = None
 
         if self.useGftt:
@@ -174,7 +174,7 @@ class ofTracker:
                 pt = np.array([i,j])*self.searchRadius + np.array(self.frameOffsets)
                 self.initKeyPts.append(pt)
                 
-        self.minPtsForEstimation = len(self.initKeyPts)*0.30
+        self.minPtsForEstimation = len(self.initKeyPts)*0.55
         self.initKeyPts          = np.float32(self.initKeyPts).reshape(-1,1,2)
 
         if 0:
@@ -274,7 +274,8 @@ class ofTracker:
             else:
                 # find frame ofsets and calculate the init pts
 
-                self.horizenLevel = 230 #image.shape[0]//2
+                self.horizenLevel = 150 #230 #image.shape[0]//2 
+                #the horizen level needs to be calculated using the pitch of the camera
 
                 #self.searchRadius = [image.shape[1]//(self.gridPts**0.5), image.shape[0]//(self.gridPts**0.5)] # non-symetric
                 self.searchRadius = [image.shape[0]//(self.gridPts**0.5), (image.shape[0]-self.horizenLevel)//(self.gridPts**0.5)] # symetric to hight dimension
@@ -284,7 +285,7 @@ class ofTracker:
                     self.initUniformGrid(image)
                 else:
                     self.gfttMask = np.zeros(image.shape[:2], dtype = np.uint8)
-                    self.gfttMask[int(self.horizenLevel):-50, :] = 255
+                    self.gfttMask[int(self.horizenLevel):-200, :] = 255
                     #cv2.imshow('<mask>', self.gfttMask)
                     #cv2.waitKey(10)
 
@@ -434,7 +435,8 @@ if __name__=='__main__':
         #fileName = r'jellyFish_realTracker.avi'
         ## pool
         #fileName = r'/home/ohadi/rovRecs/newEspRec/outLowRes.avi'
-        fileName = r'/home/ohadi/proj/RovVision2/records/20230904_095709/outLowRes.avi'
+        #fileName = r'/home/ohadi/proj/RovVision2/records/20230904_095709/outLowRes.avi
+        fileName = r'/home/ohadi/proj/RovVision2/records/20230905_103230/outLowRes.avi'
         #fileName = r'outLowRes.avi'
         #fileName = r'oriSamples/vid_l.mp4'
         cap = cv2.VideoCapture(fileName)

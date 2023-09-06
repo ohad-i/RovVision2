@@ -39,8 +39,9 @@ runLoop 4 plugins att_hold_plugin.py
 runLoop 5 plugins ofPlugin.py
 #runLoop 5 plugins oiTracker_plugin.py
 
+tmux new-window
 new_2_win
-run 1 onboard imGate.py
+run 0 onboard imGate.py
 
 #tmux new-window
 #new_6_win

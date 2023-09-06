@@ -74,7 +74,7 @@ async def recv_and_process():
 
             elif topic==zmq_topics.topic_axes:
                 jm.update_axis(data)
-                target_depth+=jm.joy_mix()['ud']/10.0
+                target_depth+=jm.joy_mix()['ud']/100.0
 
             elif topic==zmq_topics.topic_gui_depthAtt:
                 if 'POSITION' not in system_state['mode']:
