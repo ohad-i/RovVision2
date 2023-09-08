@@ -1748,7 +1748,7 @@ class rovViewerWindow(Frame):
         modesRow += 1
         self.create_button("position", "position", modesCol, modesRow, self.cmdPosition)
         modesRow += 1
-        self.create_button("mission", "mission", modesCol, modesRow, self.cmdPosition)
+        self.create_button("mission", "mission", modesCol, modesRow, self.cmdMission)
         modesRow += 1
         
         row_btn_idx = 2
