@@ -22,6 +22,8 @@ import mixer
 from joy_mix import Joy_map  
 
 import argparse
+import asyncio
+
 
 
 parser = argparse.ArgumentParser(description='of module...', formatter_class=argparse.RawTextHelpFormatter)
@@ -31,6 +33,8 @@ parser.add_argument('-r', '--recPath', default=None, help=' path to record, avi 
 parser.add_argument('-s', '--skipFrame', type=int, default=-1, help='start of parsed frame, by frame counter not file index')
 
 args = parser.parse_args()
+
+
 
 class ofTracker:
     def __init__(self, debug=False):
@@ -65,6 +69,7 @@ class ofTracker:
 
         self.memSetPnt   = None
         self.genSetPoint = None
+        self.navRef      = None
         
 
         self.searchRadius = 10
@@ -75,8 +80,10 @@ class ofTracker:
 
         self.name       = ''
 
-        self.useGftt = True
+        self.useGftt = False
         self.gfttMask = None
+
+        self.joyOffsets = np.array([0, 0])
 
         if self.useGftt:
             # in case of improving track point using goodfeature to track        
@@ -85,10 +92,6 @@ class ofTracker:
         self.debug   = debug
         self.saveRes = True
         self.writer  = None
-
-        
-
-        
         
         
     def init(self, name = '<ofTracker>', 
@@ -132,7 +135,8 @@ class ofTracker:
         '''
 
     def setJoyOffset(self, ofX, ofY):
-        self.genSetPoint = self.memSetPnt + np.array([ofX, ofY])*-100 # 70 -> pixels
+        #self.genSetPoint = self.memSetPnt + np.array([ofX, ofY])*-100 # 70 -> pixels
+        self.joyOffsets = np.array([ofX, ofY])*-100
         
     def initKeyFrame(self, frame):
         print('init key frame...')
@@ -240,6 +244,10 @@ class ofTracker:
                 #self.curPts = predPntA
                 self.curPts = np.float32(self.curPts).reshape(-1,1,2)
                 newPoint = np.array([self.curPts[:,:,0].mean(), self.curPts[:,:,1].mean()])
+                self.navRef = newPoint
+
+                self.genSetPoint = self.navRef + self.joyOffsets
+                
                 
                 #print('motion estimation: ', newPoint-self.genSetPoint)
 
@@ -293,132 +301,198 @@ class ofTracker:
                 
                 return None
 
-                    
 
-if __name__=='__main__':
+startManuver    = False
+ofRes           = None
 
-    im      = None
-    imTt    = None
-    winName = 'Of'
-
-    ofTrck  = ofTracker(args.runRec )
-    ofTrck.init(girdPts=169)
-
-    cnt = 0.0
-    frameId = 0
-    tic = time.time()
-    mmAvi = None
+async def sendCommand():
+    global startManuver, ofRes, sysModes
     
+    thrustersSource = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)
+
+    commandSendRate  = 50 #Hz
+    cmdFpsTic = time.time()
+    cnt = 0
     jm=Joy_map()
 
+    while True:
+        syncTic = time.time()
+        cnt += 1
+        if time.time() - cmdFpsTic >= 3:
+            fps = cnt/(time.time() - cmdFpsTic)
+            print('command send rate: %f Hz'%fps)
+            cnt = 0
+            cmdFpsTic = time.time()
+
+        if startManuver and ofRes is not None and ('MISSION' not in sysModes):
+            
+            roll = 0
+            pitch = 0
+            yaw = 0
+            upDown = 0
+
+            err = ofRes['curSetPoint'] - ofRes['genSetPoint']
+            
+            rightLeft = 0 
+            backForward = 0
+
+            if abs(err[0]) > 10:
+                rightLeft = min(1, max(-1, err[0]/100) ) 
+            
+            if abs(err[1]) > 10:
+                backForward = min(1, max(-1, err[1]/100) ) 
+
+            if cnt%100 == 0:
+                print(err, '-<>', rightLeft, backForward )
+
+            thrusterOfCmd = np.array(mixer.mix(upDown, rightLeft, backForward,roll ,pitch ,yaw ,0 ,0))
+            thrustersSource.send_pyobj(['of', time.time(), thrusterOfCmd])
+        else:
+            thrustersSource.send_pyobj(['of', time.time(), mixer.zero_cmd()])
+        wait = 1/commandSendRate-(time.time() - syncTic)
+        await asyncio.sleep(wait)
+            
+
+ofTrck = None
+im      = None
+imTt    = None
+winName = 'Of'
+sysModes = []
+
+cnt = 0.0
+frameId = 0
+tic = time.time()
+
+async def mainLoop():    
+    global ofTrck, ofRes, im, imTt, startManuver, sysModes 
+
+
+    subs_socks=[]
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_stereo_camera],   zmq_topics.topic_camera_port)     )
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],             zmq_topics.topic_imu_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state, 
+                                                zmq_topics.topic_tracker_cmd],  zmq_topics.topic_controller_port) )
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes],            zmq_topics.topic_joy_port))
+    subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_sonar],           zmq_topics.topic_sonar_port) )
+
+    ofDataPub = zmq_wrapper.publisher(zmq_topics.topic_of_port)
+
+    setInitPos = True
+    gFrame = None
+
+    startManuver = False
+    tic = time.time()
+    cnt = 0.0
+
+    jm=Joy_map()
+
+    curPitch = None
+
+
+    while True:
+        await asyncio.sleep(0.01)
+        
+        if time.time() - tic >= 5:
+            fps = cnt/(time.time()-tic)
+            print('cur fps: %0.2f'%(fps))
+            cnt = 0.0
+            tic = time.time()
+
+        socks=zmq.select(subs_socks,[],[],0.005)[0]
+        for sock in socks:
+            ret=sock.recv_multipart()
+            topic, data = ret[0],pickle.loads(ret[1])
+            if topic==zmq_topics.topic_axes:
+                #print('joy ',ret[jm.yaw])
+                jm.update_axis(data)
+                joy = jm.joy_mix()
+                try: 
+                    ofTrck.setJoyOffset(joy['lr'], joy['fb'])
+                    print(time.time(), ' -- ', joy['lr'])
+                except:
+                    pass
+
+            elif topic==zmq_topics.topic_stereo_camera:
+
+                frameCnt, shape,ts, curExp, hasHighRes = pickle.loads(ret[1])
+                frame = np.frombuffer(ret[-2],'uint8').reshape( (shape[0]//2, shape[1]//2, 3) ).copy()
+
+                gFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)[:,:,ptt]
+                ofRes = ofTrck.ofTrack(gFrame)
+                
+                cnt += 1
+
+                if ofRes is not None:
+                    ofDataPub.send_multipart([zmq_topics.topic_of_data, pickle.dumps(ofRes)])
+
+                    ofMinimal = {'genSetPoint': ofRes['genSetPoint'],'curSetPoint': ofRes['curSetPoint']}
+                    ofDataPub.send_multipart([zmq_topics.topic_of_minimal_data, pickle.dumps(ofMinimal)])
+            
+
+            elif topic == zmq_topics.topic_system_state:
+                sysModes = data['mode']
+                if 'POSITION' in data['mode']:
+                    if setInitPos:
+                        #init position
+                        if gFrame is not None:
+                            print("init key...")
+                            ofTrck.initKeyFrame(gFrame)
+                            setInitPos = False
+                            startManuver = True
+                elif not setInitPos:
+                    setInitPos = True
+                    startManuver = False
+            
+            elif topic == zmq_topics.topic_imu:
+                curPitch = data['pitch']
+            
+            elif topic == zmq_topics.topic_sonar:
+                if data['confidence'] > 90: #[%]
+                    cAlt = data['distance_mm']/1000
+                    if curPitch is not None:
+                        gAlt = np.sin(np.deg2rad(curPitch))*cAlt # alt above ground
+                    else:
+                        gAlt = -1
+                else:
+                    cAlt = None
+                print('LOS distance: ', cAlt, 'alt above ground: ', gAlt)
+
+                    
+            if args.runSim:
+                key = cv2.waitKey(10)
+                if key&0xff == 27 or key&0xff == ord('q'):
+                    sys.exit(0)
+                if key&0xff == ord('k'):
+                    print('init kay by command...')
+                    ofTrck.initKeyFrame(gFrame)
+
+
+async def main():
+    await asyncio.gather(
+            mainLoop(),
+            sendCommand(),
+            )
+    
+if __name__=='__main__':
+    
+    ofTrck  = ofTracker(args.runRec) 
+    ofTrck.init(girdPts=121)
+
+    mmAvi = None
+    
     if args.runSim:
         ptt = 0
     else:
         ptt = 2 # plane to track
 
+    
+
     if not args.runRec:
-        subs_socks=[]
-        subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_stereo_camera],   zmq_topics.topic_camera_port)     )
-        subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_imu],             zmq_topics.topic_imu_port))
-        subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_system_state, 
-                                                 zmq_topics.topic_tracker_cmd],     zmq_topics.topic_controller_port) )
-        subs_socks.append(zmq_wrapper.subscribe([zmq_topics.topic_axes],       zmq_topics.topic_joy_port))
 
-        ofDataPub = zmq_wrapper.publisher(zmq_topics.topic_of_port)
-
-        thrustersSource = zmq_wrapper.push_source(zmq_topics.thrusters_sink_port)
+        loop = asyncio.get_event_loop()
+        result = loop.run_until_complete(main())
         
-        setInitPos = True
-        gFrame = None
 
-        startManuver = False
-        while True:
-            time.sleep(0.0001)
-            
-            if time.time() - tic >= 5:
-                fps = cnt/(time.time()-tic)
-                print('cur fps: %0.2f'%(fps))
-                cnt = 0.0
-                tic = time.time()
-
-            socks=zmq.select(subs_socks,[],[],0.005)[0]
-            for sock in socks:
-                ret=sock.recv_multipart()
-                topic, data = ret[0],pickle.loads(ret[1])
-                if topic==zmq_topics.topic_axes:
-                    #print('joy ',ret[jm.yaw])
-                    jm.update_axis(data)
-                    joy = jm.joy_mix()
-                    try: 
-                        ofTrck.setJoyOffset(joy['lr'], joy['fb'])
-                    except:
-                        pass
-
-                elif topic==zmq_topics.topic_stereo_camera:
-
-                    frameCnt, shape,ts, curExp, hasHighRes = pickle.loads(ret[1])
-                    frame = np.frombuffer(ret[-2],'uint8').reshape( (shape[0]//2, shape[1]//2, 3) ).copy()
-
-                    gFrame = cv2.cvtColor(frame, cv2.COLOR_BGR2YUV)[:,:,ptt]
-                    ofRes = ofTrck.ofTrack(gFrame)
-                    
-                    cnt += 1
-
-                    if ofRes is not None:
-                        ofDataPub.send_multipart([zmq_topics.topic_of_data, pickle.dumps(ofRes)])
-
-                        ofMinimal = {'genSetPoint': ofRes['genSetPoint'],'curSetPoint': ofRes['curSetPoint']}
-                        ofDataPub.send_multipart([zmq_topics.topic_of_minimal_data, pickle.dumps(ofMinimal)])
-
-                        if startManuver:
-
-                            roll = 0
-                            pitch = 0
-                            yaw = 0
-                            upDown = 0
-
-                            err = ofRes['curSetPoint'] - ofRes['genSetPoint']
-                            
-                            rightLeft = 0 
-                            backForward = 0
-
-                            if abs(err[0]) > 10:
-                                rightLeft = min(1, max(-1, err[0]/100) ) 
-                            
-                            if abs(err[1]) > 10:
-                                backForward = min(1, max(-1, err[1]/100) ) 
-
-                            print(err, '-<>', rightLeft, backForward )
-
-                            thrusterOfCmd = np.array(mixer.mix(upDown, rightLeft, backForward,roll ,pitch ,yaw ,0 ,0))
-                            thrustersSource.send_pyobj(['of', time.time(), thrusterOfCmd])
-                        else:
-                            thrustersSource.send_pyobj(['of', time.time(), mixer.zero_cmd()])
-                        
-
-                elif topic == zmq_topics.topic_system_state:
-                    if 'POSITION' in data['mode']:
-                        if setInitPos:
-                            #init position
-                            if gFrame is not None:
-                                print("init key...")
-                                ofTrck.initKeyFrame(gFrame)
-                                setInitPos = False
-                                startManuver = True
-                    elif not setInitPos:
-                        setInitPos = True
-                        startManuver = False
-                        
-                if args.runSim:
-                    key = cv2.waitKey(10)
-                    if key&0xff == 27 or key&0xff == ord('q'):
-                        sys.exit(0)
-                    if key&0xff == ord('k'):
-                        print('init kay by command...')
-                        ofTrck.initKeyFrame(gFrame)
-
-        
-        
     else:
 
         def startTrack(event,x,y,flags,param):

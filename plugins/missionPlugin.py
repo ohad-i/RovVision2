@@ -93,7 +93,7 @@ def sendMissionCmd(pub, dDepth, dPitch, dYaw, navVel):
 def missionHandler(missionPub, depth, alt, pitch, yaw):
     global missionState, missionPitchOk, missionHeadingOk, missionAltOk, curWP
     
-    gAlt = np.cos(np.deg2rad(pitch))*cAlt # alt above ground
+    gAlt = np.sin(np.deg2rad(pitch))*cAlt # alt above ground
     dVel = [0, 0]
 
     if missionState['stage'] == 'initMission':
@@ -146,7 +146,7 @@ if __name__=='__main__':
         for sock in socks:
             ret=sock.recv_multipart()
             topic, data = ret[0],pickle.loads(ret[1])
-
+            
             if topic == zmq_topics.topic_system_state:
                 if 'MISSION' in data['mode']:
                     if setInitMission:
@@ -165,8 +165,6 @@ if __name__=='__main__':
                 curPitch = data['pitch']
                 curYaw   = data['yaw']
             
-            elif topic == zmq_topics.topic_depth:
-                curDepth = data['depth']
 
         if cAlt is not None and curPitch is not None and curDepth is not None:
             missionHandler(missPub, curDepth, cAlt, curPitch, curYaw)

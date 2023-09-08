@@ -36,9 +36,8 @@ async def recv_and_process():
                 if not joy['inertial']: ## default is inertial
                     roll_copensate,pitch_copensate=roll,pitch
               
-                if curMode != 'POSITION' or curMode != 'MISSION':
+                if ('POSITION' not in curMode)  and ('MISSION' not in curMode):
                     thruster_joy_cmd = mixer.mix(joy['ud'],joy['lr'],joy['fb'],joy['roll'],joy['pitch'],joy['yaw'],pitch_copensate,roll_copensate)
-
                     thrusters_source.send_pyobj(['joy',time.time(),thruster_joy_cmd])
             if topic==zmq_topics.topic_button:
                 jm.update_buttons(data)

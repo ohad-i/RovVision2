@@ -279,17 +279,17 @@ def main():
             zmq_pub.send_multipart([zmq_topics.topic_stereo_camera_ts,pickle.dumps((frame_cnt,time.time()))]) #for sync
                 
             #get depth image
-            depthImg=depthImg[::4,::4]
+            #depthImg=depthImg[::4,::4]
             min_range=depthImg.min() 
-            #import pdb;pdb.set_trace()
-
-            img_show=(depthImg/10.0).clip(0,255).astype('uint8')
+            
+            #import ipdb; ipdb.set_trace()
+            #img_show=(depthImg/(np.max(depthImg-np.min(depthImg))) ) *255 #(depthImg/10.0).clip(0,255).astype('uint8')
+            #cv2. imshow('dep', img_show.astype('uint8')); cv2.waitKey(10)
             depthImg[depthImg>5000]=np.nan
             max_range=np.nanmax(depthImg)
-
             #print('sonar::',min_range,max_range)
             pub_sonar.send_multipart([zmq_topics.topic_sonar,pickle.dumps({'ts':time.time(), 
-                                                                           'distance_mm':depthImg[depthImg.shape[0]//2, depthImg.shape[1]//2]*1000, 
+                                                                           'distance_mm':depthImg[depthImg.shape[0]//2, depthImg.shape[1]//2]*1000.0, 
                                                                            'confidence':100} )])
 
             if cvshow:
