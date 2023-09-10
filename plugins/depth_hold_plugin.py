@@ -39,12 +39,6 @@ async def recv_and_process():
             ret=sock.recv_multipart()
             topic,data=ret[0],pickle.loads(ret[1])
             
-            if os.path.exists(tmpPIDS):
-                _, _, _, depth_pid = commonPlugins.reloadPIDs(tmpPIDS)
-                os.remove(tmpPIDS)
-                pid = None
-                print('Update pids and reset plugin...')
-
             if topic==zmq_topics.topic_depth:
                 new_depth_ts, depth=data['ts'],data['depth']
                 if ab is None:
@@ -93,6 +87,19 @@ async def recv_and_process():
 
             elif topic==zmq_topics.topic_system_state:
                 system_state=data
+                if system_state['updatePID']['plugin'] is not None:
+                    if system_state['updatePID']['plugin'] == 'depth':
+                        pid = None
+                        print('update depth hold pids')
+                        pid=PID(P          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['P'],
+                                I          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['I'],
+                                D          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['D'],
+                                K = 1,
+                                limit      = system_state['updatePID']['values']['limit'], 
+                                step_limit = system_state['updatePID']['values']['step_limit'],
+                                i_limit    = system_state['updatePID']['values']['i_limit'] )
+
+
 
         await asyncio.sleep(0.001)
 

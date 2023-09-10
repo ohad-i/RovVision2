@@ -49,7 +49,10 @@ system_state={'ts':         time.time(),
               'record':     False, 
               'diskUsage':  -1,
               'autoGain':   -1,
-              'autoExp':    -1} 
+              'autoExp':    -1,
+              'updatePID': {'plugin': None,
+                            'values': None,},
+              }
 thruster_cmd = [0]*8
 
 thrusters_dict={}
@@ -71,6 +74,9 @@ async def sendSystemStatus():
             print('sending system state rate: %0.2f'%fps)
             cnt = 0.0
             fpsTic = time.time()
+
+        system_state['updatePID']['plugin'] = None
+        system_state['updatePID']['values'] = None
         wait = sendingRate - (time.time()-tic)
         await asyncio.sleep(wait)
 
@@ -154,6 +160,9 @@ async def recv_and_process():
                   'record':False, 
                   'diskUsage':diskUsage,
                   'autoGain':gainCtl,
+                  'updatePID':{'plugin': None, 
+                               'values': None,
+                               },
                   'autoExp':expCtl} #lights 0-5
     
     jm=Joy_map()
@@ -326,12 +335,16 @@ async def recv_and_process():
                 
                 elif topic == zmq_topics.topic_gui_update_pids:
                     print('update PIDs... %s'%data['pluginUpdate'] )
+                    system_state['updatePID']['plugin']=data['pluginUpdate']
+                    system_state['updatePID']['values']=data['data']['config_pid'][0][data['pluginUpdate']+'_pid']
+                    '''
                     if data['pluginUpdate'] == 'depth':
                         jsonFileName = "/tmp/tmpDepthConfigPid.json"
                     elif data['pluginUpdate'] == 'yaw' or data['pluginUpdate'] == 'roll' or data['pluginUpdate'] == 'pitch':
                         jsonFileName = "/tmp/tmpAttConfigPid.json"
                     with open(jsonFileName, 'w') as fid:
                         json.dump(data['data'], fid, indent=4)
+                    '''
                     
         tic=time.time()
 

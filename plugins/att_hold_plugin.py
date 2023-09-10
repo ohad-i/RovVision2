@@ -66,14 +66,6 @@ async def recv_and_process():
                     if data['dPitch'] is not None:
                         target_att[1] = data['dPitch']
             
-            elif os.path.exists(tmpPIDS):
-                yaw_pid, pitch_pid, roll_pid, _ = commonPlugins.reloadPIDs(tmpPIDS)
-                os.remove(tmpPIDS)
-                pid_y = None
-                pid_p = None
-                pid_r = None
-                print('Update pids and reset plugin...')
-            
             elif topic==zmq_topics.topic_imu:
                 yaw,pitch,roll=data['yaw'],data['pitch'],data['roll']
                 #print('--1->roll %.2f'%roll)
@@ -92,9 +84,9 @@ async def recv_and_process():
                     if pid_y is None:
                         print('load yaw PID values: ')
                         pid_y=PID(**yaw_pid)
-                        print('load yaw PID pitch: ')
+                        print('load pitch PID values: ')
                         pid_p=PID(**pitch_pid)
-                        print('load yaw PID roll: ')
+                        print('load roll PID values: ')
                         pid_r=PID(**roll_pid)
                     else:
                         #if joy and joy['inertial'] and abs(joy['yaw'])<0.05:
@@ -129,12 +121,18 @@ async def recv_and_process():
                         
                         thrusters_source.send_pyobj(['att',time.time(),thruster_cmd])
                 else:
-                    if pid_y is not None:
+            
+                    #pids = {'yaw':pid_y, 'roll':pid_r, 'pitch':pid_p}
+                    pids = [pid_y, pid_r, pid_p]
+                    if any(pids):            
                         print('turn off att. hold')
-                        pid_y.reset(),pid_r.reset(),pid_p.reset()
-                        pid_y = None
-                        pid_p = None
-                        pid_r = None
+                        for pid in pids:
+                            if pid is not None:
+                                pid.reset()
+                                pid = None
+                        pid_y, pid_r, pid_p = [None]*3
+                         
+
 
                     target_att=[yaw,pitch,roll]
                     # TODO:  is it necessary to send it over and over...
@@ -151,6 +149,30 @@ async def recv_and_process():
 
             elif topic==zmq_topics.topic_system_state:
                 system_state=data
+
+                if system_state['updatePID']['plugin'] is not None:
+                    
+                    tmpPid = PID(P          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['P'],
+                                 I          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['I'],
+                                 D          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['D'],
+                                 K          = 1,
+                                 limit      = system_state['updatePID']['values']['limit'],
+                                 step_limit = system_state['updatePID']['values']['step_limit'],
+                                 i_limit    = system_state['updatePID']['values']['i_limit'] )
+                    if 'yaw' in system_state['updatePID']['plugin']:
+                        pid_y = None
+                        pid_y = tmpPid
+                        print('update yaw pids')
+                    if 'pitch' in system_state['updatePID']['plugin']:
+                        pid_p = None
+                        pid_p = tmpPid
+                        print('update pitch pids')
+                    if 'roll' in system_state['updatePID']['plugin']:
+                        pid_r = None
+                        pid_r = tmpPid
+                        print('update roll pids')
+
+                    curPid = None
 
         await asyncio.sleep(0.001)
 
