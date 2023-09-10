@@ -108,8 +108,9 @@ while True:
         hasHighRes = True
         if frameCnt%4 == 0:
             socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
-            pickle.dumps((frameCnt, imShape, ts, camState, hasHighRes)), QRes.tobytes(),
-                                                    imRaw.tobytes()])
+                                       pickle.dumps((frameCnt, imShape, ts, camState, hasHighRes)), 
+                                       QRes.tobytes(),
+                                       imRaw.tobytes()])
         else:
             hasHighRes = False
             socket_pub.send_multipart([zmq_topics.topic_stereo_camera,
