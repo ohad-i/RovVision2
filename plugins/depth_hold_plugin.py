@@ -87,17 +87,16 @@ async def recv_and_process():
 
             elif topic==zmq_topics.topic_system_state:
                 system_state=data
-                if system_state['updatePID']['plugin'] is not None:
-                    if system_state['updatePID']['plugin'] == 'depth':
-                        pid = None
-                        print('update depth hold pids')
-                        pid=PID(P          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['P'],
-                                I          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['I'],
-                                D          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['D'],
-                                K = 1,
-                                limit      = system_state['updatePID']['values']['limit'], 
-                                step_limit = system_state['updatePID']['values']['step_limit'],
-                                i_limit    = system_state['updatePID']['values']['i_limit'] )
+                if system_state['updatePID']['plugin'] == 'depth':
+                    pid = None
+                    print('update depth hold pids')
+                    pid=PID(P          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['P'],
+                            I          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['I'],
+                            D          = system_state['updatePID']['values']['K']*system_state['updatePID']['values']['D'],
+                            K = 1,
+                            limit      = system_state['updatePID']['values']['limit'], 
+                            step_limit = system_state['updatePID']['values']['step_limit'],
+                            i_limit    = system_state['updatePID']['values']['i_limit'] )
 
 
 
