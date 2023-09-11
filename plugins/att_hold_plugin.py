@@ -172,7 +172,6 @@ async def recv_and_process():
                         pid_r = tmpPid
                         print('update roll pids')
 
-                    curPid = None
 
         await asyncio.sleep(0.001)
 
