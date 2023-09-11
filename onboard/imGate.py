@@ -69,10 +69,11 @@ async def recv_and_process():
                 ret, encIm = cv2.imencode('.jpg', imgl, [cv2.IMWRITE_JPEG_QUALITY, jpgQuality])
                 doSend = True
                 #print(imgl.shape, jpgQuality, len(encIm))
-                if len(encIm) < 1024*60:
+                if len(encIm) < 1024*55:
                     jpgQuality = min(100, jpgQuality+1)
                 elif len(encIm) >= maxImSize:
-                    jpgQuality = max(30, jpgQuality-2)
+                    print(len(encIm))
+                    jpgQuality = max(10, jpgQuality-10)
                     doSend = False
                 #import ipdb; ipdb.set_trace() 
                 msg = pickle.dumps([frame_cnt, camState['expVal'], encIm])
@@ -83,7 +84,8 @@ async def recv_and_process():
             if time.time() - tic >= 7:
                 inImgFPS = inImgCnt/(time.time() - tic)
                 sentFPS = sentImgCnt/(time.time() - tic)
-                print(tic, 'input image %.2f FPS, sent %.2f FPS'%(inImgFPS, sentFPS))
+
+                print(tic, 'input image %.2f FPS, sent %.2f FPS, jpgQual: %d'%(inImgFPS, sentFPS, jpgQuality))
                 inImgCnt = 0.0
                 sentImgCnt = 0.0
                 tic = time.time()
