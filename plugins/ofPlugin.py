@@ -324,7 +324,7 @@ async def sendCommand():
             cnt = 0
             cmdFpsTic = time.time()
 
-        if startManuver and ofRes is not None and ('MISSION' not in sysModes):
+        if startManuver and ofRes is not None and ('MISSION' not in sysModes) and ('POSITION' in sysModes):
             
             roll = 0
             pitch = 0
@@ -379,6 +379,7 @@ async def mainLoop():
 
     setInitPos = True
     gFrame = None
+    gAlt = -1
 
     startManuver = False
     tic = time.time()
@@ -394,6 +395,7 @@ async def mainLoop():
         
         if time.time() - tic >= 5:
             fps = cnt/(time.time()-tic)
+            print('LOS distance: ', cAlt, 'alt above ground: ', gAlt)
             print('cur fps: %0.2f'%(fps))
             cnt = 0.0
             tic = time.time()
@@ -455,7 +457,6 @@ async def mainLoop():
                         gAlt = -1
                 else:
                     cAlt = None
-                print('LOS distance: ', cAlt, 'alt above ground: ', gAlt)
 
                     
             if args.runSim:

@@ -82,7 +82,7 @@ async def sendSystemStatus():
 
 async def sendThrstesCmd():
     global thruster_cmd, system_state, thrusters_dict
-    sendingRate = 1/60.0
+    sendingRate = 1/50.0
     
     thrustersCnt = 0
     thrustersTic = time.time()

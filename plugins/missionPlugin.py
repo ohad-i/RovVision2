@@ -138,6 +138,7 @@ if __name__=='__main__':
     curPitch = None   
     curdepth = None
     curYaw   = None
+    curDepth = None
 
     while True:
         time.sleep(0.001)
@@ -164,6 +165,9 @@ if __name__=='__main__':
             elif topic == zmq_topics.topic_imu:
                 curPitch = data['pitch']
                 curYaw   = data['yaw']
+
+            elif topic == zmq_topics.topic_depth:
+                curDepth = data['depth']
             
 
         if cAlt is not None and curPitch is not None and curDepth is not None:

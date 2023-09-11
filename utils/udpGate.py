@@ -42,21 +42,22 @@ if isGround:
     udpRecvPort = config.fromROVudpPort
     # topic to send over udp
     topicsDict = { 
-                    zmq_topics.topic_gui_controller:         { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic }, #rate -> (ms) min ms between msgs
-                    zmq_topics.topic_gui_diveModes:          { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_focus_controller:   { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_depthAtt:           { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_autoFocus:          { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic }, 
-                    zmq_topics.topic_gui_start_stop_track:   { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_toggle_auto_exp:    { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_inc_exp:            { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_dec_exp:            { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_exposureVal:        { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_gui_toggle_auto_gain:   { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_button:                 { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_axes:                   { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic },
-                    zmq_topics.topic_hat:                    { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic }, 
-                    zmq_topics.topic_check_thrusters_comand: { 'port': zmq_topics.topic_check_thrusters_comand_port, 'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_controller:             { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic }, #rate -> (ms) min ms between msgs
+                    zmq_topics.topic_gui_diveModes:              { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_focus_controller:       { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_depthAtt:               { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_autoFocus:              { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic }, 
+                    zmq_topics.topic_gui_start_stop_track:       { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_toggle_auto_exp:        { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_inc_exp:                { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_dec_exp:                { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_exposureVal:            { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_gui_toggle_auto_gain:       { 'port': zmq_topics.topic_gui_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_button:                     { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_axes:                       { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_hat:                        { 'port': zmq_topics.topic_joy_port,                    'rate':0.0001, 'lmt':iniTic }, 
+                    zmq_topics.topic_gui_update_pids:            { 'port': zmq_topics.topic_gui_port, 'rate':0.0001, 'lmt':iniTic },
+                    zmq_topics.topic_check_thrusters_comand:     { 'port': zmq_topics.topic_check_thrusters_comand_port, 'rate':0.0001, 'lmt':iniTic },
                    }
     udpTelemIpPort = (os.environ["REMOTE_SUB"].split('@')[1], int(udpSendPort))
     
