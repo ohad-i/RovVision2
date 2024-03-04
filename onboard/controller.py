@@ -180,7 +180,7 @@ async def recv_and_process():
 
     
     while keep_running:
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.001)
         socks=zmq.select(subs_socks,[],[],0.002)[0]
         #print('-<>', system_state)
         for sock in socks:
